@@ -1,0 +1,288 @@
+'use client';
+
+import { useState, Suspense } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { format, isToday, isTomorrow, isPast } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Plus, CalendarDays, BedDouble } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+import { useReservations } from '@/hooks/use-hotel';
+import { CheckInForm } from '@/components/hotel/check-in-form';
+import type { StayWithGuest } from '@/hooks/use-hotel';
+import type { Database } from '@/types/database';
+
+type StayStatus = Database['public']['Enums']['stay_status'];
+
+// -------------------------------------------------------
+// Status config
+// -------------------------------------------------------
+
+const STATUS_CONFIG: Record<StayStatus, { label: string; variant: 'default' | 'outline' | 'secondary'; className: string }> = {
+  reserved: {
+    label: 'Reservada',
+    variant: 'outline',
+    className: 'border-blue-300 bg-blue-50 text-blue-700',
+  },
+  checked_in: {
+    label: 'In-house',
+    variant: 'outline',
+    className: 'border-green-300 bg-green-50 text-green-700',
+  },
+  checked_out: {
+    label: 'Check-out',
+    variant: 'outline',
+    className: 'border-gray-300 bg-gray-50 text-gray-600',
+  },
+  cancelled: {
+    label: 'Cancelada',
+    variant: 'outline',
+    className: 'border-red-300 bg-red-50 text-red-600',
+  },
+  no_show: {
+    label: 'No-show',
+    variant: 'outline',
+    className: 'border-orange-300 bg-orange-50 text-orange-600',
+  },
+};
+
+// -------------------------------------------------------
+// Currency formatter
+// -------------------------------------------------------
+
+const copFormatter = new Intl.NumberFormat('es-CO', {
+  style: 'currency',
+  currency: 'COP',
+  maximumFractionDigits: 0,
+});
+
+// -------------------------------------------------------
+// Arrival badge
+// -------------------------------------------------------
+
+function ArrivalBadge({ checkInDate }: { checkInDate: string }) {
+  const date = new Date(`${checkInDate}T12:00:00`);
+  if (isToday(date)) {
+    return (
+      <Badge variant="outline" className="text-[10px] border-teal-300 bg-teal-50 text-teal-700">
+        Hoy
+      </Badge>
+    );
+  }
+  if (isTomorrow(date)) {
+    return (
+      <Badge variant="outline" className="text-[10px] border-indigo-300 bg-indigo-50 text-indigo-700">
+        Mañana
+      </Badge>
+    );
+  }
+  if (isPast(date)) {
+    return (
+      <Badge variant="outline" className="text-[10px] border-red-300 bg-red-50 text-red-600">
+        Pasada
+      </Badge>
+    );
+  }
+  return null;
+}
+
+// -------------------------------------------------------
+// Reservations content
+// -------------------------------------------------------
+
+function ReservasContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const filterStatus = searchParams.get('estado') ?? '';
+  const filterDateFrom = searchParams.get('desde') ?? '';
+  const filterDateTo = searchParams.get('hasta') ?? '';
+
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const { data: reservations = [], isLoading } = useReservations();
+
+  function updateParam(key: string, value: string | null) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!value) params.delete(key);
+    else params.set(key, value);
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  // Apply filters
+  let filtered = reservations as StayWithGuest[];
+  if (filterStatus) {
+    filtered = filtered.filter((r) => r.status === filterStatus);
+  }
+  if (filterDateFrom) {
+    filtered = filtered.filter((r) => r.check_in_date >= filterDateFrom);
+  }
+  if (filterDateTo) {
+    filtered = filtered.filter((r) => r.check_in_date <= filterDateTo);
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* Header */}
+      <div className="border-b px-6 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Reservas</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Próximas llegadas y estancias activas
+            </p>
+          </div>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Nueva reserva
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2 border-b px-6 py-2.5">
+        <Select value={filterStatus} onValueChange={(v) => updateParam('estado', v || null)}>
+          <SelectTrigger className="h-7 w-36 text-xs">
+            <SelectValue placeholder="Estado" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Todos</SelectItem>
+            {(Object.entries(STATUS_CONFIG) as [StayStatus, (typeof STATUS_CONFIG)[StayStatus]][]).map(([key, cfg]) => (
+              <SelectItem key={key} value={key}>
+                {cfg.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-1">
+          <Input
+            type="date"
+            className="h-7 w-32 text-xs"
+            value={filterDateFrom}
+            onChange={(e) => updateParam('desde', e.target.value || null)}
+          />
+          <span className="text-xs text-muted-foreground">—</span>
+          <Input
+            type="date"
+            className="h-7 w-32 text-xs"
+            value={filterDateTo}
+            onChange={(e) => updateParam('hasta', e.target.value || null)}
+          />
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto px-6 py-4">
+        {isLoading ? (
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-16 rounded-lg" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <CalendarDays className="h-10 w-10 text-muted-foreground/40" />
+            <p className="text-muted-foreground">No hay reservas que coincidan con los filtros.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="whitespace-nowrap px-4 py-3 text-left">Código</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left">Huésped</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left">Habitación</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left">Entrada</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left">Salida</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-right">Noches</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-right">Tarifa</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {filtered.map((stay) => {
+                  const statusCfg = STATUS_CONFIG[stay.status];
+                  return (
+                    <tr key={stay.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <span className="font-mono text-xs text-muted-foreground">{stay.code}</span>
+                      </td>
+                      <td className="px-4 py-3 font-medium">
+                        {stay.guest.first_name} {stay.guest.last_name}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <BedDouble className="h-3 w-3" />
+                          {stay.room_id.slice(0, 8)}
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-muted-foreground">
+                            {format(
+                              new Date(`${stay.check_in_date}T12:00:00`),
+                              "d MMM yyyy",
+                              { locale: es },
+                            )}
+                          </span>
+                          <ArrivalBadge checkInDate={stay.check_in_date} />
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                        {format(
+                          new Date(`${stay.check_out_date}T12:00:00`),
+                          "d MMM yyyy",
+                          { locale: es },
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">{stay.nights}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-medium">
+                        {copFormatter.format(stay.rate_per_night)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge
+                          variant="outline"
+                          className={`text-[11px] ${statusCfg.className}`}
+                        >
+                          {statusCfg.label}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Create reservation dialog */}
+      <CheckInForm open={createOpen} onOpenChange={setCreateOpen} mode="reservation" />
+    </div>
+  );
+}
+
+// -------------------------------------------------------
+// Page export
+// -------------------------------------------------------
+
+export default function ReservasPage() {
+  return (
+    <Suspense>
+      <ReservasContent />
+    </Suspense>
+  );
+}
