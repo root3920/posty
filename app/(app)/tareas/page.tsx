@@ -1,8 +1,390 @@
+'use client';
+
+import { useState, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import {
+  List,
+  LayoutDashboard,
+  CalendarDays,
+  User,
+  Plus,
+  X,
+  SlidersHorizontal,
+} from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+import { useTasks, type TaskFilters, type TaskWithRelations } from '@/hooks/use-tasks';
+import { useProfile } from '@/hooks/use-profile';
+
+import { TaskListView } from '@/components/tareas/task-list-view';
+import { TaskKanbanView } from '@/components/tareas/task-kanban-view';
+import { TaskCalendarView } from '@/components/tareas/task-calendar-view';
+import { MyTasksView } from '@/components/tareas/my-tasks-view';
+import { TaskDetailSheet } from '@/components/tareas/task-detail-sheet';
+import { TaskCreateDialog } from '@/components/tareas/task-create-dialog';
+import { PRIORITY_CONFIG } from '@/components/tareas/task-shared';
+
+// -------------------------------------------------------
+// Tab config
+// -------------------------------------------------------
+
+type ViewTab = 'lista' | 'tablero' | 'calendario' | 'mis-tareas';
+
+const TABS: { key: ViewTab; label: string; icon: React.ReactNode }[] = [
+  { key: 'lista', label: 'Lista', icon: <List className="h-4 w-4" /> },
+  { key: 'tablero', label: 'Tablero', icon: <LayoutDashboard className="h-4 w-4" /> },
+  { key: 'calendario', label: 'Calendario', icon: <CalendarDays className="h-4 w-4" /> },
+  { key: 'mis-tareas', label: 'Mis tareas', icon: <User className="h-4 w-4" /> },
+];
+
+// -------------------------------------------------------
+// Main page
+// -------------------------------------------------------
+
 export default function TareasPage() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold tracking-tight">Tareas</h1>
-      <p className="text-muted-foreground mt-1">Gestión de tareas — se implementa en Fase 4.</p>
+    <Suspense>
+      <TareasContent />
+    </Suspense>
+  );
+}
+
+function TareasContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { data: profile } = useProfile();
+
+  // -------------------------------------------------------
+  // URL-driven state
+  // -------------------------------------------------------
+
+  const activeTab = (searchParams.get('vista') as ViewTab) ?? 'lista';
+  const filterStatus = searchParams.get('estado') ?? undefined;
+  const filterPriority = searchParams.get('prioridad') ?? undefined;
+  const filterAssignee = searchParams.get('asignado') ?? undefined;
+  const filterLabel = searchParams.get('etiqueta') ?? undefined;
+  const filterDateFrom = searchParams.get('desde') ?? undefined;
+  const filterDateTo = searchParams.get('hasta') ?? undefined;
+
+  // -------------------------------------------------------
+  // Local state
+  // -------------------------------------------------------
+
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  // -------------------------------------------------------
+  // URL param updater
+  // -------------------------------------------------------
+
+  function updateParam(key: string, value: string | null) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === null || value === '') {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  function setTab(tab: ViewTab) {
+    updateParam('vista', tab);
+  }
+
+  function clearFilters() {
+    const params = new URLSearchParams();
+    if (activeTab !== 'lista') params.set('vista', activeTab);
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  const hasFilters =
+    filterStatus ||
+    filterPriority ||
+    filterAssignee ||
+    filterLabel ||
+    filterDateFrom ||
+    filterDateTo;
+
+  // -------------------------------------------------------
+  // Data fetching
+  // -------------------------------------------------------
+
+  const filters: TaskFilters = {
+    statusId: filterStatus,
+    priority: filterPriority as TaskFilters['priority'],
+    assigneeId: filterAssignee,
+    labelId: filterLabel,
+    dateFrom: filterDateFrom,
+    dateTo: filterDateTo,
+    parentTaskId: null,
+  };
+
+  const { tasks, statuses, labels, teamMembers, isLoading } = useTasks(filters);
+
+  // -------------------------------------------------------
+  // Handlers
+  // -------------------------------------------------------
+
+  const handleTaskClick = useCallback((task: TaskWithRelations) => {
+    setSelectedTaskId(task.id);
+    setDetailOpen(true);
+  }, []);
+
+  function handleCalendarDayClick(dateStr: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('desde', dateStr);
+    params.set('hasta', dateStr);
+    params.set('vista', 'lista');
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  // -------------------------------------------------------
+  // Render
+  // -------------------------------------------------------
+
+  const now = new Date();
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* ============================= */}
+      {/* Page header */}
+      {/* ============================= */}
+      <div className="border-b px-6 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Tareas</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground capitalize">
+              {format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
+            </p>
+          </div>
+          <Button onClick={() => setCreateOpen(true)} size="sm">
+            <Plus className="mr-1.5 h-4 w-4" />
+            Crear tarea
+          </Button>
+        </div>
+
+        {/* Tabs */}
+        <div className="mt-4 flex items-center gap-1">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setTab(tab.key)}
+                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ============================= */}
+      {/* Filters bar */}
+      {/* ============================= */}
+      {activeTab !== 'mis-tareas' && (
+        <div className="flex flex-wrap items-center gap-2 border-b px-6 py-2.5">
+          <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
+
+          {/* Status filter */}
+          <Select
+            value={filterStatus ?? ''}
+            onValueChange={(v) => updateParam('estado', v || null)}
+          >
+            <SelectTrigger className="h-7 w-36 text-xs">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos los estados</SelectItem>
+              {statuses.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: s.color }}
+                    />
+                    {s.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Priority filter */}
+          <Select
+            value={filterPriority ?? ''}
+            onValueChange={(v) => updateParam('prioridad', v || null)}
+          >
+            <SelectTrigger className="h-7 w-32 text-xs">
+              <SelectValue placeholder="Prioridad" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todas</SelectItem>
+              {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
+                <SelectItem key={key} value={key}>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: cfg.color }}
+                    />
+                    {cfg.label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Assignee filter */}
+          <Select
+            value={filterAssignee ?? ''}
+            onValueChange={(v) => updateParam('asignado', v || null)}
+          >
+            <SelectTrigger className="h-7 w-36 text-xs">
+              <SelectValue placeholder="Asignado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos</SelectItem>
+              {teamMembers.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.full_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Label filter */}
+          {labels.length > 0 && (
+            <Select
+              value={filterLabel ?? ''}
+              onValueChange={(v) => updateParam('etiqueta', v || null)}
+            >
+              <SelectTrigger className="h-7 w-36 text-xs">
+                <SelectValue placeholder="Etiqueta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todas</SelectItem>
+                {labels.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: l.color }}
+                      />
+                      {l.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Date range */}
+          <div className="flex items-center gap-1">
+            <Input
+              type="date"
+              className="h-7 w-32 text-xs"
+              value={filterDateFrom ?? ''}
+              onChange={(e) => updateParam('desde', e.target.value || null)}
+            />
+            <span className="text-xs text-muted-foreground">—</span>
+            <Input
+              type="date"
+              className="h-7 w-32 text-xs"
+              value={filterDateTo ?? ''}
+              onChange={(e) => updateParam('hasta', e.target.value || null)}
+            />
+          </div>
+
+          {/* Clear */}
+          {hasFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-muted-foreground"
+              onClick={clearFilters}
+            >
+              <X className="mr-1 h-3 w-3" />
+              Limpiar filtros
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* ============================= */}
+      {/* View content */}
+      {/* ============================= */}
+      <div className="flex-1 overflow-auto px-6 py-4">
+        {activeTab === 'lista' && (
+          <TaskListView
+            tasks={tasks}
+            statuses={statuses}
+            isLoading={isLoading}
+            onTaskClick={handleTaskClick}
+          />
+        )}
+
+        {activeTab === 'tablero' && (
+          <TaskKanbanView
+            tasks={tasks}
+            statuses={statuses}
+            isLoading={isLoading}
+            onTaskClick={handleTaskClick}
+          />
+        )}
+
+        {activeTab === 'calendario' && (
+          <TaskCalendarView
+            tasks={tasks}
+            isLoading={isLoading}
+            onDayClick={handleCalendarDayClick}
+            onTaskClick={handleTaskClick}
+          />
+        )}
+
+        {activeTab === 'mis-tareas' && profile && (
+          <MyTasksView
+            tasks={tasks}
+            statuses={statuses}
+            currentUserId={profile.id}
+            isLoading={isLoading}
+            onTaskClick={handleTaskClick}
+          />
+        )}
+      </div>
+
+      {/* ============================= */}
+      {/* Detail sheet + Create dialog */}
+      {/* ============================= */}
+      <TaskDetailSheet
+        taskId={selectedTaskId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
+
+      <TaskCreateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        defaultStatusId={filterStatus}
+      />
     </div>
   );
 }
