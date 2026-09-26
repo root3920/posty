@@ -1,0 +1,6 @@
+-- =============================================================
+-- POSTY — Demo seed data
+-- =============================================================
+-- This file contains DEMO data only. Never use real business data.
+-- Will be populated in Phase 7 with a full demo hotel.
+-- =============================================================
