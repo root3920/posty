@@ -112,14 +112,32 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 9. Zonas horarias: `timestamptz` UTC, calcular "hoy" con timezone de la org
 10. Secretos en `.gitignore` desde el primer commit
 
-## Fase actual: 0 (Setup) ✅
+## Fase actual: 7 (Dashboard + Config + Seed) ✅ — TODAS LAS FASES COMPLETADAS
+
+## Estado de fases
+
+- [x] Fase 0: Setup — Next.js, Supabase, shadcn, Tailwind
+- [x] Fase 1: Base de datos — migraciones, RLS, seed_organization_defaults
+- [x] Fase 2: Auth — login, registro, onboarding, roles dinámicos
+- [x] Fase 3: Módulo Equipo — perfiles, turnos, disponibilidad
+- [x] Fase 4: Módulo Tareas — Kanban, asignaciones, actividad
+- [x] Fase 5: Módulo Hotel — habitaciones, huéspedes, estancias, folio
+- [x] Fase 6: Módulo Finanzas — ingresos, gastos, P&G, presupuesto
+- [x] Fase 7: Dashboard principal, configuración completa, seed demo
 
 ## TODO futuro
-- [ ] Fase 1: Base de datos (migraciones, RLS, seed_organization_defaults)
-- [ ] Fase 2: Auth, onboarding, roles dinámicos
-- [ ] Fase 3: Módulo Equipo
-- [ ] Fase 4: Módulo Tareas
-- [ ] Fase 5: Módulo Hotel
-- [ ] Fase 6: Módulo Finanzas
-- [ ] Fase 7: Dashboard principal, configuración completa, seed demo, pulido
-- [ ] Exportación TRA/SIRE (regulatorio colombiano) — fase futura
+- [ ] Exportación TRA/SIRE (regulatorio colombiano)
+- [ ] Notificaciones en tiempo real (Supabase Realtime)
+- [ ] App móvil (React Native / Expo)
+- [ ] Integración OTAs (Booking, Expedia) vía channel manager
+- [ ] Reportes avanzados PDF/Excel
+
+## Decisiones adicionales (Fase 7)
+
+| # | Decisión | Motivo |
+|---|---|---|
+| D5 | Dashboard usa framer-motion `stagger` con `containerVariants` / `cardVariants` | Entrada visual atractiva sin dependencias extra |
+| D6 | Catálogos: componente genérico `CatalogTab` con prop `def: CatalogDef` | Evita 10 páginas/componentes idénticos |
+| D7 | `seed.sql` usa `set session_replication_role = replica` para bypass RLS | Solo para entorno demo local; nunca producción |
+| D8 | Configuración empresa: `react-hook-form + zod` con `setValue` para Selects | Consistente con el resto del proyecto |
+| D9 | Dashboard team KPIs calculados en cliente desde hook + `calculateAvailability` | Reutiliza la lógica ya testeada del módulo Equipo |
