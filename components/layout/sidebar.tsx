@@ -8,6 +8,9 @@ import {
   Users,
   CheckSquare,
   Building2,
+  BedDouble,
+  CalendarCheck,
+  UserRound,
   DollarSign,
   Settings,
   ChevronLeft,
@@ -25,13 +28,24 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   module: string;
+  children?: { href: string; label: string; icon: LucideIcon }[];
 }
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, module: 'dashboard' },
   { href: '/equipo', label: 'Equipo', icon: Users, module: 'team' },
   { href: '/tareas', label: 'Tareas', icon: CheckSquare, module: 'tasks' },
-  { href: '/hotel', label: 'Hotel', icon: Building2, module: 'rooms' },
+  {
+    href: '/hotel',
+    label: 'Hotel',
+    icon: Building2,
+    module: 'rooms',
+    children: [
+      { href: '/hotel/habitaciones', label: 'Habitaciones', icon: BedDouble },
+      { href: '/hotel/reservas', label: 'Reservas', icon: CalendarCheck },
+      { href: '/hotel/huespedes', label: 'Huéspedes', icon: UserRound },
+    ],
+  },
   { href: '/finanzas', label: 'Finanzas', icon: DollarSign, module: 'finance' },
   { href: '/configuracion', label: 'Configuración', icon: Settings, module: 'settings' },
 ];
@@ -114,7 +128,35 @@ export function Sidebar() {
                 );
               }
 
-              return <div key={item.href}>{linkElement}</div>;
+              return (
+                <div key={item.href}>
+                  {linkElement}
+                  {/* Sub-navigation */}
+                  {item.children && isActive && !collapsed && (
+                    <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/15 pl-3">
+                      {item.children.map((child) => {
+                        const childActive = pathname === child.href;
+                        const ChildIcon = child.icon;
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={cn(
+                              'flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150',
+                              childActive
+                                ? 'text-white bg-white/15'
+                                : 'text-white/60 hover:text-white hover:bg-white/8',
+                            )}
+                          >
+                            <ChildIcon className="h-3.5 w-3.5 shrink-0" />
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
             })}
       </nav>
 

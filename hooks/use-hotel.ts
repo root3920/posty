@@ -12,6 +12,7 @@ export interface RoomWithDetails extends Tables<'rooms'> {
   room_type: Tables<'room_types'>;
   room_status: Tables<'room_statuses'>;
   current_stay: StayWithGuest | null;
+  active_stays: Tables<'stays'>[];
 }
 
 export interface StayWithGuest extends Tables<'stays'> {
@@ -71,7 +72,7 @@ async function fetchRooms(): Promise<RoomWithDetails[]> {
 
   const roomIds = (rooms ?? []).map((r) => r.id);
 
-  // Fetch active stays for these rooms
+  // Fetch active stays for these rooms (both checked_in and reserved)
   let activeStays: (Tables<'stays'> & { guest: Tables<'guests'> })[] = [];
   if (roomIds.length > 0) {
     const { data: staysData } = await supabase
@@ -83,7 +84,7 @@ async function fetchRooms(): Promise<RoomWithDetails[]> {
         `,
       )
       .in('room_id', roomIds)
-      .eq('status', 'checked_in');
+      .in('status', ['checked_in', 'reserved']);
 
     if (staysData) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,9 +92,20 @@ async function fetchRooms(): Promise<RoomWithDetails[]> {
     }
   }
 
+  // Map current checked_in stay per room (for display)
   const staysByRoom = new Map<string, (typeof activeStays)[0]>();
   for (const stay of activeStays) {
-    staysByRoom.set(stay.room_id, stay);
+    if (stay.status === 'checked_in') {
+      staysByRoom.set(stay.room_id, stay);
+    }
+  }
+
+  // Group all active stays (checked_in + reserved) by room
+  const allStaysByRoom = new Map<string, Tables<'stays'>[]>();
+  for (const stay of activeStays) {
+    const list = allStaysByRoom.get(stay.room_id) ?? [];
+    list.push(stay);
+    allStaysByRoom.set(stay.room_id, list);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,6 +114,7 @@ async function fetchRooms(): Promise<RoomWithDetails[]> {
     room_type: room.room_type,
     room_status: room.room_status,
     current_stay: staysByRoom.get(room.id) ?? null,
+    active_stays: allStaysByRoom.get(room.id) ?? [],
   })) as RoomWithDetails[];
 }
 
@@ -354,6 +367,23 @@ export function useRooms() {
     queryFn: fetchRooms,
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
+  });
+}
+
+export function useAllRooms() {
+  return useQuery<Tables<'rooms'>[]>({
+    queryKey: ['hotel_all_rooms'],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .order('floor', { ascending: true })
+        .order('number', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 30 * 1000,
   });
 }
 

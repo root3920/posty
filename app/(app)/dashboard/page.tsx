@@ -22,10 +22,14 @@ import {
   UserX,
   ClipboardList,
   Banknote,
+  BedDouble as BedIcon,
+  Settings2,
+  CircleCheck,
+  Circle,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { useHotelKPIs } from '@/hooks/use-hotel';
+import { useHotelKPIs, useRoomTypes } from '@/hooks/use-hotel';
 import { useFinanceKPIs } from '@/hooks/use-finance';
 import { useTasks } from '@/hooks/use-tasks';
 import { useProfile } from '@/hooks/use-profile';
@@ -130,6 +134,47 @@ function AlertItem({ icon, text, severity, href }: AlertItemProps) {
 }
 
 // -------------------------------------------------------
+// Onboarding step
+// -------------------------------------------------------
+
+function OnboardingStep({
+  step,
+  title,
+  description,
+  done,
+  href,
+}: {
+  step: number;
+  title: string;
+  description: string;
+  done: boolean;
+  href: string;
+}) {
+  return (
+    <motion.div variants={cardVariants}>
+      <Link
+        href={href}
+        className={`flex items-start gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-muted/50 ${done ? 'opacity-60' : ''}`}
+      >
+        <span className="mt-0.5 shrink-0">
+          {done ? (
+            <CircleCheck className="h-5 w-5 text-emerald-500" />
+          ) : (
+            <Circle className="h-5 w-5 text-muted-foreground/40" />
+          )}
+        </span>
+        <div className="min-w-0">
+          <p className={`text-sm font-medium ${done ? 'line-through text-muted-foreground' : ''}`}>
+            {step}. {title}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+// -------------------------------------------------------
 // Section header
 // -------------------------------------------------------
 
@@ -200,6 +245,7 @@ function DashboardContent() {
   // Data hooks
   const { data: profile } = useProfile();
   const { data: hotelKpis, isLoading: hotelLoading } = useHotelKPIs();
+  const { data: roomTypes = [] } = useRoomTypes();
   const { data: financeToday } = useFinanceKPIs(todayPeriod);
   const { data: financeMonth } = useFinanceKPIs(monthPeriod);
   const { tasks, statuses, isLoading: tasksLoading } = useTasks({ parentTaskId: null });
@@ -322,6 +368,51 @@ function DashboardContent() {
       </div>
 
       <div className="flex-1 overflow-auto px-6 py-5 space-y-8">
+
+        {/* ============================
+            Onboarding card (shown when no rooms exist)
+        ============================ */}
+        {!hotelLoading && hotelKpis && hotelKpis.totalRooms === 0 && (
+          <motion.section
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5 space-y-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Settings2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold">Configura tu hotel</h2>
+                <p className="text-xs text-muted-foreground">Completa estos pasos para empezar a operar</p>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <OnboardingStep
+                step={1}
+                title="Crea tipos de habitación"
+                description="Define Twin, Suite, etc. con tarifas"
+                done={roomTypes.length > 0}
+                href="/configuracion/catalogos"
+              />
+              <OnboardingStep
+                step={2}
+                title="Crea habitaciones"
+                description="Agrega habitaciones individuales o en lote"
+                done={false}
+                href="/hotel/habitaciones"
+              />
+              <OnboardingStep
+                step={3}
+                title="Invita a tu equipo"
+                description="Agrega recepcionistas y personal"
+                done={(teamQuery.data?.length ?? 0) > 1}
+                href="/configuracion/usuarios"
+              />
+            </div>
+          </motion.section>
+        )}
 
         {/* ============================
             Section 1: Hotel hoy

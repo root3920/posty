@@ -109,15 +109,30 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
 
   const total = nights * (watchRate || 0);
 
-  // Available rooms: active, counts_as_available, no overlapping stay
+  // Available rooms: active, counts_as_available, no overlapping reserved/checked_in stay
   const availableRooms = useMemo(() => {
     return rooms.filter((r) => {
       if (!r.room_status?.counts_as_available) return false;
       if (!r.is_active) return false;
-      // If room has a current stay (checked_in or reserved), it's not available
-      if (r.current_stay) return false;
+      // Check for date overlap with any active stays
+      if (r.active_stays && r.active_stays.length > 0 && watchCheckIn && watchCheckOut) {
+        const hasOverlap = r.active_stays.some((stay) => {
+          // [checkIn, checkOut) overlaps with [stay.check_in_date, stay.check_out_date)
+          return stay.check_in_date < watchCheckOut && stay.check_out_date > watchCheckIn;
+        });
+        if (hasOverlap) return false;
+      } else if (r.current_stay) {
+        return false;
+      }
       return true;
     });
+  }, [rooms, watchCheckIn, watchCheckOut]);
+
+  // Determine why no rooms are available for better messaging
+  const noRoomsReason = useMemo(() => {
+    if (rooms.length === 0) return 'no_rooms' as const;
+    // All rooms occupied/unavailable for these dates
+    return 'all_occupied' as const;
   }, [rooms]);
 
   // Options for EntitySelect
@@ -346,9 +361,16 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                 ) : (
                   <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning dark:border-warning/30 dark:bg-warning/15 dark:text-warning">
                     <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span className="flex-1">No hay habitaciones disponibles para estas fechas.</span>
-                    <Link href="/configuracion/catalogos" className="shrink-0 text-xs font-medium underline">
-                      Configurar
+                    <span className="flex-1">
+                      {noRoomsReason === 'no_rooms'
+                        ? 'Aún no has creado habitaciones.'
+                        : 'Todas las habitaciones están ocupadas o no disponibles en estas fechas.'}
+                    </span>
+                    <Link
+                      href="/hotel/habitaciones"
+                      className="shrink-0 text-xs font-medium underline"
+                    >
+                      {noRoomsReason === 'no_rooms' ? 'Crear habitaciones' : 'Ver habitaciones'}
                     </Link>
                   </div>
                 )}
