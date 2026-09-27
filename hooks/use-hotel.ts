@@ -275,7 +275,10 @@ async function fetchAvailableRoomsByType(
     p_check_in: checkIn,
     p_check_out: checkOut,
   });
-  if (error) throw error;
+  if (error) {
+    console.error('available_rooms_by_type RPC error:', error);
+    throw error;
+  }
   return (data ?? []) as RoomTypeAvailability[];
 }
 
@@ -285,6 +288,7 @@ export function useAvailableRoomsByType(checkIn: string, checkOut: string) {
     queryFn: () => fetchAvailableRoomsByType(checkIn, checkOut),
     enabled: !!checkIn && !!checkOut && checkIn < checkOut,
     staleTime: 15 * 1000,
+    retry: 1,
   });
 }
 

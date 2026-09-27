@@ -118,7 +118,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
   const watchChildren = watch('children');
 
   // Fetch availability by type for selected dates
-  const { data: typeAvailability = [], isLoading: availLoading } =
+  const { data: typeAvailability = [], isLoading: availLoading, error: availError } =
     useAvailableRoomsByType(watchCheckIn, watchCheckOut);
 
   // Calculate nights and total
@@ -255,7 +255,13 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
 
   const title = mode === 'checkin' ? 'Registrar Check-In' : 'Nueva Reserva';
   const submitLabel = mode === 'checkin' ? 'Hacer Check-In' : 'Crear Reserva';
-  const hasNoRoomTypes = typeAvailability.length === 0 && !availLoading;
+  // Count total rooms in org (from useRooms)
+  const totalRoomsInOrg = rooms.length;
+  // The RPC returned room types — even those with 0 availability
+  const hasRoomTypes = typeAvailability.length > 0;
+  const hasAnyAvailability = typeAvailability.some((t) => t.available_count > 0);
+  const hasNoRoomsAtAll = totalRoomsInOrg === 0 && !availLoading;
+  const rpcFailed = !!availError && !availLoading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -422,13 +428,23 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
               {/* Room type selection */}
               <div className="col-span-2 min-w-0 space-y-1.5">
                 <Label className="text-xs">Tipo de habitación *</Label>
-                {hasNoRoomTypes ? (
+                {rpcFailed ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span className="flex-1">No se pudo consultar la disponibilidad: {String(availError)}</span>
+                  </div>
+                ) : hasNoRoomsAtAll ? (
                   <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning dark:border-warning/30 dark:bg-warning/15">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     <span className="flex-1">Aún no has creado habitaciones.</span>
-                    <Link href="/hotel/habitaciones" className="shrink-0 text-xs font-medium underline">
+                    <Link href="/configuracion/catalogos" className="shrink-0 text-xs font-medium underline">
                       Crear habitaciones
                     </Link>
+                  </div>
+                ) : !hasRoomTypes && !availLoading ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-info/20 bg-info/10 px-3 py-2 text-sm text-info">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span className="flex-1">No hay disponibilidad para estas fechas.</span>
                   </div>
                 ) : (
                   <>

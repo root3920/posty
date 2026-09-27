@@ -7,6 +7,11 @@ import PhoneInputCore, {
   isValidPhoneNumber,
   type Value as PhoneValue,
 } from 'react-phone-number-input/input';
+import {
+  getExampleNumber,
+  AsYouType,
+} from 'libphonenumber-js';
+import examples from 'libphonenumber-js/mobile/examples';
 import type { Country } from 'react-phone-number-input';
 import esLabels from 'react-phone-number-input/locale/es.json';
 import { cn } from '@/lib/utils';
@@ -39,6 +44,19 @@ const countryLabels = esLabels as Record<string, string>;
 
 function getCountryLabel(country: Country): string {
   return countryLabels[country] ?? country;
+}
+
+// Get a local example number for a country (without the country code prefix)
+function getLocalExample(country: Country): string {
+  try {
+    const example = getExampleNumber(country, examples);
+    if (!example) return '';
+    // Format as national (local) — strip the country code
+    const formatted = new AsYouType(country).input(example.nationalNumber);
+    return formatted;
+  } catch {
+    return '';
+  }
 }
 
 // Flag emoji from country code (ISO 3166-1 alpha-2)
@@ -190,7 +208,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
       defaultCountry = 'CO',
       onCountryChange,
       disabled = false,
-      placeholder = '+57 300 000 0000',
+      placeholder: placeholderProp,
       error,
       className,
     },
@@ -258,15 +276,16 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
             ref={ref}
             country={country}
             international
+            withCountryCallingCode
             value={(value as PhoneValue) ?? undefined}
             onChange={(v) => onChange?.(v as string | undefined)}
             onBlur={handleBlur}
             disabled={disabled}
-            placeholder={placeholder}
+            placeholder={placeholderProp ?? getLocalExample(country)}
             aria-invalid={hasError}
             aria-label="Número de teléfono"
             className={cn(
-              'flex-1 bg-transparent px-3 py-1.5 text-sm outline-none placeholder:text-muted-foreground',
+              'min-w-0 flex-1 bg-transparent px-3 py-1.5 text-sm tabular-nums outline-none placeholder:text-muted-foreground',
               'disabled:cursor-not-allowed',
             )}
           />

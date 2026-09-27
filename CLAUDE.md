@@ -111,6 +111,8 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 8. Huéspedes: índice único por `(org_id, document_type, document_number)`
 9. Zonas horarias: `timestamptz` UTC, calcular "hoy" con timezone de la org
 10. Secretos en `.gitignore` desde el primer commit
+11. Cada migración nueva se aplica con `npx supabase db push` y se confirma con `npx supabase migration list` antes de entregar. Nunca dejar migraciones sin aplicar.
+12. No duplicar timestamps de migración — verificar con `ls supabase/migrations/` antes de crear
 
 ## Fase actual: 7 (Dashboard + Config + Seed) ✅ — TODAS LAS FASES COMPLETADAS
 
