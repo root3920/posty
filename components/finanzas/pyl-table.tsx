@@ -40,9 +40,9 @@ function variationColor(varAbs: number, isExpense: boolean): string {
   if (varAbs === 0) return 'text-muted-foreground';
   if (isExpense) {
     // For expenses, negative variation (less than budget) is good
-    return varAbs < 0 ? 'text-green-600' : 'text-red-600';
+    return varAbs < 0 ? 'text-success' : 'text-danger';
   }
-  return varAbs > 0 ? 'text-green-600' : 'text-red-600';
+  return varAbs > 0 ? 'text-success' : 'text-danger';
 }
 
 // -------------------------------------------------------

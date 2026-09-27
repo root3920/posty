@@ -111,7 +111,7 @@ export default function RegistroPage() {
 
           <p className="text-muted-foreground text-center text-sm">
             ¿Ya tienes cuenta?{' '}
-            <Link href="/login" className="text-brand-600 font-medium hover:text-brand-500 hover:underline dark:text-brand-400">
+            <Link href="/login" className="text-posty-600 font-medium hover:text-posty-500 hover:underline dark:text-posty-400">
               Inicia sesión
             </Link>
           </p>

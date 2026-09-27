@@ -91,7 +91,7 @@ export function FolioTable({ charges, payments, balance }: FolioTableProps) {
           <div>
             <div className="flex items-center gap-2">
               <span className="font-medium leading-tight">Pago — {payment.method.name}</span>
-              <Badge variant="outline" className="h-4 text-[9px] text-green-600 border-green-300 bg-green-50">
+              <Badge variant="outline" className="h-4 text-[9px] text-success border-success/30 bg-success/10">
                 Pago
               </Badge>
             </div>
@@ -102,7 +102,7 @@ export function FolioTable({ charges, payments, balance }: FolioTableProps) {
           </div>
           <span />
           <span />
-          <span className="text-right font-medium text-green-600">
+          <span className="text-right font-medium text-success">
             -{formatCOP(payment.amount)}
           </span>
         </div>
@@ -116,16 +116,16 @@ export function FolioTable({ charges, payments, balance }: FolioTableProps) {
         </div>
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>Total pagos</span>
-          <span className="text-green-600">-{formatCOP(balance.total_payments)}</span>
+          <span className="text-success">-{formatCOP(balance.total_payments)}</span>
         </div>
         <div className="mt-1.5 flex justify-between border-t pt-1.5 text-sm font-bold">
           <span>Saldo pendiente</span>
           <span
             className={
               balance.balance > 0
-                ? 'text-red-600'
+                ? 'text-danger'
                 : balance.balance < 0
-                ? 'text-green-600'
+                ? 'text-success'
                 : 'text-muted-foreground'
             }
           >

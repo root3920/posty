@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, Clock, Loader2 } from 'lucide-react';
+import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -110,7 +111,10 @@ export default function HorariosPage() {
       setEditTarget(null);
       reset({ name: '', start_time: '08:00', end_time: '16:00' });
     },
-    onError: () => toast.error('Error al guardar el turno'),
+    onError: (error) => {
+      logSupabaseError(error, 'shift_templates:save');
+      toast.error(getSupabaseErrorMessage(error));
+    },
   });
 
   const deleteMutation = useMutation({
@@ -124,7 +128,10 @@ export default function HorariosPage() {
       queryClient.invalidateQueries({ queryKey: ['shift_templates'] });
       setConfirmDelete(null);
     },
-    onError: () => toast.error('Error al eliminar el turno'),
+    onError: (error) => {
+      logSupabaseError(error, 'shift_templates:delete');
+      toast.error(getSupabaseErrorMessage(error));
+    },
   });
 
   // -------------------------------------------------------

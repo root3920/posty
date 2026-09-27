@@ -67,8 +67,8 @@ function TrendBadge({
         isFlat
           ? 'bg-muted text-muted-foreground'
           : isUp
-          ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-          : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+          ? 'bg-success/10 text-success'
+          : 'bg-danger/10 text-danger'
       }`}
     >
       {isFlat ? (

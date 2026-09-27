@@ -65,8 +65,8 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 const STATUS_CONFIG = {
-  paid: { label: 'Pagado', icon: CheckCircle, color: 'text-green-600 bg-green-50' },
-  pending: { label: 'Pendiente', icon: Clock, color: 'text-amber-600 bg-amber-50' },
+  paid: { label: 'Pagado', icon: CheckCircle, color: 'text-success bg-success/10' },
+  pending: { label: 'Pendiente', icon: Clock, color: 'text-warning bg-warning/10' },
 };
 
 // -------------------------------------------------------
@@ -154,7 +154,7 @@ function ExpenseFormModal({ open, onClose, onSaved, editingExpense }: ExpenseFor
               placeholder="Seleccionar categoría..."
             />
             {errors.categoryId && (
-              <p className="mt-1 text-xs text-red-500">{errors.categoryId.message}</p>
+              <p className="mt-1 text-xs text-danger">{errors.categoryId.message}</p>
             )}
           </div>
 
@@ -194,7 +194,7 @@ function ExpenseFormModal({ open, onClose, onSaved, editingExpense }: ExpenseFor
               placeholder="Ej: Compra de suministros de limpieza"
             />
             {errors.description && (
-              <p className="mt-1 text-xs text-red-500">{errors.description.message}</p>
+              <p className="mt-1 text-xs text-danger">{errors.description.message}</p>
             )}
           </div>
 
@@ -209,7 +209,7 @@ function ExpenseFormModal({ open, onClose, onSaved, editingExpense }: ExpenseFor
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
               />
               {errors.amount && (
-                <p className="mt-1 text-xs text-red-500">{errors.amount.message}</p>
+                <p className="mt-1 text-xs text-danger">{errors.amount.message}</p>
               )}
             </div>
             <div>
@@ -474,7 +474,7 @@ function GastosContent() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-danger"
                             onClick={() => handleDelete(exp.id)}
                             disabled={deletingId === exp.id}
                           >

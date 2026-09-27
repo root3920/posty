@@ -150,7 +150,7 @@ function LoginForm() {
 
           <p className="text-muted-foreground text-center text-sm">
             ¿No tienes cuenta?{' '}
-            <Link href="/registro" className="text-brand-600 font-medium hover:text-brand-500 hover:underline dark:text-brand-400">
+            <Link href="/registro" className="text-posty-600 font-medium hover:text-posty-500 hover:underline dark:text-posty-400">
               Registra tu hotel
             </Link>
           </p>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Palette, Upload, Loader2 } from 'lucide-react';
+import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -16,17 +17,17 @@ import { useProfile } from '@/hooks/use-profile';
 // -------------------------------------------------------
 
 const PRESET_COLORS = [
+  { label: 'POSTY 500', value: '#9c0b21' },
+  { label: 'POSTY 600', value: '#82091b' },
+  { label: 'POSTY 700', value: '#690717' },
+  { label: 'POSTY 400', value: '#be1d35' },
+  { label: 'POSTY 200', value: '#f8b4bc' },
   { label: 'Índigo',    value: '#4f46e5' },
   { label: 'Azul',     value: '#2563eb' },
   { label: 'Cian',     value: '#0891b2' },
   { label: 'Verde',    value: '#16a34a' },
   { label: 'Esmeralda',value: '#059669' },
-  { label: 'Lima',     value: '#65a30d' },
   { label: 'Ámbar',    value: '#d97706' },
-  { label: 'Naranja',  value: '#ea580c' },
-  { label: 'Rojo',     value: '#dc2626' },
-  { label: 'Rosa',     value: '#db2777' },
-  { label: 'Violeta',  value: '#7c3aed' },
   { label: 'Gris',     value: '#4b5563' },
 ];
 
@@ -82,7 +83,10 @@ export default function MarcaPage() {
       queryClient.invalidateQueries({ queryKey: ['org_brand', orgId] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
-    onError: () => toast.error('Error al guardar el color'),
+    onError: (error) => {
+      logSupabaseError(error, 'organizations:brand_color');
+      toast.error(getSupabaseErrorMessage(error));
+    },
   });
 
   return (

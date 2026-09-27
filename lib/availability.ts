@@ -27,12 +27,12 @@ export interface AvailabilityResult {
 // -------------------------------------------------------
 
 export const AVAILABILITY_COLORS: Record<AvailabilityStatusCode, string> = {
-  absent: '#ef4444',
-  on_shift: '#22c55e',
-  available: '#22c55e',
-  busy: '#f59e0b',
-  resting: '#6b7280',
-  off_shift: '#94a3b8',
+  absent: '#F2555A',
+  on_shift: '#2FA36B',
+  available: '#2FA36B',
+  busy: '#E0922F',
+  resting: '#8A8082',
+  off_shift: '#8A8082',
 };
 
 // -------------------------------------------------------

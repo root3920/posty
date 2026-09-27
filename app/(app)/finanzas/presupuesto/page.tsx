@@ -287,7 +287,7 @@ function PresupuestoContent() {
       </div>
 
       {dirty && (
-        <div className="border-t bg-amber-50 dark:bg-amber-900/20 px-6 py-2 text-xs text-amber-700 dark:text-amber-300">
+        <div className="border-t bg-warning/10 px-6 py-2 text-xs text-warning">
           Hay cambios sin guardar. Haz clic en &quot;Guardar cambios&quot; para confirmar.
         </div>
       )}

@@ -137,14 +137,14 @@ export function EmployeeCard({ employee }: EmployeeCardProps) {
       {/* Progress bar */}
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className="h-full rounded-full bg-green-500 transition-all"
+          className="h-full rounded-full bg-status-available transition-all"
           style={{ width: `${progress}%` }}
         />
       </div>
 
       {/* Overdue alert */}
       {hasOverdue && (
-        <div className="flex items-center gap-1.5 rounded-lg bg-red-50 px-2 py-1.5 text-xs font-medium text-red-600 dark:bg-red-950/30 dark:text-red-400">
+        <div className="flex items-center gap-1.5 rounded-lg bg-danger/10 px-2 py-1.5 text-xs font-medium text-danger">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
           {overdue} tarea{overdue !== 1 ? 's' : ''} vencida
           {overdue !== 1 ? 's' : ''}

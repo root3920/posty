@@ -100,7 +100,7 @@ function WeekChart({
           iconSize={8}
           wrapperStyle={{ fontSize: '12px' }}
         />
-        <Bar dataKey="Completadas" stackId="a" fill="#22c55e" radius={[0, 0, 0, 0]} />
+        <Bar dataKey="Completadas" stackId="a" fill="#2FA36B" radius={[0, 0, 0, 0]} />
         <Bar dataKey="Pendientes" stackId="a" fill="#94a3b8" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -126,7 +126,7 @@ function DayCell({
   return (
     <td
       className={`border-b border-r px-2 py-2 text-center text-xs align-top ${
-        isToday ? 'bg-blue-50 dark:bg-blue-950/20' : ''
+        isToday ? 'bg-info/10' : ''
       }`}
     >
       <p
@@ -206,7 +206,7 @@ export function WeeklyView({ employees, isLoading = false }: WeeklyViewProps) {
                   key={day.toISOString()}
                   className={`border-r px-2 py-2 text-center text-xs font-medium ${
                     isSameDay(day, today)
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+                      ? 'bg-info/15 text-info'
                       : 'text-muted-foreground'
                   }`}
                 >

@@ -329,13 +329,13 @@ export default function EmployeeDetailPage({
             <p className="text-xs text-muted-foreground">Pendientes</p>
           </div>
           <div className="rounded-xl border bg-card px-4 py-3 shadow-sm">
-            <p className="text-2xl font-bold text-green-600">{completedTasks.length}</p>
+            <p className="text-2xl font-bold text-success">{completedTasks.length}</p>
             <p className="text-xs text-muted-foreground">Completadas</p>
           </div>
           {overdueTasks.length > 0 && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 shadow-sm dark:border-red-900 dark:bg-red-950/30">
-              <p className="text-2xl font-bold text-red-600">{overdueTasks.length}</p>
-              <p className="text-xs text-red-500">Vencidas</p>
+            <div className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 shadow-sm">
+              <p className="text-2xl font-bold text-danger">{overdueTasks.length}</p>
+              <p className="text-xs text-danger">Vencidas</p>
             </div>
           )}
         </div>
@@ -373,7 +373,7 @@ export default function EmployeeDetailPage({
 
               if (isAbsent) {
                 shiftLabel = 'Ausente';
-                shiftClass = 'text-red-500';
+                shiftClass = 'text-status-out';
               } else if (dayOff || !block) {
                 shiftLabel = 'Descanso';
                 shiftClass = 'text-muted-foreground';
@@ -386,14 +386,14 @@ export default function EmployeeDetailPage({
                 <div
                   key={dateStr}
                   className={`flex items-center justify-between border-b px-4 py-2.5 last:border-b-0 text-sm ${
-                    isToday ? 'bg-blue-50 dark:bg-blue-950/20' : ''
+                    isToday ? 'bg-info/10' : ''
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     {isToday && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-info" />
                     )}
-                    <span className={`font-medium ${isToday ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+                    <span className={`font-medium ${isToday ? 'text-info' : ''}`}>
                       {WEEKDAY_LABELS[weekday]}
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -489,7 +489,7 @@ export default function EmployeeDetailPage({
                   <div
                     key={task.id}
                     className={`flex items-start justify-between px-4 py-3 text-sm ${
-                      isOverdue ? 'bg-red-50/50 dark:bg-red-950/10' : ''
+                      isOverdue ? 'bg-danger/5' : ''
                     }`}
                   >
                     <div className="min-w-0 flex-1">
@@ -502,7 +502,7 @@ export default function EmployeeDetailPage({
                       </p>
                       <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         {task.due_date && (
-                          <span className={isOverdue ? 'text-red-500 font-medium' : ''}>
+                          <span className={isOverdue ? 'text-danger font-medium' : ''}>
                             Vence:{' '}
                             {format(new Date(task.due_date), "d MMM yyyy", { locale: es })}
                             {isOverdue && ' ⚠'}

@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { registerSchema, inviteSchema } from '@/lib/validations/auth';
 
@@ -50,8 +51,8 @@ export async function registerAction(formData: {
     .single();
 
   if (orgError || !org) {
-    console.error('Organization creation error:', orgError);
-    return { error: 'Error al crear la organización' };
+    logSupabaseError(orgError, 'registerAction:organization');
+    return { error: getSupabaseErrorMessage(orgError, 'Organización') };
   }
 
   // Seed default catalogs
@@ -60,8 +61,8 @@ export async function registerAction(formData: {
   });
 
   if (seedError) {
-    console.error('Seed defaults error:', seedError);
-    return { error: 'Error al configurar los datos iniciales' };
+    logSupabaseError(seedError, 'registerAction:seed');
+    return { error: getSupabaseErrorMessage(seedError, 'Configuración inicial') };
   }
 
   // Get the Gestor role (system role created by seed)
@@ -85,8 +86,8 @@ export async function registerAction(formData: {
     });
 
   if (profileError) {
-    console.error('Profile creation error:', profileError);
-    return { error: 'Error al crear el perfil' };
+    logSupabaseError(profileError, 'registerAction:profile');
+    return { error: getSupabaseErrorMessage(profileError, 'Perfil') };
   }
 
   return { success: true };
@@ -157,8 +158,8 @@ export async function inviteUserAction(formData: {
     });
 
   if (profileError) {
-    console.error('Profile creation error for invite:', profileError);
-    return { error: 'Error al crear el perfil del invitado' };
+    logSupabaseError(profileError, 'inviteUserAction:profile');
+    return { error: getSupabaseErrorMessage(profileError, 'Perfil del invitado') };
   }
 
   return { success: true };

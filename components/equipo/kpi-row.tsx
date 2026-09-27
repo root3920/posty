@@ -32,24 +32,24 @@ const HIGHLIGHT_STYLES: Record<
   { card: string; icon: string; value: string }
 > = {
   green: {
-    card: 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30',
-    icon: 'text-green-600 dark:text-green-400',
-    value: 'text-green-700 dark:text-green-300',
+    card: 'border-status-available/30 bg-status-available/10',
+    icon: 'text-status-available',
+    value: 'text-status-available',
   },
   red: {
-    card: 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30',
-    icon: 'text-red-600 dark:text-red-400',
-    value: 'text-red-700 dark:text-red-300',
+    card: 'border-status-out/30 bg-status-out/10',
+    icon: 'text-status-out',
+    value: 'text-status-out',
   },
   amber: {
-    card: 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30',
-    icon: 'text-amber-600 dark:text-amber-400',
-    value: 'text-amber-700 dark:text-amber-300',
+    card: 'border-status-dirty/30 bg-status-dirty/10',
+    icon: 'text-status-dirty',
+    value: 'text-status-dirty',
   },
   blue: {
-    card: 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30',
-    icon: 'text-blue-600 dark:text-blue-400',
-    value: 'text-blue-700 dark:text-blue-300',
+    card: 'border-status-occupied/30 bg-status-occupied/10',
+    icon: 'text-status-occupied',
+    value: 'text-status-occupied',
   },
   gray: {
     card: 'border-border bg-card',

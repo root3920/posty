@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import {
   checkInSchema,
   reservationSchema,
@@ -161,8 +162,8 @@ export async function checkInAction(formData: CheckInInput) {
       .single();
 
     if (stayError || !stay) {
-      console.error('checkInAction stayError:', stayError);
-      return { error: 'Error al registrar el check-in' };
+      logSupabaseError(stayError, 'checkInAction');
+      return { error: getSupabaseErrorMessage(stayError, 'Check-in') };
     }
 
     // Update room to "Ocupada" status
@@ -266,8 +267,8 @@ export async function createReservationAction(formData: ReservationInput) {
       .single();
 
     if (stayError || !stay) {
-      console.error('createReservationAction stayError:', stayError);
-      return { error: 'Error al crear la reserva' };
+      logSupabaseError(stayError, 'createReservationAction');
+      return { error: getSupabaseErrorMessage(stayError, 'Reserva') };
     }
 
     revalidatePath('/hotel');
@@ -329,7 +330,8 @@ export async function checkOutAction(stayId: string) {
       .eq('id', stayId);
 
     if (stayError) {
-      return { error: 'Error al registrar el check-out' };
+      logSupabaseError(stayError, 'checkOutAction');
+      return { error: getSupabaseErrorMessage(stayError, 'Check-out') };
     }
 
     // Find "Sucia" / dirty room status
@@ -408,7 +410,8 @@ export async function addFolioChargeAction(stayId: string, formData: FolioCharge
     });
 
     if (error) {
-      return { error: 'Error al agregar el cargo al folio' };
+      logSupabaseError(error, 'addFolioChargeAction');
+      return { error: getSupabaseErrorMessage(error, 'Cargo') };
     }
 
     revalidatePath('/hotel');
@@ -445,7 +448,8 @@ export async function registerPaymentAction(stayId: string, formData: PaymentInp
     });
 
     if (error) {
-      return { error: 'Error al registrar el pago' };
+      logSupabaseError(error, 'registerPaymentAction');
+      return { error: getSupabaseErrorMessage(error, 'Pago') };
     }
 
     revalidatePath('/hotel');
@@ -488,8 +492,8 @@ export async function extendStayAction(stayId: string, formData: ExtendStayInput
       .eq('id', stayId);
 
     if (error) {
-      console.error('extendStayAction error:', error);
-      return { error: 'Error al extender la estancia' };
+      logSupabaseError(error, 'extendStayAction');
+      return { error: getSupabaseErrorMessage(error, 'Estancia') };
     }
 
     // Calculate additional nights charge
@@ -571,8 +575,8 @@ export async function changeRoomAction(stayId: string, formData: ChangeRoomInput
     const { error } = await supabase.from('stays').update(updatePayload).eq('id', stayId);
 
     if (error) {
-      console.error('changeRoomAction error:', error);
-      return { error: 'Error al cambiar la habitación' };
+      logSupabaseError(error, 'changeRoomAction');
+      return { error: getSupabaseErrorMessage(error, 'Habitación') };
     }
 
     // Set old room to dirty
@@ -635,7 +639,8 @@ export async function updateRoomStatusAction(roomId: string, statusId: string) {
       .eq('id', roomId);
 
     if (error) {
-      return { error: 'Error al actualizar el estado de la habitación' };
+      logSupabaseError(error, 'updateRoomStatusAction');
+      return { error: getSupabaseErrorMessage(error, 'Habitación') };
     }
 
     revalidatePath('/hotel');

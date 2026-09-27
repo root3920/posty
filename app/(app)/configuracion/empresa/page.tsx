@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loader2, Building2, Upload } from 'lucide-react';
+import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -173,8 +174,9 @@ export default function EmpresaPage() {
       queryClient.invalidateQueries({ queryKey: ['organization', orgId] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
-    onError: () => {
-      toast.error('Error al guardar la configuración');
+    onError: (error) => {
+      logSupabaseError(error, 'organizations:empresa');
+      toast.error(getSupabaseErrorMessage(error));
     },
   });
 

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import {
   expenseSchema,
   otherRevenueSchema,
@@ -66,8 +67,8 @@ export async function createExpenseAction(formData: ExpenseInput) {
     });
 
     if (error) {
-      console.error('createExpenseAction error:', error);
-      return { error: 'Error al registrar el gasto' };
+      logSupabaseError(error, 'createExpenseAction');
+      return { error: getSupabaseErrorMessage(error, 'Gasto') };
     }
 
     revalidatePath('/finanzas');
@@ -110,8 +111,8 @@ export async function updateExpenseAction(id: string, formData: ExpenseInput) {
       .eq('id', id);
 
     if (error) {
-      console.error('updateExpenseAction error:', error);
-      return { error: 'Error al actualizar el gasto' };
+      logSupabaseError(error, 'updateExpenseAction');
+      return { error: getSupabaseErrorMessage(error, 'Gasto') };
     }
 
     revalidatePath('/finanzas');
@@ -134,8 +135,8 @@ export async function deleteExpenseAction(id: string) {
     const { error } = await supabase.from('expenses').delete().eq('id', id);
 
     if (error) {
-      console.error('deleteExpenseAction error:', error);
-      return { error: 'Error al eliminar el gasto' };
+      logSupabaseError(error, 'deleteExpenseAction');
+      return { error: getSupabaseErrorMessage(error, 'Gasto') };
     }
 
     revalidatePath('/finanzas');
@@ -174,8 +175,8 @@ export async function createOtherRevenueAction(formData: OtherRevenueInput) {
     });
 
     if (error) {
-      console.error('createOtherRevenueAction error:', error);
-      return { error: 'Error al registrar el ingreso' };
+      logSupabaseError(error, 'createOtherRevenueAction');
+      return { error: getSupabaseErrorMessage(error, 'Ingreso') };
     }
 
     revalidatePath('/finanzas');
@@ -198,8 +199,8 @@ export async function deleteOtherRevenueAction(id: string) {
     const { error } = await supabase.from('other_revenue').delete().eq('id', id);
 
     if (error) {
-      console.error('deleteOtherRevenueAction error:', error);
-      return { error: 'Error al eliminar el ingreso' };
+      logSupabaseError(error, 'deleteOtherRevenueAction');
+      return { error: getSupabaseErrorMessage(error, 'Ingreso') };
     }
 
     revalidatePath('/finanzas');
@@ -239,8 +240,8 @@ export async function saveBudgetAction(formData: BudgetInput) {
     );
 
     if (error) {
-      console.error('saveBudgetAction error:', error);
-      return { error: 'Error al guardar el presupuesto' };
+      logSupabaseError(error, 'saveBudgetAction');
+      return { error: getSupabaseErrorMessage(error, 'Presupuesto') };
     }
 
     revalidatePath('/finanzas');

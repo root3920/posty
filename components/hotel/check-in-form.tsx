@@ -288,14 +288,14 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
               <Label className="text-xs">Nombre *</Label>
               <Input {...register('guestData.firstName')} placeholder="Nombre" />
               {errors.guestData?.firstName && (
-                <p className="mt-0.5 text-xs text-red-500">{errors.guestData.firstName.message}</p>
+                <p className="mt-0.5 text-xs text-danger">{errors.guestData.firstName.message}</p>
               )}
             </div>
             <div className="min-w-0">
               <Label className="text-xs">Apellido *</Label>
               <Input {...register('guestData.lastName')} placeholder="Apellido" />
               {errors.guestData?.lastName && (
-                <p className="mt-0.5 text-xs text-red-500">{errors.guestData.lastName.message}</p>
+                <p className="mt-0.5 text-xs text-danger">{errors.guestData.lastName.message}</p>
               )}
             </div>
             <div className="min-w-0">
@@ -321,7 +321,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
               <Label className="text-xs">Email</Label>
               <Input {...register('guestData.email')} type="email" placeholder="correo@ejemplo.com" />
               {errors.guestData?.email && (
-                <p className="mt-0.5 text-xs text-red-500">{errors.guestData.email.message}</p>
+                <p className="mt-0.5 text-xs text-danger">{errors.guestData.email.message}</p>
               )}
             </div>
           </div>
@@ -344,7 +344,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                     placeholder="Seleccionar habitación..."
                   />
                 ) : (
-                  <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300">
+                  <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning dark:border-warning/30 dark:bg-warning/15 dark:text-warning">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     <span className="flex-1">No hay habitaciones disponibles para estas fechas.</span>
                     <Link href="/configuracion/catalogos" className="shrink-0 text-xs font-medium underline">
@@ -353,7 +353,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                   </div>
                 )}
                 {errors.roomId && (
-                  <p className="mt-0.5 text-xs text-red-500">{errors.roomId.message}</p>
+                  <p className="mt-0.5 text-xs text-danger">{errors.roomId.message}</p>
                 )}
               </div>
 
@@ -362,14 +362,14 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                 <Label className="text-xs">Fecha de entrada *</Label>
                 <Input type="date" {...register('checkInDate')} />
                 {errors.checkInDate && (
-                  <p className="mt-0.5 text-xs text-red-500">{errors.checkInDate.message}</p>
+                  <p className="mt-0.5 text-xs text-danger">{errors.checkInDate.message}</p>
                 )}
               </div>
               <div className="min-w-0">
                 <Label className="text-xs">Fecha de salida *</Label>
                 <Input type="date" {...register('checkOutDate')} />
                 {errors.checkOutDate && (
-                  <p className="mt-0.5 text-xs text-red-500">{errors.checkOutDate.message}</p>
+                  <p className="mt-0.5 text-xs text-danger">{errors.checkOutDate.message}</p>
                 )}
               </div>
 
@@ -383,7 +383,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                   placeholder="150000"
                 />
                 {errors.ratePerNight && (
-                  <p className="mt-0.5 text-xs text-red-500">{errors.ratePerNight.message}</p>
+                  <p className="mt-0.5 text-xs text-danger">{errors.ratePerNight.message}</p>
                 )}
                 {nights > 0 && watchRate > 0 && (
                   <p className="mt-1 text-xs text-muted-foreground">

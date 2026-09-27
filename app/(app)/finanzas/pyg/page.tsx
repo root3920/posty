@@ -114,7 +114,7 @@ function PygContent() {
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-2">
                 <div className="rounded-xl border bg-card p-4 shadow-sm">
                   <p className="text-xs text-muted-foreground">Ingresos Totales</p>
-                  <p className="text-lg font-bold text-indigo-600">
+                  <p className="text-lg font-bold text-status-occupancy">
                     {new Intl.NumberFormat('es-CO', {
                       style: 'currency',
                       currency: 'COP',
@@ -124,7 +124,7 @@ function PygContent() {
                 </div>
                 <div className="rounded-xl border bg-card p-4 shadow-sm">
                   <p className="text-xs text-muted-foreground">GOP</p>
-                  <p className={`text-lg font-bold ${kpis.gop >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className={`text-lg font-bold ${kpis.gop >= 0 ? 'text-success' : 'text-danger'}`}>
                     {new Intl.NumberFormat('es-CO', {
                       style: 'currency',
                       currency: 'COP',
@@ -137,7 +137,7 @@ function PygContent() {
                 </div>
                 <div className="rounded-xl border bg-card p-4 shadow-sm">
                   <p className="text-xs text-muted-foreground">EBITDA</p>
-                  <p className={`text-lg font-bold ${kpis.ebitda >= 0 ? 'text-teal-600' : 'text-red-600'}`}>
+                  <p className={`text-lg font-bold ${kpis.ebitda >= 0 ? 'text-success' : 'text-danger'}`}>
                     {new Intl.NumberFormat('es-CO', {
                       style: 'currency',
                       currency: 'COP',
@@ -147,7 +147,7 @@ function PygContent() {
                 </div>
                 <div className="rounded-xl border bg-card p-4 shadow-sm">
                   <p className="text-xs text-muted-foreground">Resultado Neto</p>
-                  <p className={`text-lg font-bold ${kpis.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className={`text-lg font-bold ${kpis.netProfit >= 0 ? 'text-success' : 'text-danger'}`}>
                     {new Intl.NumberFormat('es-CO', {
                       style: 'currency',
                       currency: 'COP',

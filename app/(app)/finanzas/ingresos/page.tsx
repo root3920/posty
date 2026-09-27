@@ -82,7 +82,7 @@ function CreateRevenueModal({ open, onClose, onCreated }: CreateRevenueModalProp
               placeholder="Seleccionar..."
             />
             {errors.revenueCenterId && (
-              <p className="mt-1 text-xs text-red-500">{errors.revenueCenterId.message}</p>
+              <p className="mt-1 text-xs text-danger">{errors.revenueCenterId.message}</p>
             )}
           </div>
 
@@ -94,7 +94,7 @@ function CreateRevenueModal({ open, onClose, onCreated }: CreateRevenueModalProp
               placeholder="Ej: Venta de minibar habitación 201"
             />
             {errors.description && (
-              <p className="mt-1 text-xs text-red-500">{errors.description.message}</p>
+              <p className="mt-1 text-xs text-danger">{errors.description.message}</p>
             )}
           </div>
 
@@ -109,7 +109,7 @@ function CreateRevenueModal({ open, onClose, onCreated }: CreateRevenueModalProp
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
               />
               {errors.amount && (
-                <p className="mt-1 text-xs text-red-500">{errors.amount.message}</p>
+                <p className="mt-1 text-xs text-danger">{errors.amount.message}</p>
               )}
             </div>
             <div>
@@ -307,7 +307,7 @@ function IngresosContent() {
                       {format(new Date(rev.revenue_date), 'd MMM yyyy', { locale: es })}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                      <span className="rounded-full bg-status-occupancy/10 px-2 py-0.5 text-xs font-medium text-status-occupancy">
                         {rev.revenue_center?.name ?? '—'}
                       </span>
                     </td>
@@ -322,7 +322,7 @@ function IngresosContent() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-danger"
                         onClick={() => handleDelete(rev.id)}
                         disabled={deletingId === rev.id}
                       >

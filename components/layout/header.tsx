@@ -83,7 +83,7 @@ export function Header() {
           >
             <Avatar className="h-8 w-8">
               {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
-              <AvatarFallback className="bg-brand-100 text-brand-700 text-xs font-semibold">
+              <AvatarFallback className="bg-posty-100 text-posty-700 text-xs font-semibold">
                 {profile ? getInitials(profile.full_name) : 'US'}
               </AvatarFallback>
             </Avatar>

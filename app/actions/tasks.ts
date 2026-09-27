@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import {
   createTaskSchema,
   updateTaskSchema,
@@ -82,7 +83,8 @@ export async function createTaskAction(formData: CreateTaskInput) {
       .single();
 
     if (taskError || !task) {
-      return { error: 'Error al crear la tarea' };
+      logSupabaseError(taskError, 'createTaskAction');
+      return { error: getSupabaseErrorMessage(taskError, 'Tarea') };
     }
 
     const taskId = task.id;
@@ -174,7 +176,8 @@ export async function updateTaskAction(taskId: string, formData: UpdateTaskInput
         .eq('id', taskId);
 
       if (taskError) {
-        return { error: 'Error al actualizar la tarea' };
+        logSupabaseError(taskError, 'updateTaskAction');
+        return { error: getSupabaseErrorMessage(taskError, 'Tarea') };
       }
     }
 
@@ -220,7 +223,8 @@ export async function deleteTaskAction(taskId: string) {
       .eq('id', taskId);
 
     if (error) {
-      return { error: 'Error al eliminar la tarea' };
+      logSupabaseError(error, 'deleteTaskAction');
+      return { error: getSupabaseErrorMessage(error, 'Tarea') };
     }
 
     revalidatePath('/tareas');
@@ -255,7 +259,8 @@ export async function addCommentAction(taskId: string, body: string) {
       .single();
 
     if (error || !comment) {
-      return { error: 'Error al agregar el comentario' };
+      logSupabaseError(error, 'addCommentAction');
+      return { error: getSupabaseErrorMessage(error, 'Comentario') };
     }
 
     revalidatePath('/tareas');
@@ -280,7 +285,8 @@ export async function updateTaskStatusAction(taskId: string, statusId: string) {
       .eq('id', taskId);
 
     if (error) {
-      return { error: 'Error al actualizar el estado de la tarea' };
+      logSupabaseError(error, 'updateTaskStatusAction');
+      return { error: getSupabaseErrorMessage(error, 'Tarea') };
     }
 
     revalidatePath('/tareas');

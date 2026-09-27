@@ -138,53 +138,53 @@ function HotelContent() {
           ) : kpis ? (
             <>
               <KpiCard
-                icon={<BedDouble className="h-5 w-5 text-green-600" />}
+                icon={<BedDouble className="h-5 w-5 text-status-available" />}
                 label="Disponibles"
                 value={kpis.availableRooms}
-                color="text-green-600"
+                color="text-status-available"
               />
               <KpiCard
-                icon={<Users className="h-5 w-5 text-blue-600" />}
+                icon={<Users className="h-5 w-5 text-status-occupied" />}
                 label="Ocupadas"
                 value={kpis.occupiedRooms}
-                color="text-blue-600"
+                color="text-status-occupied"
               />
               <KpiCard
-                icon={<Sparkles className="h-5 w-5 text-amber-600" />}
+                icon={<Sparkles className="h-5 w-5 text-status-dirty" />}
                 label="Sucias / limpieza"
                 value={kpis.dirtyRooms}
-                color="text-amber-600"
+                color="text-status-dirty"
               />
               <KpiCard
-                icon={<AlertTriangle className="h-5 w-5 text-red-600" />}
+                icon={<AlertTriangle className="h-5 w-5 text-status-out" />}
                 label="Fuera de servicio"
                 value={kpis.outOfServiceRooms}
-                color="text-red-600"
+                color="text-status-out"
               />
               <KpiCard
-                icon={<TrendingUp className="h-5 w-5 text-indigo-600" />}
+                icon={<TrendingUp className="h-5 w-5 text-status-occupancy" />}
                 label="Ocupación"
                 value={`${kpis.occupancyPct}%`}
                 subLabel={`${kpis.occupiedRooms} / ${kpis.totalRooms} hab.`}
-                color="text-indigo-600"
+                color="text-status-occupancy"
               />
               <KpiCard
-                icon={<ArrowDownToLine className="h-5 w-5 text-teal-600" />}
+                icon={<ArrowDownToLine className="h-5 w-5 text-status-arrivals" />}
                 label="Llegadas hoy"
                 value={kpis.arrivalsToday}
-                color="text-teal-600"
+                color="text-status-arrivals"
               />
               <KpiCard
-                icon={<ArrowUpFromLine className="h-5 w-5 text-orange-600" />}
+                icon={<ArrowUpFromLine className="h-5 w-5 text-status-departures" />}
                 label="Salidas hoy"
                 value={kpis.departuresToday}
-                color="text-orange-600"
+                color="text-status-departures"
               />
               <KpiCard
-                icon={<Users className="h-5 w-5 text-purple-600" />}
+                icon={<Users className="h-5 w-5 text-status-guests" />}
                 label="Huéspedes en casa"
                 value={kpis.guestsInHouse}
-                color="text-purple-600"
+                color="text-status-guests"
               />
             </>
           ) : null}

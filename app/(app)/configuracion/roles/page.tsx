@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Plus, Trash2, Copy, Loader2 } from 'lucide-react';
+import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -114,8 +115,9 @@ export default function RolesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['role-permissions', selectedRole?.id] });
     },
-    onError: () => {
-      toast.error('Error al actualizar permiso');
+    onError: (error) => {
+      logSupabaseError(error, 'role_permissions:toggle');
+      toast.error(getSupabaseErrorMessage(error));
     },
   });
 
@@ -139,8 +141,9 @@ export default function RolesPage() {
       setNewRoleColor('#6b7280');
       toast.success('Rol creado');
     },
-    onError: () => {
-      toast.error('Error al crear el rol');
+    onError: (error) => {
+      logSupabaseError(error, 'roles:create');
+      toast.error(getSupabaseErrorMessage(error));
     },
   });
 
@@ -155,8 +158,9 @@ export default function RolesPage() {
       setSelectedRole(null);
       toast.success('Rol eliminado');
     },
-    onError: () => {
-      toast.error('Error al eliminar el rol');
+    onError: (error) => {
+      logSupabaseError(error, 'roles:delete');
+      toast.error(getSupabaseErrorMessage(error));
     },
   });
 
@@ -195,8 +199,9 @@ export default function RolesPage() {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
       toast.success('Rol duplicado');
     },
-    onError: () => {
-      toast.error('Error al duplicar el rol');
+    onError: (error) => {
+      logSupabaseError(error, 'roles:duplicate');
+      toast.error(getSupabaseErrorMessage(error));
     },
   });
 

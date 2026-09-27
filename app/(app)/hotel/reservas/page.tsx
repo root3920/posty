@@ -33,27 +33,27 @@ const STATUS_CONFIG: Record<StayStatus, { label: string; variant: 'default' | 'o
   reserved: {
     label: 'Reservada',
     variant: 'outline',
-    className: 'border-blue-300 bg-blue-50 text-blue-700',
+    className: 'border-info/30 bg-info/10 text-info',
   },
   checked_in: {
     label: 'In-house',
     variant: 'outline',
-    className: 'border-green-300 bg-green-50 text-green-700',
+    className: 'border-success/30 bg-success/10 text-success',
   },
   checked_out: {
     label: 'Check-out',
     variant: 'outline',
-    className: 'border-gray-300 bg-gray-50 text-gray-600',
+    className: 'border-border bg-muted/40 text-muted-foreground',
   },
   cancelled: {
     label: 'Cancelada',
     variant: 'outline',
-    className: 'border-red-300 bg-red-50 text-red-600',
+    className: 'border-danger/30 bg-danger/10 text-danger',
   },
   no_show: {
     label: 'No-show',
     variant: 'outline',
-    className: 'border-orange-300 bg-orange-50 text-orange-600',
+    className: 'border-warning/30 bg-warning/10 text-warning',
   },
 };
 
@@ -75,21 +75,21 @@ function ArrivalBadge({ checkInDate }: { checkInDate: string }) {
   const date = new Date(`${checkInDate}T12:00:00`);
   if (isToday(date)) {
     return (
-      <Badge variant="outline" className="text-[10px] border-teal-300 bg-teal-50 text-teal-700">
+      <Badge variant="outline" className="text-[10px] border-status-arrivals/30 bg-status-arrivals/10 text-status-arrivals">
         Hoy
       </Badge>
     );
   }
   if (isTomorrow(date)) {
     return (
-      <Badge variant="outline" className="text-[10px] border-indigo-300 bg-indigo-50 text-indigo-700">
+      <Badge variant="outline" className="text-[10px] border-status-occupancy/30 bg-status-occupancy/10 text-status-occupancy">
         Mañana
       </Badge>
     );
   }
   if (isPast(date)) {
     return (
-      <Badge variant="outline" className="text-[10px] border-red-300 bg-red-50 text-red-600">
+      <Badge variant="outline" className="text-[10px] border-danger/30 bg-danger/10 text-danger">
         Pasada
       </Badge>
     );

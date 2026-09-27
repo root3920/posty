@@ -103,9 +103,9 @@ interface AlertItemProps {
 
 function AlertItem({ icon, text, severity, href }: AlertItemProps) {
   const colorMap = {
-    warning: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300',
-    error: 'border-red-200 bg-red-50 text-red-800 dark:border-red-800/40 dark:bg-red-900/20 dark:text-red-300',
-    info: 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800/40 dark:bg-blue-900/20 dark:text-blue-300',
+    warning: 'border-warning/20 bg-warning/10 text-warning dark:border-warning/30 dark:bg-warning/15 dark:text-warning',
+    error: 'border-danger/20 bg-danger/10 text-danger dark:border-danger/30 dark:bg-danger/15 dark:text-danger',
+    info: 'border-info/20 bg-info/10 text-info dark:border-info/30 dark:bg-info/15 dark:text-info',
   };
 
   const content = (
@@ -340,29 +340,29 @@ function DashboardContent() {
               className="grid grid-cols-2 gap-3 sm:grid-cols-4"
             >
               <DashKpiCard
-                icon={<TrendingUp className="h-5 w-5 text-indigo-600" />}
+                icon={<TrendingUp className="h-5 w-5 text-status-occupancy" />}
                 label="Ocupación"
                 value={`${hotelKpis.occupancyPct}%`}
                 subLabel={`${hotelKpis.occupiedRooms} / ${hotelKpis.totalRooms} hab.`}
-                color="text-indigo-600"
+                color="text-status-occupancy"
               />
               <DashKpiCard
-                icon={<BedDouble className="h-5 w-5 text-green-600" />}
+                icon={<BedDouble className="h-5 w-5 text-status-available" />}
                 label="Disponibles"
                 value={hotelKpis.availableRooms}
-                color="text-green-600"
+                color="text-status-available"
               />
               <DashKpiCard
-                icon={<ArrowDownToLine className="h-5 w-5 text-teal-600" />}
+                icon={<ArrowDownToLine className="h-5 w-5 text-status-arrivals" />}
                 label="Llegadas hoy"
                 value={hotelKpis.arrivalsToday}
-                color="text-teal-600"
+                color="text-status-arrivals"
               />
               <DashKpiCard
-                icon={<ArrowUpFromLine className="h-5 w-5 text-orange-600" />}
+                icon={<ArrowUpFromLine className="h-5 w-5 text-status-departures" />}
                 label="Salidas hoy"
                 value={hotelKpis.departuresToday}
-                color="text-orange-600"
+                color="text-status-departures"
               />
             </motion.div>
           ) : null}
@@ -385,41 +385,41 @@ function DashboardContent() {
               className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
             >
               <DashKpiCard
-                icon={<UserCheck className="h-5 w-5 text-green-600" />}
+                icon={<UserCheck className="h-5 w-5 text-status-available" />}
                 label="En turno"
                 value={teamKpis.onShift}
-                color="text-green-600"
+                color="text-status-available"
               />
               <DashKpiCard
-                icon={<Users className="h-5 w-5 text-blue-600" />}
+                icon={<Users className="h-5 w-5 text-status-occupied" />}
                 label="Disponibles"
                 value={teamKpis.available}
                 subLabel={`de ${teamKpis.total} total`}
-                color="text-blue-600"
+                color="text-status-occupied"
               />
               <DashKpiCard
-                icon={<UserX className="h-5 w-5 text-red-500" />}
+                icon={<UserX className="h-5 w-5 text-status-out" />}
                 label="Ausentes"
                 value={teamKpis.absent}
-                color="text-red-500"
+                color="text-status-out"
               />
               <DashKpiCard
-                icon={<ClipboardList className="h-5 w-5 text-amber-600" />}
+                icon={<ClipboardList className="h-5 w-5 text-status-dirty" />}
                 label="Tareas pendientes"
                 value={taskKpis.pending}
-                color="text-amber-600"
+                color="text-status-dirty"
               />
               <DashKpiCard
-                icon={<CheckCircle2 className="h-5 w-5 text-green-600" />}
+                icon={<CheckCircle2 className="h-5 w-5 text-status-available" />}
                 label="Completadas"
                 value={taskKpis.completed}
-                color="text-green-600"
+                color="text-status-available"
               />
               <DashKpiCard
-                icon={<Clock className="h-5 w-5 text-red-600" />}
+                icon={<Clock className="h-5 w-5 text-status-out" />}
                 label="Vencidas"
                 value={taskKpis.overdue}
-                color={taskKpis.overdue > 0 ? 'text-red-600' : 'text-foreground'}
+                color={taskKpis.overdue > 0 ? 'text-status-out' : 'text-foreground'}
               />
             </motion.div>
           )}
@@ -437,30 +437,30 @@ function DashboardContent() {
             className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4"
           >
             <DashKpiCard
-              icon={<DollarSign className="h-5 w-5 text-indigo-600" />}
+              icon={<DollarSign className="h-5 w-5 text-status-occupancy" />}
               label="Ingresos hoy"
               value={financeToday ? formatCurrency(financeToday.totalRevenue) : '—'}
-              color="text-indigo-600"
+              color="text-status-occupancy"
             />
             <DashKpiCard
-              icon={<TrendingUp className="h-5 w-5 text-teal-600" />}
+              icon={<TrendingUp className="h-5 w-5 text-status-arrivals" />}
               label="Ingresos este mes"
               value={financeMonth ? formatCurrency(financeMonth.totalRevenue) : '—'}
-              color="text-teal-600"
+              color="text-status-arrivals"
             />
             <DashKpiCard
-              icon={<BarChart3 className="h-5 w-5 text-green-600" />}
+              icon={<BarChart3 className="h-5 w-5 text-status-available" />}
               label="GOP mes"
               value={financeMonth ? formatCurrency(financeMonth.gop) : '—'}
               subLabel={financeMonth ? `Margen: ${formatPercent(financeMonth.gopMarginPct)}` : undefined}
-              color={financeMonth && financeMonth.gop >= 0 ? 'text-green-600' : 'text-red-600'}
+              color={financeMonth && financeMonth.gop >= 0 ? 'text-success' : 'text-danger'}
             />
             <DashKpiCard
-              icon={<BedDouble className="h-5 w-5 text-blue-600" />}
+              icon={<BedDouble className="h-5 w-5 text-status-occupied" />}
               label="Ocupación mes"
               value={financeMonth ? formatPercent(financeMonth.occupancyPct) : '—'}
               subLabel={financeMonth ? `${financeMonth.roomNightsSold} noches vendidas` : undefined}
-              color="text-blue-600"
+              color="text-status-occupied"
             />
           </motion.div>
         </section>
