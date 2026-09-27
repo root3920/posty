@@ -34,13 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { EntitySelect } from '@/components/shared/entity-select';
 
 import {
   checkOutAction,
@@ -138,21 +132,12 @@ function AddChargeDialog({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
           <div>
             <Label className="text-xs">Centro de ingresos *</Label>
-            <Select
-              value={watch('revenueCenterId') ?? ''}
-              onValueChange={(v) => { if (v) setValue('revenueCenterId', v); }}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Seleccionar..." />
-              </SelectTrigger>
-              <SelectContent>
-                {revenueCenters.map((rc) => (
-                  <SelectItem key={rc.id} value={rc.id}>
-                    {rc.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EntitySelect
+              options={revenueCenters.map((rc) => ({ value: rc.id, label: rc.name }))}
+              value={watch('revenueCenterId') ?? null}
+              onChange={(v) => { if (v) setValue('revenueCenterId', v); }}
+              placeholder="Seleccionar..."
+            />
             {errors.revenueCenterId && (
               <p className="mt-0.5 text-xs text-red-500">{errors.revenueCenterId.message}</p>
             )}
@@ -277,21 +262,12 @@ function RegisterPaymentDialog({
           </div>
           <div>
             <Label className="text-xs">Método de pago *</Label>
-            <Select
-              value={watch('methodId') ?? ''}
-              onValueChange={(v) => { if (v) setValue('methodId', v); }}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Seleccionar..." />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentMethods.map((pm) => (
-                  <SelectItem key={pm.id} value={pm.id}>
-                    {pm.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EntitySelect
+              options={paymentMethods.map((pm) => ({ value: pm.id, label: pm.name }))}
+              value={watch('methodId') ?? null}
+              onChange={(v) => { if (v) setValue('methodId', v); }}
+              placeholder="Seleccionar..."
+            />
             {errors.methodId && (
               <p className="mt-0.5 text-xs text-red-500">{errors.methodId.message}</p>
             )}

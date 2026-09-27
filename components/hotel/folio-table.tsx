@@ -73,7 +73,7 @@ export function FolioTable({ charges, payments, balance }: FolioTableProps) {
           <span className="text-right text-muted-foreground">
             {formatCOP(charge.unit_price)}
           </span>
-          <span className="text-right font-medium">{formatCOP(charge.total)}</span>
+          <span className="text-right font-medium">{formatCOP(charge.total ?? 0)}</span>
         </div>
       ))}
 

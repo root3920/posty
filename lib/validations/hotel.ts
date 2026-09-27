@@ -7,12 +7,12 @@ import { z } from 'zod';
 export const guestSchema = z.object({
   firstName: z.string().min(1, 'El nombre es obligatorio').max(100),
   lastName: z.string().min(1, 'El apellido es obligatorio').max(100),
-  documentTypeId: z.string().uuid('Tipo de documento inválido').nullable().optional(),
+  documentTypeId: z.string().min(1).nullable().optional(),
   documentNumber: z.string().max(50).nullable().optional(),
   nationality: z.string().max(100).nullable().optional(),
   birthDate: z.string().nullable().optional(),
   phone: z.string().max(30).nullable().optional(),
-  email: z.string().email('Email inválido').nullable().optional(),
+  email: z.string().email('Email inválido').or(z.literal('')).nullable().optional(),
   address: z.string().max(255).nullable().optional(),
   cityOfOrigin: z.string().max(100).nullable().optional(),
   countryOfOrigin: z.string().max(100).nullable().optional(),
@@ -26,14 +26,14 @@ export type GuestInput = z.infer<typeof guestSchema>;
 // -------------------------------------------------------
 
 export const checkInSchema = z.object({
-  roomId: z.string().uuid('Habitación inválida'),
+  roomId: z.string().min(1, 'Selecciona una habitación'),
   guestData: guestSchema,
   checkInDate: z.string().min(1, 'La fecha de entrada es obligatoria'),
   checkOutDate: z.string().min(1, 'La fecha de salida es obligatoria'),
   adults: z.number().int().min(1, 'Mínimo 1 adulto').max(20),
   children: z.number().int().min(0).max(20).default(0),
-  channelId: z.string().uuid().nullable().optional(),
-  travelReasonId: z.string().uuid().nullable().optional(),
+  channelId: z.string().min(1).nullable().optional(),
+  travelReasonId: z.string().min(1).nullable().optional(),
   ratePerNight: z.number().positive('La tarifa debe ser positiva'),
   notes: z.string().nullable().optional(),
 });
@@ -52,7 +52,7 @@ export type ReservationInput = z.infer<typeof reservationSchema>;
 // -------------------------------------------------------
 
 export const folioChargeSchema = z.object({
-  revenueCenterId: z.string().uuid('Centro de ingresos inválido'),
+  revenueCenterId: z.string().min(1, 'Selecciona un centro de ingresos'),
   description: z.string().min(1, 'La descripción es obligatoria').max(255),
   quantity: z.number().int().min(1, 'Mínimo 1').max(9999),
   unitPrice: z.number().positive('El precio debe ser positivo'),
@@ -67,7 +67,7 @@ export type FolioChargeInput = z.infer<typeof folioChargeSchema>;
 
 export const paymentSchema = z.object({
   amount: z.number().positive('El monto debe ser positivo'),
-  methodId: z.string().uuid('Método de pago inválido'),
+  methodId: z.string().min(1, 'Selecciona un método de pago'),
   reference: z.string().max(100).nullable().optional(),
 });
 
@@ -88,7 +88,7 @@ export type ExtendStayInput = z.infer<typeof extendStaySchema>;
 // -------------------------------------------------------
 
 export const changeRoomSchema = z.object({
-  newRoomId: z.string().uuid('Habitación inválida'),
+  newRoomId: z.string().min(1, 'Selecciona una habitación'),
   newRatePerNight: z.number().positive('La tarifa debe ser positiva').optional(),
 });
 

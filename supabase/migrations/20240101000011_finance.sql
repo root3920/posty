@@ -91,38 +91,4 @@ alter table public.other_revenue enable row level security;
 alter table public.budgets enable row level security;
 alter table public.daily_room_snapshots enable row level security;
 
--- Expenses
-create policy "Users can view expenses of own org"
-  on public.expenses for select
-  using (organization_id in (select organization_id from public.profiles where id = auth.uid()));
-
-create policy "Org members can manage expenses"
-  on public.expenses for all
-  using (organization_id in (select organization_id from public.profiles where id = auth.uid()));
-
--- Other revenue
-create policy "Users can view other_revenue of own org"
-  on public.other_revenue for select
-  using (organization_id in (select organization_id from public.profiles where id = auth.uid()));
-
-create policy "Org members can manage other_revenue"
-  on public.other_revenue for all
-  using (organization_id in (select organization_id from public.profiles where id = auth.uid()));
-
--- Budgets
-create policy "Users can view budgets of own org"
-  on public.budgets for select
-  using (organization_id in (select organization_id from public.profiles where id = auth.uid()));
-
-create policy "Org members can manage budgets"
-  on public.budgets for all
-  using (organization_id in (select organization_id from public.profiles where id = auth.uid()));
-
--- Daily snapshots
-create policy "Users can view snapshots of own org"
-  on public.daily_room_snapshots for select
-  using (organization_id in (select organization_id from public.profiles where id = auth.uid()));
-
-create policy "Org members can manage snapshots"
-  on public.daily_room_snapshots for all
-  using (organization_id in (select organization_id from public.profiles where id = auth.uid()));
+-- Policies added in migration 000015

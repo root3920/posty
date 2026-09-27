@@ -27,7 +27,7 @@ export const setupPasswordSchema = z.object({
 export const inviteSchema = z.object({
   email: z.string().email('Email inválido'),
   fullName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
-  roleId: z.string().uuid('Selecciona un rol'),
+  roleId: z.string().min(1, 'Selecciona un rol'),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

@@ -32,23 +32,5 @@ create trigger on_profiles_updated
 create index idx_profiles_organization on public.profiles(organization_id);
 create index idx_profiles_role on public.profiles(role_id);
 
--- RLS
+-- RLS enabled here; policies added in migration 000015 after all tables exist
 alter table public.profiles enable row level security;
-
-create policy "Users can view profiles of own org"
-  on public.profiles for select
-  using (
-    organization_id in (
-      select organization_id from public.profiles
-      where id = auth.uid()
-    )
-  );
-
-create policy "Users can update own profile"
-  on public.profiles for update
-  using (id = auth.uid());
-
--- Insert handled by service_role during registration/invitation
-create policy "Service role can insert profiles"
-  on public.profiles for insert
-  with check (true);

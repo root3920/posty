@@ -3,15 +3,15 @@ import { z } from 'zod';
 export const createTaskSchema = z.object({
   title: z.string().min(1, 'El título es obligatorio').max(255, 'El título es muy largo'),
   description: z.string().optional(),
-  statusId: z.string().uuid('Estado inválido'),
+  statusId: z.string().min(1, 'Selecciona un estado'),
   priority: z.enum(['urgent', 'high', 'normal', 'low']).default('normal'),
-  assigneeIds: z.array(z.string().uuid()).default([]),
+  assigneeIds: z.array(z.string().min(1)).default([]),
   dueDate: z.string().nullable().optional(),
   startDate: z.string().nullable().optional(),
-  parentTaskId: z.string().uuid().nullable().optional(),
-  roomId: z.string().uuid().nullable().optional(),
+  parentTaskId: z.string().min(1).nullable().optional(),
+  roomId: z.string().min(1).nullable().optional(),
   estimatedMinutes: z.number().int().positive().nullable().optional(),
-  labelIds: z.array(z.string().uuid()).default([]),
+  labelIds: z.array(z.string().min(1)).default([]),
 });
 
 export const updateTaskSchema = createTaskSchema.partial();

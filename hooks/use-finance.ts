@@ -448,7 +448,7 @@ async function fetchFinanceKPIs(period: FinancePeriod): Promise<FinanceKPIs> {
   // Accounts receivable: positive stay balances
   const stayBalances = stayBalancesRes.data ?? [];
   const accountsReceivable = stayBalances.reduce(
-    (sum: number, b: { balance: number }) => sum + Math.max(0, b.balance ?? 0),
+    (sum: number, b: { balance: number | null }) => sum + Math.max(0, b.balance ?? 0),
     0,
   );
 

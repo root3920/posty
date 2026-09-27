@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EntitySelect } from '@/components/shared/entity-select';
 
 import { z } from 'zod';
 import { createTaskSchema, type CreateTaskInput } from '@/lib/validations/tasks';
@@ -165,30 +166,18 @@ export function TaskCreateDialog({ open, onOpenChange, defaultStatusId }: TaskCr
 
           {/* Status + Priority row */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label>Estado</Label>
               <Controller
                 control={control}
                 name="statusId"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statuses.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: s.color }}
-                            />
-                            {s.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <EntitySelect
+                    options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
+                    value={field.value}
+                    onChange={(v) => field.onChange(v ?? '')}
+                    placeholder="Seleccionar estado"
+                  />
                 )}
               />
             </div>

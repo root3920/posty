@@ -18,13 +18,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { EntitySelect } from '@/components/shared/entity-select';
 
 import { useRooms, useHotelKPIs, useRoomStatuses, useRoomTypes } from '@/hooks/use-hotel';
 import { RoomMap } from '@/components/hotel/room-map';
@@ -221,63 +215,39 @@ function HotelContent() {
             <div className="flex flex-wrap items-center gap-2">
               <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
 
-              <Select
-                value={filterStatus ?? ''}
-                onValueChange={(v) => updateParam('estado', v || null)}
-              >
-                <SelectTrigger className="h-7 w-36 text-xs">
-                  <SelectValue placeholder="Estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todos los estados</SelectItem>
-                  {roomStatuses.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: s.color }}
-                        />
-                        {s.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <EntitySelect
+                options={roomStatuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
+                value={filterStatus ?? null}
+                onChange={(v) => updateParam('estado', v)}
+                placeholder="Estado"
+                allowClear
+                clearLabel="Todos los estados"
+                size="sm"
+                triggerClassName="w-36"
+              />
 
-              <Select
-                value={filterType ?? ''}
-                onValueChange={(v) => updateParam('tipo', v || null)}
-              >
-                <SelectTrigger className="h-7 w-36 text-xs">
-                  <SelectValue placeholder="Tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todos los tipos</SelectItem>
-                  {roomTypes.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <EntitySelect
+                options={roomTypes.map((t) => ({ value: t.id, label: t.name }))}
+                value={filterType ?? null}
+                onChange={(v) => updateParam('tipo', v)}
+                placeholder="Tipo"
+                allowClear
+                clearLabel="Todos los tipos"
+                size="sm"
+                triggerClassName="w-36"
+              />
 
               {floors.length > 0 && (
-                <Select
-                  value={filterFloor ?? ''}
-                  onValueChange={(v) => updateParam('piso', v || null)}
-                >
-                  <SelectTrigger className="h-7 w-28 text-xs">
-                    <SelectValue placeholder="Piso" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
-                    {floors.map((f) => (
-                      <SelectItem key={f} value={f}>
-                        Piso {f}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EntitySelect
+                  options={floors.map((f) => ({ value: f, label: `Piso ${f}` }))}
+                  value={filterFloor ?? null}
+                  onChange={(v) => updateParam('piso', v)}
+                  placeholder="Piso"
+                  allowClear
+                  clearLabel="Todos"
+                  size="sm"
+                  triggerClassName="w-28"
+                />
               )}
             </div>
           )}

@@ -8,13 +8,7 @@ import { Plus, Trash2, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { EntitySelect } from '@/components/shared/entity-select';
 import { useOtherRevenue, type RevenueFilters } from '@/hooks/use-finance';
 import { useRevenueCenters } from '@/hooks/use-hotel';
 import { formatCurrency } from '@/lib/format';
@@ -81,21 +75,12 @@ function CreateRevenueModal({ open, onClose, onCreated }: CreateRevenueModalProp
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium">Centro de ingresos *</label>
-            <Select
-              value={watch('revenueCenterId') ?? ''}
-              onValueChange={(v) => setValue('revenueCenterId', v ?? '')}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar..." />
-              </SelectTrigger>
-              <SelectContent>
-                {revenueCenters.map((rc) => (
-                  <SelectItem key={rc.id} value={rc.id}>
-                    {rc.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EntitySelect
+              options={revenueCenters.map((rc) => ({ value: rc.id, label: rc.name }))}
+              value={watch('revenueCenterId') ?? null}
+              onChange={(v) => setValue('revenueCenterId', v ?? '')}
+              placeholder="Seleccionar..."
+            />
             {errors.revenueCenterId && (
               <p className="mt-1 text-xs text-red-500">{errors.revenueCenterId.message}</p>
             )}
@@ -257,22 +242,16 @@ function IngresosContent() {
             onChange={(e) => updateParam('hasta', e.target.value || null)}
             className="h-7 rounded-md border bg-background px-2 text-xs"
           />
-          <Select
-            value={filterCenter ?? ''}
-            onValueChange={(v) => updateParam('centro', v || null)}
-          >
-            <SelectTrigger className="h-7 w-44 text-xs">
-              <SelectValue placeholder="Todos los centros" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Todos los centros</SelectItem>
-              {revenueCenters.map((rc) => (
-                <SelectItem key={rc.id} value={rc.id}>
-                  {rc.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <EntitySelect
+            options={revenueCenters.map((rc) => ({ value: rc.id, label: rc.name }))}
+            value={filterCenter ?? null}
+            onChange={(v) => updateParam('centro', v)}
+            placeholder="Todos los centros"
+            allowClear
+            clearLabel="Todos los centros"
+            size="sm"
+            triggerClassName="w-44"
+          />
         </div>
 
         {/* Totals by center */}

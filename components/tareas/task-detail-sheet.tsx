@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EntitySelect } from '@/components/shared/entity-select';
 
 import { useTaskDetail, useTasks } from '@/hooks/use-tasks';
 import type { TaskWithRelations } from '@/hooks/use-tasks';
@@ -336,34 +337,14 @@ export function TaskDetailSheet({ taskId, open, onOpenChange }: TaskDetailSheetP
               {/* Meta grid */}
               <div className="grid grid-cols-2 gap-4">
                 {/* Status */}
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <p className="text-xs font-medium text-muted-foreground">Estado</p>
-                  <Select value={task.status_id} onValueChange={handleStatusChange}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{ backgroundColor: task.status?.color }}
-                          />
-                          {task.status?.name}
-                        </div>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statuses.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: s.color }}
-                            />
-                            {s.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <EntitySelect
+                    options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
+                    value={task.status_id}
+                    onChange={(v) => { if (v) handleStatusChange(v); }}
+                    size="sm"
+                  />
                 </div>
 
                 {/* Priority */}

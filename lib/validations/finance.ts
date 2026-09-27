@@ -5,7 +5,7 @@ import { z } from 'zod';
 // -------------------------------------------------------
 
 export const expenseSchema = z.object({
-  categoryId: z.string().uuid('Categoría inválida'),
+  categoryId: z.string().min(1, 'Selecciona una categoría'),
   supplier: z.string().max(255).nullable().optional(),
   description: z.string().min(1, 'La descripción es obligatoria').max(500),
   amount: z.number().positive('El monto debe ser positivo'),
@@ -22,7 +22,7 @@ export type ExpenseInput = z.infer<typeof expenseSchema>;
 // -------------------------------------------------------
 
 export const otherRevenueSchema = z.object({
-  revenueCenterId: z.string().uuid('Centro de ingresos inválido'),
+  revenueCenterId: z.string().min(1, 'Selecciona un centro de ingresos'),
   description: z.string().min(1, 'La descripción es obligatoria').max(500),
   amount: z.number().positive('El monto debe ser positivo'),
   taxAmount: z.number().min(0, 'El impuesto no puede ser negativo').default(0),

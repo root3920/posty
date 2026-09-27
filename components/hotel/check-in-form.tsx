@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Search, Loader2 } from 'lucide-react';
+import { format, differenceInCalendarDays } from 'date-fns';
+import { Search, Loader2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,13 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { EntitySelect, type EntityOption } from '@/components/shared/entity-select';
 
 import { checkInSchema, type CheckInInput } from '@/lib/validations/hotel';
 import { checkInAction, createReservationAction } from '@/app/actions/hotel';
@@ -66,7 +61,6 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
   const [guestSearch, setGuestSearch] = useState('');
   const [selectedGuest, setSelectedGuest] = useState<Tables<'guests'> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
 
   const { data: rooms = [] } = useRooms();
   const { data: guests = [] } = useGuests(guestSearch);
@@ -76,10 +70,6 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const tomorrow = format(new Date(Date.now() + 86400000), 'yyyy-MM-dd');
-
-  const availableRooms = rooms.filter(
-    (r) => r.room_status.counts_as_available && !r.current_stay,
-  );
 
   const {
     register,
@@ -106,14 +96,60 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
   });
 
   const watchRoomId = watch('roomId');
+  const watchCheckIn = watch('checkInDate');
+  const watchCheckOut = watch('checkOutDate');
+  const watchRate = watch('ratePerNight');
 
-  // When room changes, suggest rate from room type
+  // Calculate nights and total
+  const nights = useMemo(() => {
+    if (!watchCheckIn || !watchCheckOut) return 0;
+    const d = differenceInCalendarDays(new Date(watchCheckOut), new Date(watchCheckIn));
+    return d > 0 ? d : 0;
+  }, [watchCheckIn, watchCheckOut]);
+
+  const total = nights * (watchRate || 0);
+
+  // Available rooms: active, counts_as_available, no overlapping stay
+  const availableRooms = useMemo(() => {
+    return rooms.filter((r) => {
+      if (!r.room_status?.counts_as_available) return false;
+      if (!r.is_active) return false;
+      // If room has a current stay (checked_in or reserved), it's not available
+      if (r.current_stay) return false;
+      return true;
+    });
+  }, [rooms]);
+
+  // Options for EntitySelect
+  const roomOptions = useMemo((): EntityOption[] => {
+    return availableRooms.map((r) => ({
+      value: r.id,
+      label: `${r.number} · ${r.room_type?.name ?? ''} · ${copFormatter.format(r.room_type?.base_rate ?? 0)}`,
+    }));
+  }, [availableRooms]);
+
+  const documentTypeOptions = useMemo((): EntityOption[] =>
+    documentTypes.map((dt) => ({ value: dt.id, label: `${dt.code} — ${dt.name}` })),
+    [documentTypes],
+  );
+
+  const channelOptions = useMemo((): EntityOption[] =>
+    channels.map((c) => ({ value: c.id, label: c.name })),
+    [channels],
+  );
+
+  const travelReasonOptions = useMemo((): EntityOption[] =>
+    travelReasons.map((tr) => ({ value: tr.id, label: tr.name })),
+    [travelReasons],
+  );
+
+  // When room changes, auto-fill rate from room type
   const handleRoomChange = useCallback(
     (roomId: string | null) => {
+      setValue('roomId', roomId ?? '');
       if (!roomId) return;
-      setValue('roomId', roomId);
       const room = rooms.find((r) => r.id === roomId);
-      if (room) {
+      if (room?.room_type?.base_rate) {
         setValue('ratePerNight', room.room_type.base_rate);
       }
     },
@@ -147,22 +183,28 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onSubmit = async (data: any) => {
     setIsSubmitting(true);
-    setServerError(null);
 
-    const action = mode === 'checkin' ? checkInAction : createReservationAction;
-    const result = await action(data);
+    try {
+      const action = mode === 'checkin' ? checkInAction : createReservationAction;
+      const result = await action(data);
 
-    setIsSubmitting(false);
-
-    if ('error' in result && result.error) {
-      setServerError(result.error);
-    } else {
-      queryClient.invalidateQueries({ queryKey: ['hotel_rooms'] });
-      queryClient.invalidateQueries({ queryKey: ['hotel_kpis'] });
-      queryClient.invalidateQueries({ queryKey: ['hotel_reservations'] });
-      reset();
-      setSelectedGuest(null);
-      onOpenChange(false);
+      if ('error' in result && result.error) {
+        console.error('Check-in server error:', result.error);
+        toast.error(result.error);
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['hotel_rooms'] });
+        queryClient.invalidateQueries({ queryKey: ['hotel_kpis'] });
+        queryClient.invalidateQueries({ queryKey: ['hotel_reservations'] });
+        toast.success(mode === 'checkin' ? 'Check-in exitoso' : 'Reserva creada');
+        reset();
+        setSelectedGuest(null);
+        onOpenChange(false);
+      }
+    } catch (err) {
+      console.error('Check-in unexpected error:', err);
+      toast.error('Error inesperado al procesar la solicitud');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -241,51 +283,41 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
           </div>
 
           {/* Guest data fields */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div className="grid grid-cols-2 gap-3" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}>
+            <div className="min-w-0">
               <Label className="text-xs">Nombre *</Label>
               <Input {...register('guestData.firstName')} placeholder="Nombre" />
               {errors.guestData?.firstName && (
                 <p className="mt-0.5 text-xs text-red-500">{errors.guestData.firstName.message}</p>
               )}
             </div>
-            <div>
+            <div className="min-w-0">
               <Label className="text-xs">Apellido *</Label>
               <Input {...register('guestData.lastName')} placeholder="Apellido" />
               {errors.guestData?.lastName && (
                 <p className="mt-0.5 text-xs text-red-500">{errors.guestData.lastName.message}</p>
               )}
             </div>
-            <div>
+            <div className="min-w-0">
               <Label className="text-xs">Tipo de documento</Label>
-              <Select
-                value={watch('guestData.documentTypeId') ?? ''}
-                onValueChange={(v) =>
-                  setValue('guestData.documentTypeId', v || undefined)
-                }
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Seleccionar..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Sin especificar</SelectItem>
-                  {documentTypes.map((dt) => (
-                    <SelectItem key={dt.id} value={dt.id}>
-                      {dt.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <EntitySelect
+                options={documentTypeOptions}
+                value={watch('guestData.documentTypeId') ?? null}
+                onChange={(v) => setValue('guestData.documentTypeId', v ?? undefined)}
+                placeholder="Seleccionar..."
+                allowClear
+                clearLabel="Sin especificar"
+              />
             </div>
-            <div>
+            <div className="min-w-0">
               <Label className="text-xs">Número de documento</Label>
               <Input {...register('guestData.documentNumber')} placeholder="123456789" />
             </div>
-            <div>
+            <div className="min-w-0">
               <Label className="text-xs">Teléfono</Label>
               <Input {...register('guestData.phone')} placeholder="+57 300 000 0000" />
             </div>
-            <div>
+            <div className="min-w-0">
               <Label className="text-xs">Email</Label>
               <Input {...register('guestData.email')} type="email" placeholder="correo@ejemplo.com" />
               {errors.guestData?.email && (
@@ -300,37 +332,40 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
           <div className="border-t pt-4 space-y-3">
             <Label className="text-sm font-semibold">Datos de la estancia</Label>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}>
               {/* Room */}
-              <div className="col-span-2">
+              <div className="col-span-2 min-w-0">
                 <Label className="text-xs">Habitación *</Label>
-                <Select value={watchRoomId} onValueChange={handleRoomChange}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Seleccionar habitación..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableRooms.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
-                        Hab. {r.number} — {r.room_type.name} (
-                        {copFormatter.format(r.room_type.base_rate)}/noche)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {roomOptions.length > 0 ? (
+                  <EntitySelect
+                    options={roomOptions}
+                    value={watchRoomId || null}
+                    onChange={handleRoomChange}
+                    placeholder="Seleccionar habitación..."
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span className="flex-1">No hay habitaciones disponibles para estas fechas.</span>
+                    <Link href="/configuracion/catalogos" className="shrink-0 text-xs font-medium underline">
+                      Configurar
+                    </Link>
+                  </div>
+                )}
                 {errors.roomId && (
                   <p className="mt-0.5 text-xs text-red-500">{errors.roomId.message}</p>
                 )}
               </div>
 
               {/* Dates */}
-              <div>
+              <div className="min-w-0">
                 <Label className="text-xs">Fecha de entrada *</Label>
                 <Input type="date" {...register('checkInDate')} />
                 {errors.checkInDate && (
                   <p className="mt-0.5 text-xs text-red-500">{errors.checkInDate.message}</p>
                 )}
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label className="text-xs">Fecha de salida *</Label>
                 <Input type="date" {...register('checkOutDate')} />
                 {errors.checkOutDate && (
@@ -338,8 +373,8 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                 )}
               </div>
 
-              {/* Rate */}
-              <div>
+              {/* Rate + total */}
+              <div className="min-w-0">
                 <Label className="text-xs">Tarifa por noche *</Label>
                 <Input
                   type="number"
@@ -350,10 +385,16 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                 {errors.ratePerNight && (
                   <p className="mt-0.5 text-xs text-red-500">{errors.ratePerNight.message}</p>
                 )}
+                {nights > 0 && watchRate > 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {nights} noche{nights !== 1 ? 's' : ''} × {copFormatter.format(watchRate)} ={' '}
+                    <span className="font-semibold text-foreground">{copFormatter.format(total)}</span>
+                  </p>
+                )}
               </div>
 
               {/* Adults / children */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="min-w-0 grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs">Adultos *</Label>
                   <Input
@@ -375,45 +416,29 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
               </div>
 
               {/* Channel */}
-              <div>
+              <div className="min-w-0">
                 <Label className="text-xs">Canal de reserva</Label>
-                <Select
-                  value={watch('channelId') ?? ''}
-                  onValueChange={(v) => setValue('channelId', v || undefined)}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Seleccionar..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Sin especificar</SelectItem>
-                    {channels.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EntitySelect
+                  options={channelOptions}
+                  value={watch('channelId') ?? null}
+                  onChange={(v) => setValue('channelId', v ?? undefined)}
+                  placeholder="Seleccionar..."
+                  allowClear
+                  clearLabel="Sin especificar"
+                />
               </div>
 
               {/* Travel reason */}
-              <div>
+              <div className="min-w-0">
                 <Label className="text-xs">Motivo de viaje</Label>
-                <Select
-                  value={watch('travelReasonId') ?? ''}
-                  onValueChange={(v) => setValue('travelReasonId', v || undefined)}
-                >
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Seleccionar..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Sin especificar</SelectItem>
-                    {travelReasons.map((tr) => (
-                      <SelectItem key={tr.id} value={tr.id}>
-                        {tr.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EntitySelect
+                  options={travelReasonOptions}
+                  value={watch('travelReasonId') ?? null}
+                  onChange={(v) => setValue('travelReasonId', v ?? undefined)}
+                  placeholder="Seleccionar..."
+                  allowClear
+                  clearLabel="Sin especificar"
+                />
               </div>
             </div>
 
@@ -423,11 +448,6 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
               <Input {...register('notes')} placeholder="Observaciones opcionales..." />
             </div>
           </div>
-
-          {/* Error */}
-          {serverError && (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{serverError}</p>
-          )}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">

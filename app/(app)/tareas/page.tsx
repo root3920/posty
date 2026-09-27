@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EntitySelect } from '@/components/shared/entity-select';
 
 import { useTasks, type TaskFilters, type TaskWithRelations } from '@/hooks/use-tasks';
 import { useProfile } from '@/hooks/use-profile';
@@ -206,28 +207,16 @@ function TareasContent() {
           <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
 
           {/* Status filter */}
-          <Select
-            value={filterStatus ?? ''}
-            onValueChange={(v) => updateParam('estado', v || null)}
-          >
-            <SelectTrigger className="h-7 w-36 text-xs">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Todos los estados</SelectItem>
-              {statuses.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: s.color }}
-                    />
-                    {s.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <EntitySelect
+            options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
+            value={filterStatus ?? null}
+            onChange={(v) => updateParam('estado', v)}
+            placeholder="Estado"
+            allowClear
+            clearLabel="Todos los estados"
+            size="sm"
+            triggerClassName="w-36"
+          />
 
           {/* Priority filter */}
           <Select
@@ -254,47 +243,29 @@ function TareasContent() {
           </Select>
 
           {/* Assignee filter */}
-          <Select
-            value={filterAssignee ?? ''}
-            onValueChange={(v) => updateParam('asignado', v || null)}
-          >
-            <SelectTrigger className="h-7 w-36 text-xs">
-              <SelectValue placeholder="Asignado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
-              {teamMembers.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.full_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <EntitySelect
+            options={teamMembers.map((m) => ({ value: m.id, label: m.full_name }))}
+            value={filterAssignee ?? null}
+            onChange={(v) => updateParam('asignado', v)}
+            placeholder="Asignado"
+            allowClear
+            clearLabel="Todos"
+            size="sm"
+            triggerClassName="w-36"
+          />
 
           {/* Label filter */}
           {labels.length > 0 && (
-            <Select
-              value={filterLabel ?? ''}
-              onValueChange={(v) => updateParam('etiqueta', v || null)}
-            >
-              <SelectTrigger className="h-7 w-36 text-xs">
-                <SelectValue placeholder="Etiqueta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Todas</SelectItem>
-                {labels.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: l.color }}
-                      />
-                      {l.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EntitySelect
+              options={labels.map((l) => ({ value: l.id, label: l.name, color: l.color }))}
+              value={filterLabel ?? null}
+              onChange={(v) => updateParam('etiqueta', v)}
+              placeholder="Etiqueta"
+              allowClear
+              clearLabel="Todas"
+              size="sm"
+              triggerClassName="w-36"
+            />
           )}
 
           {/* Date range */}

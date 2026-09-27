@@ -28,45 +28,6 @@ create table public.role_permissions (
   unique(role_id, permission_key)
 );
 
--- RLS
+-- RLS enabled here; policies added in migration 000015 after all tables exist
 alter table public.roles enable row level security;
 alter table public.role_permissions enable row level security;
-
-create policy "Users can view roles of own org"
-  on public.roles for select
-  using (
-    organization_id in (
-      select organization_id from public.profiles
-      where id = auth.uid()
-    )
-  );
-
-create policy "Users can view role_permissions of own org"
-  on public.role_permissions for select
-  using (
-    role_id in (
-      select r.id from public.roles r
-      join public.profiles p on p.organization_id = r.organization_id
-      where p.id = auth.uid()
-    )
-  );
-
--- Insert/update/delete on roles managed via has_permission (Phase 2 will tighten)
-create policy "Org members can manage roles"
-  on public.roles for all
-  using (
-    organization_id in (
-      select organization_id from public.profiles
-      where id = auth.uid()
-    )
-  );
-
-create policy "Org members can manage role_permissions"
-  on public.role_permissions for all
-  using (
-    role_id in (
-      select r.id from public.roles r
-      join public.profiles p on p.organization_id = r.organization_id
-      where p.id = auth.uid()
-    )
-  );

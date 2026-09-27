@@ -19,13 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { EntitySelect } from '@/components/shared/entity-select';
 
 import { createClient } from '@/lib/supabase/client';
 import { guestSchema, type GuestInput } from '@/lib/validations/hotel';
@@ -165,22 +159,14 @@ function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps
             </div>
             <div>
               <Label className="text-xs">Tipo de documento</Label>
-              <Select
-                value={watch('documentTypeId') ?? ''}
-                onValueChange={(v) => setValue('documentTypeId', v || undefined)}
-              >
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Seleccionar..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Sin especificar</SelectItem>
-                  {documentTypes.map((dt) => (
-                    <SelectItem key={dt.id} value={dt.id}>
-                      {dt.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <EntitySelect
+                options={documentTypes.map((dt) => ({ value: dt.id, label: dt.name }))}
+                value={watch('documentTypeId') ?? null}
+                onChange={(v) => setValue('documentTypeId', v ?? undefined)}
+                placeholder="Seleccionar..."
+                allowClear
+                clearLabel="Sin especificar"
+              />
             </div>
             <div>
               <Label className="text-xs">Número de documento</Label>

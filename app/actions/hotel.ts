@@ -194,12 +194,13 @@ export async function checkInAction(formData: CheckInInput) {
       .limit(1)
       .maybeSingle();
 
-    if (revenueCenter && stay.nights > 0) {
+    const nights = stay.nights ?? 0;
+    if (revenueCenter && nights > 0) {
       await supabase.from('folio_charges').insert({
         stay_id: stay.id,
         revenue_center_id: revenueCenter.id,
-        description: `Alojamiento — ${stay.nights} noche(s)`,
-        quantity: stay.nights,
+        description: `Alojamiento — ${nights} noche(s)`,
+        quantity: nights,
         unit_price: ratePerNight,
         tax_rate: 0,
         posted_by: user.id,
@@ -295,14 +296,15 @@ export async function checkOutAction(stayId: string) {
       .eq('stay_id', stayId)
       .maybeSingle();
 
-    if (balance && balance.balance > 0) {
+    const balanceAmount = balance?.balance ?? 0;
+    if (balanceAmount > 0) {
       return {
-        error: `Hay saldo pendiente de ${balance.balance.toLocaleString('es-CO', {
+        error: `Hay saldo pendiente de ${balanceAmount.toLocaleString('es-CO', {
           style: 'currency',
           currency: 'COP',
           maximumFractionDigits: 0,
         })}. Registre el pago antes de hacer check-out.`,
-        balance: balance.balance,
+        balance: balanceAmount,
       };
     }
 

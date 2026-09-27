@@ -32,26 +32,5 @@ create trigger on_organizations_updated
   before update on public.organizations
   for each row execute function public.handle_updated_at();
 
--- RLS
+-- RLS enabled here; policies added in migration 000015 after all tables exist
 alter table public.organizations enable row level security;
-
--- Users can only see their own organization (via profiles)
-create policy "Users can view own organization"
-  on public.organizations for select
-  using (
-    id in (
-      select organization_id from public.profiles
-      where id = auth.uid()
-    )
-  );
-
--- Only gestor (via has_permission, added later) can update
--- For now, allow update for members
-create policy "Members can update own organization"
-  on public.organizations for update
-  using (
-    id in (
-      select organization_id from public.profiles
-      where id = auth.uid()
-    )
-  );

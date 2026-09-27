@@ -5,13 +5,7 @@ import { isToday, isPast, isFuture } from 'date-fns';
 import { ChevronDown, ChevronRight, AlertTriangle, CalendarDays, Calendar } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { EntitySelect } from '@/components/shared/entity-select';
 
 import type { TaskWithRelations } from '@/hooks/use-tasks';
 import type { Tables } from '@/types/database';
@@ -79,25 +73,14 @@ function MyTaskRow({
       )}
 
       {/* Quick status change */}
-      <div className="opacity-0 transition-opacity group-hover:opacity-100">
-        <Select value={task.status_id} onValueChange={onStatusChange}>
-          <SelectTrigger className="h-6 w-28 text-[10px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {statuses.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ backgroundColor: s.color }}
-                  />
-                  <span className="text-[11px]">{s.name}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="opacity-0 transition-opacity group-hover:opacity-100 min-w-0">
+        <EntitySelect
+          options={statuses.map((s) => ({ value: s.id, label: s.name, color: s.color }))}
+          value={task.status_id}
+          onChange={onStatusChange}
+          size="sm"
+          triggerClassName="h-6 w-28 text-[10px]"
+        />
       </div>
     </div>
   );

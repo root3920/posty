@@ -19,15 +19,4 @@ create index idx_notifications_profile on public.notifications(profile_id, is_re
 -- RLS
 alter table public.notifications enable row level security;
 
-create policy "Users can view own notifications"
-  on public.notifications for select
-  using (profile_id = auth.uid());
-
-create policy "Users can update own notifications"
-  on public.notifications for update
-  using (profile_id = auth.uid());
-
--- Insert by system (triggers/service_role)
-create policy "System can insert notifications"
-  on public.notifications for insert
-  with check (true);
+-- Policies added in migration 000015

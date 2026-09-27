@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EntitySelect } from '@/components/shared/entity-select';
 import { useExpenses, type ExpenseFilters, type ExpenseWithCategory } from '@/hooks/use-finance';
 import { formatCurrency } from '@/lib/format';
 import {
@@ -143,26 +144,15 @@ function ExpenseFormModal({ open, onClose, onSaved, editingExpense }: ExpenseFor
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium">Categoría *</label>
-            <Select
-              value={watch('categoryId') ?? ''}
-              onValueChange={(v) => setValue('categoryId', v ?? '')}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar categoría..." />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    <span>
-                      {cat.name}{' '}
-                      <span className="text-muted-foreground text-xs">
-                        ({GROUP_LABELS[cat.category_group] ?? cat.category_group})
-                      </span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EntitySelect
+              options={categories.map((cat) => ({
+                value: cat.id,
+                label: `${cat.name} (${GROUP_LABELS[cat.category_group] ?? cat.category_group})`,
+              }))}
+              value={watch('categoryId') ?? null}
+              onChange={(v) => setValue('categoryId', v ?? '')}
+              placeholder="Seleccionar categoría..."
+            />
             {errors.categoryId && (
               <p className="mt-1 text-xs text-red-500">{errors.categoryId.message}</p>
             )}
@@ -366,22 +356,16 @@ function GastosContent() {
             onChange={(e) => updateParam('hasta', e.target.value || null)}
             className="h-7 rounded-md border bg-background px-2 text-xs"
           />
-          <Select
-            value={filterCategory ?? ''}
-            onValueChange={(v) => updateParam('categoria', v || null)}
-          >
-            <SelectTrigger className="h-7 w-44 text-xs">
-              <SelectValue placeholder="Todas las categorías" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Todas las categorías</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <EntitySelect
+            options={categories.map((cat) => ({ value: cat.id, label: cat.name }))}
+            value={filterCategory ?? null}
+            onChange={(v) => updateParam('categoria', v)}
+            placeholder="Todas las categorías"
+            allowClear
+            clearLabel="Todas las categorías"
+            size="sm"
+            triggerClassName="w-44"
+          />
           <Select
             value={filterStatus ?? ''}
             onValueChange={(v) => updateParam('estado', v || null)}

@@ -164,9 +164,7 @@ create table public.task_labels (
   unique(organization_id, name)
 );
 
--- -----------------------------------------------
--- RLS for all catalog tables
--- -----------------------------------------------
+-- RLS enabled here; policies added in migration 000015 after all tables exist
 do $$
 declare
   tbl text;
@@ -179,18 +177,6 @@ begin
     ])
   loop
     execute format('alter table public.%I enable row level security', tbl);
-
-    execute format(
-      'create policy "Users can view %1$s of own org" on public.%1$I for select using (
-        organization_id in (select organization_id from public.profiles where id = auth.uid())
-      )', tbl
-    );
-
-    execute format(
-      'create policy "Org members can manage %1$s" on public.%1$I for all using (
-        organization_id in (select organization_id from public.profiles where id = auth.uid())
-      )', tbl
-    );
   end loop;
 end;
 $$;
