@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { format, isToday, isTomorrow, isPast, isFuture } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Plus, CalendarDays, MoreHorizontal, LogIn } from 'lucide-react';
@@ -289,7 +290,9 @@ function ReservasContent() {
                   return (
                     <tr key={stay.id} className="hover:bg-muted/30 transition-colors">
                       <td className="whitespace-nowrap px-4 py-3">
-                        <span className="font-mono text-xs text-muted-foreground">{stay.code}</span>
+                        <Link href={`/hotel/reservas/${stay.id}`} className="font-mono text-xs text-muted-foreground hover:underline hover:text-foreground">
+                          {stay.code}
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
                         <GuestName

@@ -293,6 +293,118 @@ export function useAvailableRoomsByType(checkIn: string, checkOut: string) {
 }
 
 // -------------------------------------------------------
+// Stay tasks (grouped by phase for the detail page)
+// -------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type TaskViewRow = Record<string, any>;
+
+async function fetchStayTasks(stayId: string): Promise<TaskViewRow[]> {
+  const supabase = createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from as any)('tasks_view')
+    .select('*')
+    .eq('stay_id', stayId)
+    .is('parent_task_id', null)
+    .order('phase', { ascending: true, nullsFirst: false })
+    .order('sort_order', { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export function useStayTasks(stayId: string | null) {
+  return useQuery({
+    queryKey: ['stay_tasks', stayId],
+    queryFn: () => fetchStayTasks(stayId!),
+    enabled: !!stayId,
+    staleTime: 15 * 1000,
+  });
+}
+
+// -------------------------------------------------------
+// Stay status history
+// -------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type StatusHistoryRow = Record<string, any>;
+
+async function fetchStayStatusHistory(stayId: string): Promise<StatusHistoryRow[]> {
+  const supabase = createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from as any)('stay_status_history')
+    .select('*, changed_by_profile:profiles(full_name)')
+    .eq('stay_id', stayId)
+    .order('changed_at', { ascending: true });
+  if (error) {
+    console.error('fetchStayStatusHistory error:', error);
+    return [];
+  }
+  return (data ?? []) as StatusHistoryRow[];
+}
+
+export function useStayStatusHistory(stayId: string | null) {
+  return useQuery({
+    queryKey: ['stay_status_history', stayId],
+    queryFn: () => fetchStayStatusHistory(stayId!),
+    enabled: !!stayId,
+    staleTime: 30 * 1000,
+  });
+}
+
+// -------------------------------------------------------
+// Guest detail + guest stays
+// -------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type GuestDetailRow = Record<string, any>;
+
+async function fetchGuestDetail(guestId: string): Promise<GuestDetailRow | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('guests')
+    .select('*, document_type:document_types(name, code)')
+    .eq('id', guestId)
+    .single();
+  if (error) {
+    console.error('fetchGuestDetail error:', error);
+    return null;
+  }
+  return data as GuestDetailRow;
+}
+
+export function useGuestDetail(guestId: string | null) {
+  return useQuery({
+    queryKey: ['guest_detail', guestId],
+    queryFn: () => fetchGuestDetail(guestId!),
+    enabled: !!guestId,
+    staleTime: 30 * 1000,
+  });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type StayViewRow = Record<string, any>;
+
+async function fetchGuestStays(guestId: string): Promise<StayViewRow[]> {
+  const supabase = createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from as any)('stays_view')
+    .select('*')
+    .eq('primary_guest_id', guestId)
+    .order('check_in_date', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export function useGuestStays(guestId: string | null) {
+  return useQuery({
+    queryKey: ['guest_stays', guestId],
+    queryFn: () => fetchGuestStays(guestId!),
+    enabled: !!guestId,
+    staleTime: 30 * 1000,
+  });
+}
+
+// -------------------------------------------------------
 // Catalogs
 // -------------------------------------------------------
 

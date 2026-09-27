@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useForm, Controller } from 'react-hook-form';
@@ -59,23 +60,30 @@ function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm<GuestInput>({
     resolver: zodResolver(guestSchema) as any,
-    defaultValues: editGuest
-      ? {
-          firstName: editGuest.first_name,
-          lastName: editGuest.last_name,
-          documentTypeId: editGuest.document_type_id ?? undefined,
-          documentNumber: editGuest.document_number ?? undefined,
-          nationality: editGuest.nationality ?? undefined,
-          birthDate: editGuest.birth_date ?? undefined,
-          phone: editGuest.phone ?? undefined,
-          email: editGuest.email ?? undefined,
-          address: editGuest.address ?? undefined,
-          cityOfOrigin: editGuest.city_of_origin ?? undefined,
-          countryOfOrigin: editGuest.country_of_origin ?? undefined,
-          notes: editGuest.notes ?? undefined,
-        }
-      : {},
+    defaultValues: {},
   });
+
+  // Reset form data when editGuest changes (fix: modal opened empty)
+  useEffect(() => {
+    if (editGuest) {
+      reset({
+        firstName: editGuest.first_name,
+        lastName: editGuest.last_name,
+        documentTypeId: editGuest.document_type_id ?? undefined,
+        documentNumber: editGuest.document_number ?? undefined,
+        nationality: editGuest.nationality ?? undefined,
+        birthDate: editGuest.birth_date ?? undefined,
+        phone: editGuest.phone ?? undefined,
+        email: editGuest.email ?? undefined,
+        address: editGuest.address ?? undefined,
+        cityOfOrigin: editGuest.city_of_origin ?? undefined,
+        countryOfOrigin: editGuest.country_of_origin ?? undefined,
+        notes: editGuest.notes ?? undefined,
+      });
+    } else {
+      reset({});
+    }
+  }, [editGuest, reset]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onSubmit = async (data: any) => {
@@ -343,9 +351,9 @@ function HuespedesContent() {
                           {guest.first_name[0]}
                           {guest.last_name[0]}
                         </div>
-                        <span className="font-medium">
+                        <Link href={`/hotel/huespedes/${guest.id}`} className="font-medium hover:underline">
                           {guest.first_name} {guest.last_name}
-                        </span>
+                        </Link>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">

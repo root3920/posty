@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       booking_channels: {
@@ -44,6 +19,7 @@ export type Database = {
           archived_at: string | null
           id: string
           is_active: boolean
+          is_ota: boolean
           is_system: boolean
           name: string
           organization_id: string
@@ -53,6 +29,7 @@ export type Database = {
           archived_at?: string | null
           id?: string
           is_active?: boolean
+          is_ota?: boolean
           is_system?: boolean
           name: string
           organization_id: string
@@ -62,6 +39,7 @@ export type Database = {
           archived_at?: string | null
           id?: string
           is_active?: boolean
+          is_ota?: boolean
           is_system?: boolean
           name?: string
           organization_id?: string
@@ -369,6 +347,13 @@ export type Database = {
             columns: ["stay_id"]
             isOneToOne: false
             referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folio_charges_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
             referencedColumns: ["id"]
           },
         ]
@@ -713,6 +698,13 @@ export type Database = {
             referencedRelation: "stays"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payments_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       permissions: {
@@ -898,6 +890,7 @@ export type Database = {
           is_system: boolean
           name: string
           organization_id: string
+          system_key: string | null
           updated_at: string
         }
         Insert: {
@@ -909,6 +902,7 @@ export type Database = {
           is_system?: boolean
           name: string
           organization_id: string
+          system_key?: string | null
           updated_at?: string
         }
         Update: {
@@ -920,6 +914,7 @@ export type Database = {
           is_system?: boolean
           name?: string
           organization_id?: string
+          system_key?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1166,6 +1161,82 @@ export type Database = {
             referencedRelation: "stays"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "stay_guests_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stay_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_status: Database["public"]["Enums"]["stay_status"]
+          note: string | null
+          old_status: Database["public"]["Enums"]["stay_status"] | null
+          organization_id: string
+          stay_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_status: Database["public"]["Enums"]["stay_status"]
+          note?: string | null
+          old_status?: Database["public"]["Enums"]["stay_status"] | null
+          organization_id: string
+          stay_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_status?: Database["public"]["Enums"]["stay_status"]
+          note?: string | null
+          old_status?: Database["public"]["Enums"]["stay_status"] | null
+          organization_id?: string
+          stay_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stay_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stay_status_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stay_status_history_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stay_balances"
+            referencedColumns: ["stay_id"]
+          },
+          {
+            foreignKeyName: "stay_status_history_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stay_status_history_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       stays: {
@@ -1275,6 +1346,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stays_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stays_travel_reason_id_fkey"
             columns: ["travel_reason_id"]
             isOneToOne: false
@@ -1326,6 +1404,13 @@ export type Database = {
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "task_activity_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       task_assignees: {
@@ -1357,6 +1442,13 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_assignees_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks_view"
             referencedColumns: ["id"]
           },
         ]
@@ -1398,6 +1490,13 @@ export type Database = {
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       task_label_links: {
@@ -1429,6 +1528,13 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_label_links_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks_view"
             referencedColumns: ["id"]
           },
         ]
@@ -1512,67 +1618,162 @@ export type Database = {
           },
         ]
       }
+      task_templates: {
+        Row: {
+          anchor: Database["public"]["Enums"]["template_anchor"]
+          at_time: string | null
+          conditions: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          offset_days: number
+          offset_minutes: number
+          organization_id: string
+          phase: number | null
+          priority: string
+          role_system_key: string
+          scope: Database["public"]["Enums"]["template_scope"]
+          skip_if_past: boolean
+          sort_order: number
+          subtasks: Json | null
+          title_template: string
+          updated_at: string
+          workflow: Database["public"]["Enums"]["workflow_type"]
+        }
+        Insert: {
+          anchor?: Database["public"]["Enums"]["template_anchor"]
+          at_time?: string | null
+          conditions?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          offset_days?: number
+          offset_minutes?: number
+          organization_id: string
+          phase?: number | null
+          priority?: string
+          role_system_key: string
+          scope?: Database["public"]["Enums"]["template_scope"]
+          skip_if_past?: boolean
+          sort_order?: number
+          subtasks?: Json | null
+          title_template: string
+          updated_at?: string
+          workflow: Database["public"]["Enums"]["workflow_type"]
+        }
+        Update: {
+          anchor?: Database["public"]["Enums"]["template_anchor"]
+          at_time?: string | null
+          conditions?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          offset_days?: number
+          offset_minutes?: number
+          organization_id?: string
+          phase?: number | null
+          priority?: string
+          role_system_key?: string
+          scope?: Database["public"]["Enums"]["template_scope"]
+          skip_if_past?: boolean
+          sort_order?: number
+          subtasks?: Json | null
+          title_template?: string
+          updated_at?: string
+          workflow?: Database["public"]["Enums"]["workflow_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           archived_at: string | null
+          assigned_role_id: string | null
           completed_at: string | null
           created_at: string
           created_by: string
           custom_data: Json | null
           description: string | null
+          digest_date: string | null
           due_date: string | null
           estimated_minutes: number | null
           id: string
           organization_id: string
           parent_task_id: string | null
+          phase: number | null
           priority: Database["public"]["Enums"]["task_priority"]
           recurrence_rule: string | null
           room_id: string | null
           sort_order: number
+          source: string
           start_date: string | null
           status_id: string
+          stay_id: string | null
+          template_id: string | null
           title: string
           updated_at: string
         }
         Insert: {
           archived_at?: string | null
+          assigned_role_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by: string
           custom_data?: Json | null
           description?: string | null
+          digest_date?: string | null
           due_date?: string | null
           estimated_minutes?: number | null
           id?: string
           organization_id: string
           parent_task_id?: string | null
+          phase?: number | null
           priority?: Database["public"]["Enums"]["task_priority"]
           recurrence_rule?: string | null
           room_id?: string | null
           sort_order?: number
+          source?: string
           start_date?: string | null
           status_id: string
+          stay_id?: string | null
+          template_id?: string | null
           title: string
           updated_at?: string
         }
         Update: {
           archived_at?: string | null
+          assigned_role_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string
           custom_data?: Json | null
           description?: string | null
+          digest_date?: string | null
           due_date?: string | null
           estimated_minutes?: number | null
           id?: string
           organization_id?: string
           parent_task_id?: string | null
+          phase?: number | null
           priority?: Database["public"]["Enums"]["task_priority"]
           recurrence_rule?: string | null
           room_id?: string | null
           sort_order?: number
+          source?: string
           start_date?: string | null
           status_id?: string
+          stay_id?: string | null
+          template_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -1582,6 +1783,27 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_room"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_template"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assigned_role_id_fkey"
+            columns: ["assigned_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
           {
@@ -1606,10 +1828,38 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_status_id_fkey"
             columns: ["status_id"]
             isOneToOne: false
             referencedRelation: "task_statuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stay_balances"
+            referencedColumns: ["stay_id"]
+          },
+          {
+            foreignKeyName: "tasks_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
             referencedColumns: ["id"]
           },
         ]
@@ -1724,6 +1974,139 @@ export type Database = {
       }
     }
     Views: {
+      expenses_view: {
+        Row: {
+          amount: number | null
+          attachment_url: string | null
+          category_group_name:
+            | Database["public"]["Enums"]["expense_category_group"]
+            | null
+          category_id: string | null
+          category_name: string | null
+          created_at: string | null
+          created_by: string | null
+          created_by_name: string | null
+          description: string | null
+          due_date: string | null
+          expense_date: string | null
+          id: string | null
+          organization_id: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
+          supplier: string | null
+          tax_amount: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      other_revenue_view: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          created_by: string | null
+          created_by_name: string | null
+          description: string | null
+          id: string | null
+          organization_id: string | null
+          revenue_center_id: string | null
+          revenue_center_name: string | null
+          revenue_date: string | null
+          tax_amount: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "other_revenue_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "other_revenue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "other_revenue_revenue_center_id_fkey"
+            columns: ["revenue_center_id"]
+            isOneToOne: false
+            referencedRelation: "revenue_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rooms_view: {
+        Row: {
+          counts_as_available: boolean | null
+          counts_as_out_of_order: boolean | null
+          created_at: string | null
+          custom_data: Json | null
+          floor: string | null
+          housekeeping_status:
+            | Database["public"]["Enums"]["housekeeping_status"]
+            | null
+          id: string | null
+          is_active: boolean | null
+          max_adults: number | null
+          max_children: number | null
+          notes: string | null
+          number: string | null
+          organization_id: string | null
+          room_type_id: string | null
+          room_type_name: string | null
+          room_type_rate: number | null
+          status_color: string | null
+          status_id: string | null
+          status_name: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rooms_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "room_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stay_balances: {
         Row: {
           balance: number | null
@@ -1742,12 +2125,291 @@ export type Database = {
           },
         ]
       }
+      stays_view: {
+        Row: {
+          actual_check_in_at: string | null
+          actual_check_out_at: string | null
+          adults: number | null
+          balance: number | null
+          channel_id: string | null
+          channel_name: string | null
+          check_in_date: string | null
+          check_out_date: string | null
+          children: number | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          guest_document_number: string | null
+          guest_document_type_code: string | null
+          guest_email: string | null
+          guest_first_name: string | null
+          guest_full_name: string | null
+          guest_last_name: string | null
+          guest_nationality: string | null
+          guest_phone: string | null
+          id: string | null
+          nights: number | null
+          notes: string | null
+          organization_id: string | null
+          primary_guest_id: string | null
+          rate_per_night: number | null
+          room_floor: string | null
+          room_id: string | null
+          room_number: string | null
+          room_type_name: string | null
+          room_type_rate: number | null
+          status: Database["public"]["Enums"]["stay_status"] | null
+          total_charges: number | null
+          total_payments: number | null
+          travel_reason_id: string | null
+          travel_reason_name: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stays_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "booking_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_primary_guest_id_fkey"
+            columns: ["primary_guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_travel_reason_id_fkey"
+            columns: ["travel_reason_id"]
+            isOneToOne: false
+            referencedRelation: "travel_reasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks_view: {
+        Row: {
+          archived_at: string | null
+          assigned_role_color: string | null
+          assigned_role_id: string | null
+          assigned_role_key: string | null
+          assigned_role_name: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          created_by_name: string | null
+          custom_data: Json | null
+          description: string | null
+          digest_date: string | null
+          due_date: string | null
+          estimated_minutes: number | null
+          id: string | null
+          organization_id: string | null
+          parent_task_id: string | null
+          phase: number | null
+          priority: Database["public"]["Enums"]["task_priority"] | null
+          recurrence_rule: string | null
+          room_floor: string | null
+          room_id: string | null
+          room_number: string | null
+          sort_order: number | null
+          source: string | null
+          start_date: string | null
+          status_color: string | null
+          status_id: string | null
+          status_name: string | null
+          status_type: Database["public"]["Enums"]["task_status_type"] | null
+          stay_id: string | null
+          template_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_tasks_room"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_room"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_template"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assigned_role_id_fkey"
+            columns: ["assigned_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "task_statuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stay_balances"
+            referencedColumns: ["stay_id"]
+          },
+          {
+            foreignKeyName: "tasks_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      assign_task_to_best_person: {
+        Args: { p_due_at: string; p_role_id: string; p_task_id: string }
+        Returns: string
+      }
+      available_rooms_by_type: {
+        Args: { p_check_in: string; p_check_out: string }
+        Returns: {
+          available_count: number
+          base_rate: number
+          id: string
+          max_adults: number
+          max_children: number
+          name: string
+        }[]
+      }
+      confirm_guest_arrival: {
+        Args: {
+          p_document_verified?: boolean
+          p_payment_confirmed?: boolean
+          p_stay_id: string
+        }
+        Returns: Json
+      }
+      create_stay_with_auto_room: {
+        Args: {
+          p_adults?: number
+          p_channel_id?: string
+          p_check_in?: string
+          p_check_out?: string
+          p_children?: number
+          p_guest_address?: string
+          p_guest_birth_date?: string
+          p_guest_city_of_origin?: string
+          p_guest_country_of_origin?: string
+          p_guest_document_number?: string
+          p_guest_document_type_id?: string
+          p_guest_email?: string
+          p_guest_first_name?: string
+          p_guest_last_name?: string
+          p_guest_nationality?: string
+          p_guest_notes?: string
+          p_guest_phone?: string
+          p_notes?: string
+          p_rate_per_night?: number
+          p_room_id?: string
+          p_room_type_id: string
+          p_status?: string
+          p_travel_reason_id?: string
+        }
+        Returns: Json
+      }
       current_org_id: { Args: never; Returns: string }
+      ensure_workflow_roles: { Args: { p_org_id: string }; Returns: undefined }
+      generate_arrived_tasks: { Args: { p_stay_id: string }; Returns: number }
+      generate_stay_tasks: { Args: { p_stay_id: string }; Returns: number }
       get_my_permissions: { Args: never; Returns: string[] }
       get_my_profile: { Args: never; Returns: Json }
       has_permission: { Args: { p_key: string }; Returns: boolean }
+      reassign_workflow_tasks_for_role: {
+        Args: { p_org_id: string; p_role_id: string }
+        Returns: undefined
+      }
+      seed_default_task_templates: {
+        Args: { p_org_id: string }
+        Returns: undefined
+      }
       seed_organization_defaults: {
         Args: { p_org_id: string }
         Returns: undefined
@@ -1780,7 +2442,30 @@ export type Database = {
         | "no_show"
       task_priority: "urgent" | "high" | "normal" | "low"
       task_status_type: "open" | "in_progress" | "done" | "cancelled"
+      template_anchor:
+        | "created_at"
+        | "check_in"
+        | "check_out"
+        | "arrival_confirmed"
+      template_scope: "per_stay" | "daily_digest"
       time_off_type: "vacation" | "sick_leave" | "personal" | "other"
+      workflow_type:
+        | "stay_created"
+        | "guest_arrived"
+        | "payment_confirmed"
+        | "precheckin_sent"
+        | "precheckin_completed"
+        | "room_ready"
+        | "in_house_daily"
+        | "incident_created"
+        | "night_audit"
+        | "before_checkout"
+        | "express_checkout_requested"
+        | "checked_out"
+        | "survey_answered"
+        | "no_show_event"
+        | "cancelled_event"
+        | "weekly"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1906,9 +2591,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       availability_status: ["available", "busy", "resting"],
@@ -1929,7 +2611,32 @@ export const Constants = {
       ],
       task_priority: ["urgent", "high", "normal", "low"],
       task_status_type: ["open", "in_progress", "done", "cancelled"],
+      template_anchor: [
+        "created_at",
+        "check_in",
+        "check_out",
+        "arrival_confirmed",
+      ],
+      template_scope: ["per_stay", "daily_digest"],
       time_off_type: ["vacation", "sick_leave", "personal", "other"],
+      workflow_type: [
+        "stay_created",
+        "guest_arrived",
+        "payment_confirmed",
+        "precheckin_sent",
+        "precheckin_completed",
+        "room_ready",
+        "in_house_daily",
+        "incident_created",
+        "night_audit",
+        "before_checkout",
+        "express_checkout_requested",
+        "checked_out",
+        "survey_answered",
+        "no_show_event",
+        "cancelled_event",
+        "weekly",
+      ],
     },
   },
 } as const
