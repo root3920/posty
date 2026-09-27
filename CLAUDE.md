@@ -125,6 +125,45 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [x] Fase 6: Módulo Finanzas — ingresos, gastos, P&G, presupuesto
 - [x] Fase 7: Dashboard principal, configuración completa, seed demo
 
+## Sistema de diseño
+
+### Tipografía
+- **Títulos, KPIs, nombre POSTY**: Outfit (500/600/700) → `font-heading`
+- **Texto de interfaz**: Plus Jakarta Sans (400/500/600) → `font-sans`
+- Cargadas con `next/font/google`, variables CSS `--font-outfit` y `--font-plus-jakarta`
+- Todos los números en tablas, KPIs y montos usan `tabular-nums`
+
+### Colores de marca
+- Color principal: `#9c0b21` (vino) — configurable por hotel en `organizations.brand_color`
+- Escala brand-50 a brand-900 como tokens en `globals.css`
+- Modo claro: fondo `#f8f6f5`, tarjetas `#ffffff`, bordes `#ece7e5`
+- Modo oscuro: fondo `#0f0c0d`, tarjetas `#1a1617`, bordes `#2e2728`
+- Estados: success `#16a34a`, warning `#d97706`, danger `#dc2626`, info `#2563eb`
+
+### Sidebar
+- Fondo vino con degradado sutil (`--sidebar` → `#82091b`)
+- Texto blanco al 78%, hover blanco al 10%, activo: blanco (día) / negro (noche)
+- Logo: siempre el gato blanco sobre vino
+
+### Radio de bordes
+- Base: `--radius: 10px` para botones, inputs, tarjetas, dialogs, etc.
+- Badges/avatares: `rounded-full`
+- Checkboxes: `6px`
+
+### Sombras
+- Sistema de elevación: shadow-xs → shadow-xl + shadow-brand
+- Tinte cálido `rgba(28,21,23,...)`, no gris
+- Dark mode: borde `#2e2728` + brillo interior sutil
+
+### Logo
+- `public/brand/posty-cat-white.png` — sobre fondos oscuros/vino
+- `public/brand/posty-cat-black.png` — sobre fondos claros
+- Componente `<PostyLogo variant="auto|white|black" withText size />`
+
+### Componente EntitySelect
+- `components/shared/entity-select.tsx` — Select que siempre muestra la etiqueta
+- Usado en vez del Select nativo de shadcn para campos con IDs (UUIDs)
+
 ## TODO futuro
 - [ ] Exportación TRA/SIRE (regulatorio colombiano)
 - [ ] Notificaciones en tiempo real (Supabase Realtime)

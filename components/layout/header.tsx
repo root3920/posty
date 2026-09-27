@@ -39,17 +39,21 @@ export function Header() {
   }
 
   return (
-    <header className="bg-background flex h-14 items-center gap-4 border-b px-4">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur-xl">
       {/* Search */}
       <div className="relative max-w-md flex-1">
         <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-        <Input placeholder="Buscar huésped, habitación, tarea..." className="pl-9" disabled />
+        <Input
+          placeholder="Buscar huésped, habitación, tarea..."
+          className="pl-9 shadow-xs"
+          disabled
+        />
       </div>
 
       <div className="ml-auto flex items-center gap-2">
         {/* Org name */}
         {profile?.organization && (
-          <span className="text-muted-foreground mr-2 hidden text-sm md:inline">
+          <span className="text-muted-foreground mr-2 hidden text-sm font-medium md:inline">
             {profile.organization.name}
           </span>
         )}
@@ -60,13 +64,14 @@ export function Header() {
           size="icon"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           aria-label="Cambiar tema"
+          className="rounded-[10px]"
         >
           <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
         </Button>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" aria-label="Notificaciones" disabled>
+        <Button variant="ghost" size="icon" aria-label="Notificaciones" disabled className="rounded-[10px]">
           <Bell className="h-4 w-4" />
         </Button>
 
@@ -78,7 +83,7 @@ export function Header() {
           >
             <Avatar className="h-8 w-8">
               {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
-              <AvatarFallback className="text-xs">
+              <AvatarFallback className="bg-brand-100 text-brand-700 text-xs font-semibold">
                 {profile ? getInitials(profile.full_name) : 'US'}
               </AvatarFallback>
             </Avatar>
