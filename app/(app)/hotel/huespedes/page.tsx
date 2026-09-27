@@ -4,10 +4,10 @@ import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, User, Mail, Phone, Loader2 } from 'lucide-react';
+import { Search, Plus, User, Mail, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { EntitySelect } from '@/components/shared/entity-select';
+import { PhoneInput } from '@/components/shared/phone-input';
+import { PhoneDisplay } from '@/components/shared/phone-display';
+import { useDefaultCountry } from '@/components/providers/geo-provider';
+import type { Country } from 'react-phone-number-input';
 
 import { createClient } from '@/lib/supabase/client';
 import { guestSchema, type GuestInput } from '@/lib/validations/hotel';
@@ -39,8 +43,10 @@ interface GuestFormDialogProps {
 function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps) {
   const queryClient = useQueryClient();
   const { data: documentTypes = [] } = useDocumentTypes();
+  const orgDefaultCountry = useDefaultCountry();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [phoneCountry, setPhoneCountry] = useState<Country>(orgDefaultCountry as Country);
 
   const {
     register,
@@ -48,6 +54,7 @@ function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps
     setValue,
     watch,
     reset,
+    control,
     formState: { errors },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm<GuestInput>({
@@ -174,7 +181,19 @@ function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps
             </div>
             <div>
               <Label className="text-xs">Teléfono</Label>
-              <Input {...register('phone')} placeholder="+57 300 000 0000" />
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => (
+                  <PhoneInput
+                    value={field.value ?? ''}
+                    onChange={(v) => field.onChange(v ?? '')}
+                    defaultCountry={phoneCountry}
+                    onCountryChange={(c) => setPhoneCountry(c)}
+                    error={errors.phone?.message}
+                  />
+                )}
+              />
             </div>
             <div>
               <Label className="text-xs">Email</Label>
@@ -333,14 +352,7 @@ function HuespedesContent() {
                       {guest.document_number ?? '—'}
                     </td>
                     <td className="px-4 py-3">
-                      {guest.phone ? (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          {guest.phone}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                      <PhoneDisplay value={guest.phone} showActions={false} />
                     </td>
                     <td className="px-4 py-3">
                       {guest.email ? (

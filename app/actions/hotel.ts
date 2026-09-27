@@ -43,87 +43,29 @@ async function getUserProfile(supabase: Awaited<ReturnType<typeof createClient>>
 }
 
 // -------------------------------------------------------
-// findOrCreateGuest
-// -------------------------------------------------------
-
-async function findOrCreateGuest(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  organizationId: string,
-  guestData: CheckInInput['guestData'],
-): Promise<string> {
-  // Try to find existing guest by document
-  if (guestData.documentTypeId && guestData.documentNumber) {
-    const { data: existing } = await supabase
-      .from('guests')
-      .select('id')
-      .eq('organization_id', organizationId)
-      .eq('document_type_id', guestData.documentTypeId)
-      .eq('document_number', guestData.documentNumber)
-      .maybeSingle();
-
-    if (existing) {
-      // Update guest info
-      await supabase
-        .from('guests')
-        .update({
-          first_name: guestData.firstName,
-          last_name: guestData.lastName,
-          nationality: guestData.nationality ?? null,
-          birth_date: guestData.birthDate ?? null,
-          phone: guestData.phone ?? null,
-          email: guestData.email ?? null,
-          address: guestData.address ?? null,
-          city_of_origin: guestData.cityOfOrigin ?? null,
-          country_of_origin: guestData.countryOfOrigin ?? null,
-          notes: guestData.notes ?? null,
-        })
-        .eq('id', existing.id);
-
-      return existing.id;
-    }
-  }
-
-  // Create new guest
-  const { data: newGuest, error } = await supabase
-    .from('guests')
-    .insert({
-      organization_id: organizationId,
-      first_name: guestData.firstName,
-      last_name: guestData.lastName,
-      document_type_id: guestData.documentTypeId ?? null,
-      document_number: guestData.documentNumber ?? null,
-      nationality: guestData.nationality ?? null,
-      birth_date: guestData.birthDate ?? null,
-      phone: guestData.phone ?? null,
-      email: guestData.email ?? null,
-      address: guestData.address ?? null,
-      city_of_origin: guestData.cityOfOrigin ?? null,
-      country_of_origin: guestData.countryOfOrigin ?? null,
-      notes: guestData.notes ?? null,
-    })
-    .select('id')
-    .single();
-
-  if (error || !newGuest) throw new Error('Error al crear el huésped');
-  return newGuest.id;
-}
-
-// -------------------------------------------------------
-// checkInAction
+// createStayAction (unified: check-in or reservation)
+// Uses the create_stay_with_auto_room RPC for atomic room assignment
 // -------------------------------------------------------
 
 export async function checkInAction(formData: CheckInInput) {
+  return createStayAction(formData, 'checked_in');
+}
+
+export async function createReservationAction(formData: ReservationInput) {
+  return createStayAction(formData, 'reserved');
+}
+
+async function createStayAction(formData: CheckInInput, status: 'checked_in' | 'reserved') {
   const parsed = checkInSchema.safeParse(formData);
   if (!parsed.success) {
     return { error: parsed.error.errors[0].message };
   }
 
   try {
-    const { supabase, user } = await getAuthenticatedUser();
-    const profile = await getUserProfile(supabase, user.id);
-    const { organizationId } = { organizationId: profile.organization_id };
+    const { supabase } = await getAuthenticatedUser();
 
     const {
+      roomTypeId,
       roomId,
       guestData,
       checkInDate,
@@ -136,147 +78,51 @@ export async function checkInAction(formData: CheckInInput) {
       notes,
     } = parsed.data;
 
-    // Find or create guest
-    const guestId = await findOrCreateGuest(supabase, organizationId, guestData);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)('create_stay_with_auto_room', {
+      p_room_type_id: roomTypeId,
+      p_room_id: roomId || null,
+      p_check_in: checkInDate,
+      p_check_out: checkOutDate,
+      p_status: status,
+      p_adults: adults,
+      p_children: children,
+      p_rate_per_night: ratePerNight,
+      p_channel_id: channelId ?? null,
+      p_travel_reason_id: travelReasonId ?? null,
+      p_notes: notes ?? null,
+      p_guest_first_name: guestData.firstName,
+      p_guest_last_name: guestData.lastName,
+      p_guest_document_type_id: guestData.documentTypeId ?? null,
+      p_guest_document_number: guestData.documentNumber ?? null,
+      p_guest_nationality: guestData.nationality ?? null,
+      p_guest_birth_date: guestData.birthDate ?? null,
+      p_guest_phone: guestData.phone ?? null,
+      p_guest_email: guestData.email ?? null,
+      p_guest_address: guestData.address ?? null,
+      p_guest_city_of_origin: guestData.cityOfOrigin ?? null,
+      p_guest_country_of_origin: guestData.countryOfOrigin ?? null,
+      p_guest_notes: guestData.notes ?? null,
+    });
 
-    // Create stay with checked_in status
-    const { data: stay, error: stayError } = await supabase
-      .from('stays')
-      .insert({
-        organization_id: organizationId,
-        room_id: roomId,
-        primary_guest_id: guestId,
-        check_in_date: checkInDate,
-        check_out_date: checkOutDate,
-        actual_check_in_at: new Date().toISOString(),
-        adults,
-        children,
-        status: 'checked_in',
-        channel_id: channelId ?? null,
-        travel_reason_id: travelReasonId ?? null,
-        rate_per_night: ratePerNight,
-        notes: notes ?? null,
-        created_by: user.id,
-      })
-      .select('id, nights')
-      .single();
-
-    if (stayError || !stay) {
-      logSupabaseError(stayError, 'checkInAction');
-      return { error: getSupabaseErrorMessage(stayError, 'Check-in') };
+    if (error) {
+      logSupabaseError(error, `createStayAction:${status}`);
+      return { error: getSupabaseErrorMessage(error) };
     }
 
-    // Update room to "Ocupada" status
-    // Find the room status that corresponds to "occupied" (counts_as_available = false)
-    const { data: occupiedStatus } = await supabase
-      .from('room_statuses')
-      .select('id')
-      .eq('organization_id', organizationId)
-      .eq('counts_as_available', false)
-      .eq('counts_as_out_of_order', false)
-      .order('sort_order', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (occupiedStatus) {
-      await supabase
-        .from('rooms')
-        .update({ status_id: occupiedStatus.id })
-        .eq('id', roomId);
-    }
-
-    // Auto-charge nights to folio
-    // Find the "Alojamiento" revenue center
-    const { data: revenueCenter } = await supabase
-      .from('revenue_centers')
-      .select('id')
-      .eq('organization_id', organizationId)
-      .order('sort_order', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    const nights = stay.nights ?? 0;
-    if (revenueCenter && nights > 0) {
-      await supabase.from('folio_charges').insert({
-        stay_id: stay.id,
-        revenue_center_id: revenueCenter.id,
-        description: `Alojamiento — ${nights} noche(s)`,
-        quantity: nights,
-        unit_price: ratePerNight,
-        tax_rate: 0,
-        posted_by: user.id,
-      });
-    }
-
-    revalidatePath('/hotel');
-    return { success: true, stayId: stay.id };
-  } catch (err) {
-    console.error('checkInAction error:', err);
-    return { error: 'Error inesperado al registrar el check-in' };
-  }
-}
-
-// -------------------------------------------------------
-// createReservationAction
-// -------------------------------------------------------
-
-export async function createReservationAction(formData: ReservationInput) {
-  const parsed = reservationSchema.safeParse(formData);
-  if (!parsed.success) {
-    return { error: parsed.error.errors[0].message };
-  }
-
-  try {
-    const { supabase, user } = await getAuthenticatedUser();
-    const profile = await getUserProfile(supabase, user.id);
-    const organizationId = profile.organization_id;
-
-    const {
-      roomId,
-      guestData,
-      checkInDate,
-      checkOutDate,
-      adults,
-      children,
-      channelId,
-      travelReasonId,
-      ratePerNight,
-      notes,
-    } = parsed.data;
-
-    const guestId = await findOrCreateGuest(supabase, organizationId, guestData);
-
-    const { data: stay, error: stayError } = await supabase
-      .from('stays')
-      .insert({
-        organization_id: organizationId,
-        room_id: roomId,
-        primary_guest_id: guestId,
-        check_in_date: checkInDate,
-        check_out_date: checkOutDate,
-        adults,
-        children,
-        status: 'reserved',
-        channel_id: channelId ?? null,
-        travel_reason_id: travelReasonId ?? null,
-        rate_per_night: ratePerNight,
-        notes: notes ?? null,
-        created_by: user.id,
-      })
-      .select('id')
-      .single();
-
-    if (stayError || !stay) {
-      logSupabaseError(stayError, 'createReservationAction');
-      return { error: getSupabaseErrorMessage(stayError, 'Reserva') };
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = data as any;
 
     revalidatePath('/hotel');
     revalidatePath('/hotel/reservas');
-    return { success: true, stayId: stay.id };
+    return {
+      success: true,
+      stayId: result.stay_id,
+      roomNumber: result.room_number,
+    };
   } catch (err) {
-    console.error('createReservationAction error:', err);
-    return { error: 'Error inesperado al crear la reserva' };
+    console.error(`createStayAction:${status} error:`, err);
+    return { error: 'Error inesperado al procesar la solicitud' };
   }
 }
 

@@ -12,7 +12,6 @@ import {
   CreditCard,
   CalendarPlus,
   ArrowRightLeft,
-  Phone,
   Mail,
   Loader2,
   User,
@@ -35,6 +34,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { EntitySelect } from '@/components/shared/entity-select';
+import { PhoneDisplay } from '@/components/shared/phone-display';
 
 import {
   checkOutAction,
@@ -463,9 +463,8 @@ export function RoomDetailDrawer({ room, open, onOpenChange }: RoomDetailDrawerP
                         </p>
                       )}
                       {stay.guest.phone && (
-                        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          {stay.guest.phone}
+                        <div className="mt-1">
+                          <PhoneDisplay value={stay.guest.phone} showActions={true} />
                         </div>
                       )}
                       {stay.guest.email && (

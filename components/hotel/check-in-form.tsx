@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, differenceInCalendarDays } from 'date-fns';
@@ -18,7 +18,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { EntitySelect, type EntityOption } from '@/components/shared/entity-select';
+import { PhoneInput } from '@/components/shared/phone-input';
+import { useDefaultCountry } from '@/components/providers/geo-provider';
+import type { Country } from 'react-phone-number-input';
 
 import { checkInSchema, type CheckInInput } from '@/lib/validations/hotel';
 import { checkInAction, createReservationAction } from '@/app/actions/hotel';
@@ -28,7 +38,12 @@ import {
   useDocumentTypes,
   useBookingChannels,
   useTravelReasons,
+  useAvailableRoomsByType,
+  type RoomTypeAvailability,
 } from '@/hooks/use-hotel';
+import { usePermissions } from '@/hooks/use-permissions';
+import { useProfile } from '@/hooks/use-profile';
+import { formatCurrency } from '@/lib/format';
 import type { Tables } from '@/types/database';
 
 // -------------------------------------------------------
@@ -43,30 +58,28 @@ interface CheckInFormProps {
 }
 
 // -------------------------------------------------------
-// Currency formatter
-// -------------------------------------------------------
-
-const copFormatter = new Intl.NumberFormat('es-CO', {
-  style: 'currency',
-  currency: 'COP',
-  maximumFractionDigits: 0,
-});
-
-// -------------------------------------------------------
 // Component
 // -------------------------------------------------------
 
 export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomId }: CheckInFormProps) {
   const queryClient = useQueryClient();
+  const orgDefaultCountry = useDefaultCountry();
   const [guestSearch, setGuestSearch] = useState('');
   const [selectedGuest, setSelectedGuest] = useState<Tables<'guests'> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phoneCountry, setPhoneCountry] = useState<Country>(orgDefaultCountry as Country);
+  const [showSpecificRoom, setShowSpecificRoom] = useState(false);
+
+  const { data: profile } = useProfile();
+  const currency = profile?.organization?.currency ?? 'COP';
+  const locale = profile?.organization?.locale ?? 'es-CO';
 
   const { data: rooms = [] } = useRooms();
   const { data: guests = [] } = useGuests(guestSearch);
   const { data: documentTypes = [] } = useDocumentTypes();
   const { data: channels = [] } = useBookingChannels();
   const { data: travelReasons = [] } = useTravelReasons();
+  const { has: hasPerm } = usePermissions();
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const tomorrow = format(new Date(Date.now() + 86400000), 'yyyy-MM-dd');
@@ -77,12 +90,14 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
     setValue,
     watch,
     reset,
+    control,
     formState: { errors },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm<CheckInInput>({
     resolver: zodResolver(checkInSchema) as any,
     defaultValues: {
-      roomId: defaultRoomId ?? '',
+      roomTypeId: '',
+      roomId: null,
       checkInDate: today,
       checkOutDate: tomorrow,
       adults: 1,
@@ -95,10 +110,16 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
     },
   });
 
-  const watchRoomId = watch('roomId');
   const watchCheckIn = watch('checkInDate');
   const watchCheckOut = watch('checkOutDate');
   const watchRate = watch('ratePerNight');
+  const watchRoomTypeId = watch('roomTypeId');
+  const watchAdults = watch('adults');
+  const watchChildren = watch('children');
+
+  // Fetch availability by type for selected dates
+  const { data: typeAvailability = [], isLoading: availLoading } =
+    useAvailableRoomsByType(watchCheckIn, watchCheckOut);
 
   // Calculate nights and total
   const nights = useMemo(() => {
@@ -109,39 +130,33 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
 
   const total = nights * (watchRate || 0);
 
-  // Available rooms: active, counts_as_available, no overlapping reserved/checked_in stay
-  const availableRooms = useMemo(() => {
+  // Check if selected type is still available when dates/guests change
+  useEffect(() => {
+    if (!watchRoomTypeId || typeAvailability.length === 0) return;
+    const selected = typeAvailability.find((t) => t.id === watchRoomTypeId);
+    if (selected && (selected.available_count === 0 || selected.max_adults < watchAdults || selected.max_children < watchChildren)) {
+      setValue('roomTypeId', '');
+      setValue('roomId', null);
+      setShowSpecificRoom(false);
+    }
+  }, [typeAvailability, watchRoomTypeId, watchAdults, watchChildren, setValue]);
+
+  // Available specific rooms for selected type (when manual selection enabled)
+  const specificRooms = useMemo(() => {
+    if (!watchRoomTypeId || !showSpecificRoom) return [];
     return rooms.filter((r) => {
+      if (r.room_type_id !== watchRoomTypeId) return false;
       if (!r.room_status?.counts_as_available) return false;
       if (!r.is_active) return false;
-      // Check for date overlap with any active stays
       if (r.active_stays && r.active_stays.length > 0 && watchCheckIn && watchCheckOut) {
-        const hasOverlap = r.active_stays.some((stay) => {
-          // [checkIn, checkOut) overlaps with [stay.check_in_date, stay.check_out_date)
-          return stay.check_in_date < watchCheckOut && stay.check_out_date > watchCheckIn;
-        });
+        const hasOverlap = r.active_stays.some((stay) =>
+          stay.check_in_date < watchCheckOut && stay.check_out_date > watchCheckIn,
+        );
         if (hasOverlap) return false;
-      } else if (r.current_stay) {
-        return false;
       }
       return true;
     });
-  }, [rooms, watchCheckIn, watchCheckOut]);
-
-  // Determine why no rooms are available for better messaging
-  const noRoomsReason = useMemo(() => {
-    if (rooms.length === 0) return 'no_rooms' as const;
-    // All rooms occupied/unavailable for these dates
-    return 'all_occupied' as const;
-  }, [rooms]);
-
-  // Options for EntitySelect
-  const roomOptions = useMemo((): EntityOption[] => {
-    return availableRooms.map((r) => ({
-      value: r.id,
-      label: `${r.number} · ${r.room_type?.name ?? ''} · ${copFormatter.format(r.room_type?.base_rate ?? 0)}`,
-    }));
-  }, [availableRooms]);
+  }, [rooms, watchRoomTypeId, showSpecificRoom, watchCheckIn, watchCheckOut]);
 
   const documentTypeOptions = useMemo((): EntityOption[] =>
     documentTypes.map((dt) => ({ value: dt.id, label: `${dt.code} — ${dt.name}` })),
@@ -158,18 +173,26 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
     [travelReasons],
   );
 
-  // When room changes, auto-fill rate from room type
-  const handleRoomChange = useCallback(
-    (roomId: string | null) => {
-      setValue('roomId', roomId ?? '');
-      if (!roomId) return;
-      const room = rooms.find((r) => r.id === roomId);
-      if (room?.room_type?.base_rate) {
-        setValue('ratePerNight', room.room_type.base_rate);
+  // When type changes, auto-fill rate
+  const handleTypeChange = useCallback(
+    (typeId: string | null) => {
+      setValue('roomTypeId', typeId ?? '');
+      setValue('roomId', null);
+      setShowSpecificRoom(false);
+      if (!typeId) return;
+      const roomType = typeAvailability.find((t) => t.id === typeId);
+      if (roomType) {
+        setValue('ratePerNight', roomType.base_rate);
       }
     },
-    [rooms, setValue],
+    [typeAvailability, setValue],
   );
+
+  function getTypeStatus(t: RoomTypeAvailability): 'available' | 'no_availability' | 'capacity' {
+    if (t.available_count === 0) return 'no_availability';
+    if (t.max_adults < watchAdults || t.max_children < watchChildren) return 'capacity';
+    return 'available';
+  }
 
   // Fill form from selected guest
   function selectGuest(guest: Tables<'guests'>) {
@@ -210,9 +233,16 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
         queryClient.invalidateQueries({ queryKey: ['hotel_rooms'] });
         queryClient.invalidateQueries({ queryKey: ['hotel_kpis'] });
         queryClient.invalidateQueries({ queryKey: ['hotel_reservations'] });
-        toast.success(mode === 'checkin' ? 'Check-in exitoso' : 'Reserva creada');
+        queryClient.invalidateQueries({ queryKey: ['available_rooms_by_type'] });
+
+        const roomNumber = (result as { roomNumber?: string }).roomNumber;
+        const label = mode === 'checkin' ? 'Check-in realizado' : 'Reserva creada';
+        toast.success(
+          roomNumber ? `${label} · Habitación ${roomNumber} asignada` : label,
+        );
         reset();
         setSelectedGuest(null);
+        setShowSpecificRoom(false);
         onOpenChange(false);
       }
     } catch (err) {
@@ -225,6 +255,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
 
   const title = mode === 'checkin' ? 'Registrar Check-In' : 'Nueva Reserva';
   const submitLabel = mode === 'checkin' ? 'Hacer Check-In' : 'Crear Reserva';
+  const hasNoRoomTypes = typeAvailability.length === 0 && !availLoading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -330,7 +361,19 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
             </div>
             <div className="min-w-0">
               <Label className="text-xs">Teléfono</Label>
-              <Input {...register('guestData.phone')} placeholder="+57 300 000 0000" />
+              <Controller
+                name="guestData.phone"
+                control={control}
+                render={({ field }) => (
+                  <PhoneInput
+                    value={field.value ?? ''}
+                    onChange={(v) => field.onChange(v ?? '')}
+                    defaultCountry={phoneCountry}
+                    onCountryChange={(c) => setPhoneCountry(c)}
+                    error={errors.guestData?.phone?.message}
+                  />
+                )}
+              />
             </div>
             <div className="min-w-0">
               <Label className="text-xs">Email</Label>
@@ -348,38 +391,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
             <Label className="text-sm font-semibold">Datos de la estancia</Label>
 
             <div className="grid grid-cols-2 gap-3" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}>
-              {/* Room */}
-              <div className="col-span-2 min-w-0">
-                <Label className="text-xs">Habitación *</Label>
-                {roomOptions.length > 0 ? (
-                  <EntitySelect
-                    options={roomOptions}
-                    value={watchRoomId || null}
-                    onChange={handleRoomChange}
-                    placeholder="Seleccionar habitación..."
-                  />
-                ) : (
-                  <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning dark:border-warning/30 dark:bg-warning/15 dark:text-warning">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span className="flex-1">
-                      {noRoomsReason === 'no_rooms'
-                        ? 'Aún no has creado habitaciones.'
-                        : 'Todas las habitaciones están ocupadas o no disponibles en estas fechas.'}
-                    </span>
-                    <Link
-                      href="/hotel/habitaciones"
-                      className="shrink-0 text-xs font-medium underline"
-                    >
-                      {noRoomsReason === 'no_rooms' ? 'Crear habitaciones' : 'Ver habitaciones'}
-                    </Link>
-                  </div>
-                )}
-                {errors.roomId && (
-                  <p className="mt-0.5 text-xs text-danger">{errors.roomId.message}</p>
-                )}
-              </div>
-
-              {/* Dates */}
+              {/* Dates FIRST — availability depends on them */}
               <div className="min-w-0">
                 <Label className="text-xs">Fecha de entrada *</Label>
                 <Input type="date" {...register('checkInDate')} />
@@ -395,6 +407,127 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                 )}
               </div>
 
+              {/* Adults / children — affects capacity validation */}
+              <div className="min-w-0 grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Adultos *</Label>
+                  <Input type="number" min={1} max={20} {...register('adults', { valueAsNumber: true })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Niños</Label>
+                  <Input type="number" min={0} max={20} {...register('children', { valueAsNumber: true })} />
+                </div>
+              </div>
+
+              {/* Room type selection */}
+              <div className="col-span-2 min-w-0 space-y-1.5">
+                <Label className="text-xs">Tipo de habitación *</Label>
+                {hasNoRoomTypes ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning dark:border-warning/30 dark:bg-warning/15">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span className="flex-1">Aún no has creado habitaciones.</span>
+                    <Link href="/hotel/habitaciones" className="shrink-0 text-xs font-medium underline">
+                      Crear habitaciones
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <Select
+                      value={watchRoomTypeId || ''}
+                      onValueChange={handleTypeChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={availLoading ? 'Cargando disponibilidad…' : 'Seleccionar tipo'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {typeAvailability.map((t) => {
+                          const status = getTypeStatus(t);
+                          const disabled = status !== 'available';
+                          return (
+                            <SelectItem key={t.id} value={t.id} disabled={disabled}>
+                              <span className={disabled ? 'text-muted-foreground' : ''}>
+                                {t.name} · {formatCurrency(t.base_rate, currency, locale)}
+                                {' · '}
+                                {status === 'available' && (
+                                  <span className="text-emerald-600 dark:text-emerald-400">
+                                    {t.available_count} disponible{t.available_count !== 1 ? 's' : ''}
+                                  </span>
+                                )}
+                                {status === 'no_availability' && (
+                                  <span className="text-muted-foreground">Sin disponibilidad</span>
+                                )}
+                                {status === 'capacity' && (
+                                  <span className="text-muted-foreground">Capacidad insuficiente</span>
+                                )}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      Se asignará automáticamente una habitación disponible de este tipo.
+                    </p>
+                  </>
+                )}
+                {errors.roomTypeId && (
+                  <p className="mt-0.5 text-xs text-danger">{errors.roomTypeId.message}</p>
+                )}
+              </div>
+
+              {/* Optional: specific room selection for privileged users */}
+              {watchRoomTypeId && hasPerm('stays.edit') && (
+                <div className="col-span-2 min-w-0">
+                  {!showSpecificRoom ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowSpecificRoom(true)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      Elegir habitación específica
+                    </button>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">Habitación específica</Label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowSpecificRoom(false);
+                            setValue('roomId', null);
+                          }}
+                          className="text-[11px] text-muted-foreground hover:text-foreground underline"
+                        >
+                          Asignación automática
+                        </button>
+                      </div>
+                      <Select
+                        value={watch('roomId') ?? ''}
+                        onValueChange={(v) => setValue('roomId', v || null)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Automática (recomendado)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {specificRooms.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              Hab. {r.number} — Piso {r.floor}
+                              {r.housekeeping_status === 'clean' && ' · Limpia'}
+                              {r.housekeeping_status === 'inspected' && ' · Inspeccionada'}
+                            </SelectItem>
+                          ))}
+                          {specificRooms.length === 0 && (
+                            <SelectItem value="__none" disabled>
+                              No hay habitaciones disponibles de este tipo
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Rate + total */}
               <div className="min-w-0">
                 <Label className="text-xs">Tarifa por noche *</Label>
@@ -409,32 +542,10 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                 )}
                 {nights > 0 && watchRate > 0 && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {nights} noche{nights !== 1 ? 's' : ''} × {copFormatter.format(watchRate)} ={' '}
-                    <span className="font-semibold text-foreground">{copFormatter.format(total)}</span>
+                    {nights} noche{nights !== 1 ? 's' : ''} × {formatCurrency(watchRate, currency, locale)} ={' '}
+                    <span className="font-semibold text-foreground">{formatCurrency(total, currency, locale)}</span>
                   </p>
                 )}
-              </div>
-
-              {/* Adults / children */}
-              <div className="min-w-0 grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs">Adultos *</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={20}
-                    {...register('adults', { valueAsNumber: true })}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Niños</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={20}
-                    {...register('children', { valueAsNumber: true })}
-                  />
-                </div>
               </div>
 
               {/* Channel */}

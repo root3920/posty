@@ -5,6 +5,7 @@ import { es } from 'date-fns/locale';
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PhoneDisplay } from '@/components/shared/phone-display';
 import type { RoomWithDetails } from '@/hooks/use-hotel';
 
 // -------------------------------------------------------
@@ -146,8 +147,8 @@ export function OccupancyTable({ rooms, isLoading }: OccupancyTableProps) {
                     <td className="px-4 py-3 text-muted-foreground">
                       {stay.guest.document_number ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {stay.guest.phone ?? '—'}
+                    <td className="px-4 py-3">
+                      <PhoneDisplay value={stay.guest.phone} showActions={false} />
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {stay.guest.email ?? '—'}

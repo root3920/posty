@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { phoneSchema } from './phone';
 
 // -------------------------------------------------------
 // Guest schema
@@ -11,7 +12,7 @@ export const guestSchema = z.object({
   documentNumber: z.string().max(50).nullable().optional(),
   nationality: z.string().max(100).nullable().optional(),
   birthDate: z.string().nullable().optional(),
-  phone: z.string().max(30).nullable().optional(),
+  phone: phoneSchema,
   email: z.string().email('Email inválido').or(z.literal('')).nullable().optional(),
   address: z.string().max(255).nullable().optional(),
   cityOfOrigin: z.string().max(100).nullable().optional(),
@@ -26,7 +27,8 @@ export type GuestInput = z.infer<typeof guestSchema>;
 // -------------------------------------------------------
 
 export const checkInSchema = z.object({
-  roomId: z.string().min(1, 'Selecciona una habitación'),
+  roomTypeId: z.string().min(1, 'Selecciona un tipo de habitación'),
+  roomId: z.string().nullable().optional(), // optional: manual override
   guestData: guestSchema,
   checkInDate: z.string().min(1, 'La fecha de entrada es obligatoria'),
   checkOutDate: z.string().min(1, 'La fecha de salida es obligatoria'),

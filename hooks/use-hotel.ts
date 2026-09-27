@@ -253,6 +253,42 @@ async function fetchHotelKPIs(): Promise<HotelKPIs> {
 }
 
 // -------------------------------------------------------
+// Availability by type (for check-in / reservation forms)
+// -------------------------------------------------------
+
+export interface RoomTypeAvailability {
+  id: string;
+  name: string;
+  base_rate: number;
+  max_adults: number;
+  max_children: number;
+  available_count: number;
+}
+
+async function fetchAvailableRoomsByType(
+  checkIn: string,
+  checkOut: string,
+): Promise<RoomTypeAvailability[]> {
+  const supabase = createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('available_rooms_by_type', {
+    p_check_in: checkIn,
+    p_check_out: checkOut,
+  });
+  if (error) throw error;
+  return (data ?? []) as RoomTypeAvailability[];
+}
+
+export function useAvailableRoomsByType(checkIn: string, checkOut: string) {
+  return useQuery({
+    queryKey: ['available_rooms_by_type', checkIn, checkOut],
+    queryFn: () => fetchAvailableRoomsByType(checkIn, checkOut),
+    enabled: !!checkIn && !!checkOut && checkIn < checkOut,
+    staleTime: 15 * 1000,
+  });
+}
+
+// -------------------------------------------------------
 // Catalogs
 // -------------------------------------------------------
 

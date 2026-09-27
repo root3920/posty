@@ -5,9 +5,26 @@ import { isPublicRoute } from '@/lib/auth/public-routes';
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // -------------------------------------------------------
+  // Geo: persist country from Vercel's IP header into a cookie
+  // -------------------------------------------------------
+  const ipCountry = request.headers.get('x-vercel-ip-country');
+  const existingCountryCookie = request.cookies.get('posty_country')?.value;
+
+  const geoResponse = NextResponse.next({ request });
+
+  if (ipCountry && ipCountry !== existingCountryCookie) {
+    geoResponse.cookies.set('posty_country', ipCountry, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      httpOnly: false,
+      sameSite: 'lax',
+    });
+  }
+
   // Allow public routes without auth check
   if (isPublicRoute(pathname)) {
-    return NextResponse.next();
+    return geoResponse;
   }
 
   // Allow static assets, icons, and metadata files
@@ -71,6 +88,16 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
+  }
+
+  // Carry the geo cookie into the supabase response if it was set
+  if (ipCountry && ipCountry !== existingCountryCookie) {
+    supabaseResponse.cookies.set('posty_country', ipCountry, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+      httpOnly: false,
+      sameSite: 'lax',
+    });
   }
 
   // Permission-based routing will be added in Phase 2
