@@ -33,7 +33,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/select'; // OK: used for non-UUID enum selects (housekeeping, filters by floor)
+import { EntitySelect, type EntityOption } from '@/components/shared/entity-select';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/hooks/use-profile';
 import { useAllRooms, useRoomTypes, useRoomStatuses } from '@/hooks/use-hotel';
@@ -103,6 +104,29 @@ export default function HabitacionesPage() {
     const set = new Set(rooms.map((r) => r.floor).filter(Boolean));
     return Array.from(set).sort();
   }, [rooms]);
+
+  // EntitySelect options
+  const roomTypeOptions = useMemo((): EntityOption[] =>
+    roomTypes.map((t) => ({
+      value: t.id,
+      label: `${t.name} — ${formatCurrency(t.base_rate, currency, locale)}`,
+    })),
+    [roomTypes, currency, locale],
+  );
+
+  const roomStatusOptions = useMemo((): EntityOption[] =>
+    roomStatuses.map((s) => ({
+      value: s.id,
+      label: s.name,
+      color: s.color,
+    })),
+    [roomStatuses],
+  );
+
+  const roomTypeFilterOptions = useMemo((): EntityOption[] =>
+    [{ value: 'all', label: 'Todos los tipos' }, ...roomTypes.map((t) => ({ value: t.id, label: t.name }))],
+    [roomTypes],
+  );
 
   // Filtered rooms (include inactive)
   const allRooms = useMemo(() => {
@@ -331,17 +355,12 @@ export default function HabitacionesPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={filterType} onValueChange={(v) => setFilterType(v ?? 'all')}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los tipos</SelectItem>
-              {roomTypes.map((t) => (
-                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <EntitySelect
+            options={roomTypeFilterOptions}
+            value={filterType}
+            onChange={(v) => setFilterType(v ?? 'all')}
+            triggerClassName="w-48"
+          />
         </div>
       )}
 
@@ -455,39 +474,23 @@ export default function HabitacionesPage() {
 
             <div className="space-y-1.5">
               <Label>Tipo de habitación *</Label>
-              <Select value={watch('room_type_id')} onValueChange={(v) => setValue('room_type_id', v ?? '')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roomTypes.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name} — {formatCurrency(t.base_rate, currency, locale)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <EntitySelect
+                options={roomTypeOptions}
+                value={watch('room_type_id') || null}
+                onChange={(v) => setValue('room_type_id', v ?? '')}
+                placeholder="Seleccionar tipo"
+              />
               {errors.room_type_id && <p className="text-xs text-destructive">{errors.room_type_id.message}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Estado</Label>
-                <Select value={watch('status_id')} onValueChange={(v) => setValue('status_id', v ?? '')}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roomStatuses.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        <span className="flex items-center gap-2">
-                          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                          {s.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EntitySelect
+                  options={roomStatusOptions}
+                  value={watch('status_id') || null}
+                  onChange={(v) => setValue('status_id', v ?? '')}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Limpieza</Label>
@@ -533,21 +536,12 @@ export default function HabitacionesPage() {
           >
             <div className="space-y-1.5">
               <Label>Tipo de habitación *</Label>
-              <Select
-                value={bulkForm.watch('room_type_id')}
-                onValueChange={(v) => bulkForm.setValue('room_type_id', v ?? '')}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roomTypes.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name} — {formatCurrency(t.base_rate, currency, locale)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <EntitySelect
+                options={roomTypeOptions}
+                value={bulkForm.watch('room_type_id') || null}
+                onChange={(v) => bulkForm.setValue('room_type_id', v ?? '')}
+                placeholder="Seleccionar tipo"
+              />
               {bulkForm.formState.errors.room_type_id && (
                 <p className="text-xs text-destructive">{bulkForm.formState.errors.room_type_id.message}</p>
               )}

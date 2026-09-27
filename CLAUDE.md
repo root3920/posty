@@ -25,6 +25,7 @@
 - **Montos**: `numeric(14,2)` en DB, nunca `float`. Formatear con `Intl.NumberFormat`
 - **Fechas**: `timestamptz` en UTC. "Hoy" se calcula con la zona horaria de la organización (default `America/Bogota`)
 - **IDs**: uuid. Las personas se referencian siempre por id, nunca por nombre
+- **Dropdowns**: Todo dropdown que use IDs usa `EntitySelect` (`components/shared/entity-select.tsx`). Nunca mostrar UUIDs al usuario. `<SelectValue>` de Base UI muestra el valor crudo si las opciones no han cargado — por eso EntitySelect renderiza la etiqueta manualmente. Solo usar `<Select>` directo para enums hardcoded (prioridad, moneda, estado de limpieza)
 - **Borrado**: Soft delete (`archived_at`) en catálogos
 - **Migraciones**: Solo vía `supabase/migrations/`. Nunca SQL Editor manual
 - **Tipos**: Regenerar con `npm run db:types` después de cada migración

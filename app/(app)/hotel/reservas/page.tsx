@@ -4,7 +4,8 @@ import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Plus, CalendarDays, BedDouble } from 'lucide-react';
+import { Plus, CalendarDays } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,12 +19,35 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-import { useReservations } from '@/hooks/use-hotel';
 import { CheckInForm } from '@/components/hotel/check-in-form';
-import type { StayWithGuest } from '@/hooks/use-hotel';
+import { RoomBadge } from '@/components/shared/room-badge';
+import { GuestName } from '@/components/shared/guest-name';
+import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/types/database';
 
 type StayStatus = Database['public']['Enums']['stay_status'];
+
+// -------------------------------------------------------
+// stays_view row shape (view not yet in TS types)
+// -------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type StayViewRow = Record<string, any> & {
+  id: string;
+  code: string;
+  status: StayStatus;
+  check_in_date: string;
+  check_out_date: string;
+  nights: number;
+  rate_per_night: number;
+  room_number: string;
+  room_type_name: string | null;
+  room_floor: string | null;
+  guest_first_name: string;
+  guest_last_name: string;
+  guest_document_number: string | null;
+  channel_name: string | null;
+};
 
 // -------------------------------------------------------
 // Status config
@@ -98,6 +122,20 @@ function ArrivalBadge({ checkInDate }: { checkInDate: string }) {
 }
 
 // -------------------------------------------------------
+// Data fetching
+// -------------------------------------------------------
+
+async function fetchStaysView(): Promise<StayViewRow[]> {
+  const supabase = createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from as any)('stays_view')
+    .select('*')
+    .order('check_in_date', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as StayViewRow[];
+}
+
+// -------------------------------------------------------
 // Reservations content
 // -------------------------------------------------------
 
@@ -112,7 +150,12 @@ function ReservasContent() {
 
   const [createOpen, setCreateOpen] = useState(false);
 
-  const { data: reservations = [], isLoading } = useReservations();
+  const { data: reservations = [], isLoading } = useQuery({
+    queryKey: ['stays_view'],
+    queryFn: fetchStaysView,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
 
   function updateParam(key: string, value: string | null) {
     const params = new URLSearchParams(searchParams.toString());
@@ -122,7 +165,7 @@ function ReservasContent() {
   }
 
   // Apply filters
-  let filtered = reservations as StayWithGuest[];
+  let filtered = reservations;
   if (filterStatus) {
     filtered = filtered.filter((r) => r.status === filterStatus);
   }
@@ -220,14 +263,19 @@ function ReservasContent() {
                       <td className="whitespace-nowrap px-4 py-3">
                         <span className="font-mono text-xs text-muted-foreground">{stay.code}</span>
                       </td>
-                      <td className="px-4 py-3 font-medium">
-                        {stay.guest.first_name} {stay.guest.last_name}
+                      <td className="px-4 py-3">
+                        <GuestName
+                          firstName={stay.guest_first_name}
+                          lastName={stay.guest_last_name}
+                          documentNumber={stay.guest_document_number}
+                        />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <BedDouble className="h-3 w-3" />
-                          {stay.room_id.slice(0, 8)}
-                        </div>
+                        <RoomBadge
+                          number={stay.room_number}
+                          typeName={stay.room_type_name ?? undefined}
+                          floor={stay.room_floor ?? undefined}
+                        />
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
                         <div className="flex items-center gap-1.5">

@@ -18,13 +18,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { EntitySelect, type EntityOption } from '@/components/shared/entity-select';
 import { PhoneInput } from '@/components/shared/phone-input';
 import { useDefaultCountry } from '@/components/providers/geo-provider';
@@ -157,6 +150,38 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
       return true;
     });
   }, [rooms, watchRoomTypeId, showSpecificRoom, watchCheckIn, watchCheckOut]);
+
+  // Room type options with availability info
+  const roomTypeOptions = useMemo((): EntityOption[] =>
+    typeAvailability.map((t) => {
+      const status = getTypeStatus(t);
+      const availText = status === 'available'
+        ? `${t.available_count} disponible${t.available_count !== 1 ? 's' : ''}`
+        : status === 'no_availability'
+          ? 'Sin disponibilidad'
+          : 'Capacidad insuficiente';
+      return {
+        value: t.id,
+        label: `${t.name} · ${formatCurrency(t.base_rate, currency, locale)}`,
+        description: availText,
+        disabled: status !== 'available',
+        disabledReason: status !== 'available' ? availText : undefined,
+      };
+    }),
+    [typeAvailability, currency, locale, watchAdults, watchChildren], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  // Specific room options (when manual selection enabled)
+  const specificRoomOptions = useMemo((): EntityOption[] =>
+    specificRooms.map((r) => {
+      const hk = r.housekeeping_status === 'clean' ? 'Limpia' : r.housekeeping_status === 'inspected' ? 'Inspeccionada' : '';
+      return {
+        value: r.id,
+        label: `Hab. ${r.number} — Piso ${r.floor}${hk ? ` · ${hk}` : ''}`,
+      };
+    }),
+    [specificRooms],
+  );
 
   const documentTypeOptions = useMemo((): EntityOption[] =>
     documentTypes.map((dt) => ({ value: dt.id, label: `${dt.code} — ${dt.name}` })),
@@ -448,39 +473,14 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                   </div>
                 ) : (
                   <>
-                    <Select
-                      value={watchRoomTypeId || ''}
-                      onValueChange={handleTypeChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={availLoading ? 'Cargando disponibilidad…' : 'Seleccionar tipo'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {typeAvailability.map((t) => {
-                          const status = getTypeStatus(t);
-                          const disabled = status !== 'available';
-                          return (
-                            <SelectItem key={t.id} value={t.id} disabled={disabled}>
-                              <span className={disabled ? 'text-muted-foreground' : ''}>
-                                {t.name} · {formatCurrency(t.base_rate, currency, locale)}
-                                {' · '}
-                                {status === 'available' && (
-                                  <span className="text-emerald-600 dark:text-emerald-400">
-                                    {t.available_count} disponible{t.available_count !== 1 ? 's' : ''}
-                                  </span>
-                                )}
-                                {status === 'no_availability' && (
-                                  <span className="text-muted-foreground">Sin disponibilidad</span>
-                                )}
-                                {status === 'capacity' && (
-                                  <span className="text-muted-foreground">Capacidad insuficiente</span>
-                                )}
-                              </span>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
+                    <EntitySelect
+                      options={roomTypeOptions}
+                      value={watchRoomTypeId || null}
+                      onChange={handleTypeChange}
+                      placeholder="Seleccionar tipo"
+                      loadingPlaceholder="Cargando disponibilidad…"
+                      isLoading={availLoading}
+                    />
                     <p className="text-[11px] text-muted-foreground">
                       Se asignará automáticamente una habitación disponible de este tipo.
                     </p>
@@ -517,28 +517,13 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                           Asignación automática
                         </button>
                       </div>
-                      <Select
-                        value={watch('roomId') ?? ''}
-                        onValueChange={(v) => setValue('roomId', v || null)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Automática (recomendado)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {specificRooms.map((r) => (
-                            <SelectItem key={r.id} value={r.id}>
-                              Hab. {r.number} — Piso {r.floor}
-                              {r.housekeeping_status === 'clean' && ' · Limpia'}
-                              {r.housekeeping_status === 'inspected' && ' · Inspeccionada'}
-                            </SelectItem>
-                          ))}
-                          {specificRooms.length === 0 && (
-                            <SelectItem value="__none" disabled>
-                              No hay habitaciones disponibles de este tipo
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <EntitySelect
+                        options={specificRoomOptions}
+                        value={watch('roomId') ?? null}
+                        onChange={(v) => setValue('roomId', v)}
+                        placeholder="Automática (recomendado)"
+                        emptyMessage="No hay habitaciones disponibles de este tipo"
+                      />
                     </div>
                   )}
                 </div>
