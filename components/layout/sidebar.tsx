@@ -15,6 +15,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Zap,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -47,7 +48,15 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   { href: '/finanzas', label: 'Finanzas', icon: DollarSign, module: 'finance' },
-  { href: '/configuracion', label: 'Configuración', icon: Settings, module: 'settings' },
+  {
+    href: '/configuracion',
+    label: 'Configuración',
+    icon: Settings,
+    module: 'settings',
+    children: [
+      { href: '/configuracion/automatizaciones', label: 'Automatizaciones', icon: Zap },
+    ],
+  },
 ];
 
 export function Sidebar() {

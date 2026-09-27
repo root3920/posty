@@ -113,12 +113,25 @@ async function createStayAction(formData: CheckInInput, status: 'checked_in' | '
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = data as any;
 
+    // Query task count generated for this stay (via trigger)
+    let tasksGenerated = 0;
+    if (result.stay_id) {
+      const { count } = await supabase
+        .from('tasks')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .select('id', { count: 'exact', head: true } as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .eq(('stay_id' as any), result.stay_id);
+      tasksGenerated = count ?? 0;
+    }
+
     revalidatePath('/hotel');
     revalidatePath('/hotel/reservas');
     return {
       success: true,
       stayId: result.stay_id,
       roomNumber: result.room_number,
+      tasksGenerated,
     };
   } catch (err) {
     console.error(`createStayAction:${status} error:`, err);

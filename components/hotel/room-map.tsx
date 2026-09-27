@@ -1,7 +1,10 @@
 'use client';
 
-import { differenceInDays } from 'date-fns';
+import { useState } from 'react';
+import { differenceInDays, isToday } from 'date-fns';
+import { LogIn } from 'lucide-react';
 import type { RoomWithDetails } from '@/hooks/use-hotel';
+import { ConfirmArrivalModal } from '@/components/hotel/confirm-arrival-modal';
 
 // -------------------------------------------------------
 // Props
@@ -22,9 +25,10 @@ interface RoomMapProps {
 interface RoomCardProps {
   room: RoomWithDetails;
   onClick: () => void;
+  onConfirmArrival: (stayId: string, e: React.MouseEvent) => void;
 }
 
-function RoomCard({ room, onClick }: RoomCardProps) {
+function RoomCard({ room, onClick, onConfirmArrival }: RoomCardProps) {
   const status = room.room_status;
   const stay = room.current_stay;
   const today = new Date();
@@ -38,45 +42,72 @@ function RoomCard({ room, onClick }: RoomCardProps) {
   const isDark = isColorDark(bgColor);
   const textColor = isDark ? '#ffffff' : '#1f2937';
 
+  // Check if this room has a reserved stay with today's check-in
+  const reservedStayToday = room.active_stays.find(
+    (s) =>
+      s.status === 'reserved' &&
+      s.check_in_date &&
+      isToday(new Date(`${s.check_in_date}T12:00:00`)),
+  );
+
   return (
-    <button
-      onClick={onClick}
-      title={`Habitación ${room.number} — ${status.name}`}
-      className="group relative flex flex-col rounded-lg border-2 p-2.5 text-left transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
-      style={{
-        backgroundColor: bgColor,
-        borderColor: `${bgColor}cc`,
-        color: textColor,
-        minWidth: '100px',
-        minHeight: '80px',
-      }}
-    >
-      {/* Room number */}
-      <div className="flex items-center justify-between gap-1">
-        <span className="text-base font-bold leading-none">{room.number}</span>
-        <span
-          className="rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider opacity-90"
-          style={{ backgroundColor: `${bgColor}bb`, color: textColor }}
-        >
-          {room.room_type.name.slice(0, 3).toUpperCase()}
-        </span>
-      </div>
-
-      {/* Status */}
-      <span className="mt-1 text-[10px] opacity-80">{status.name}</span>
-
-      {/* Guest info if occupied */}
-      {isOccupied && stay && (
-        <div className="mt-1.5 flex-1">
-          <p className="truncate text-[11px] font-medium leading-tight">
-            {stay.guest.last_name}, {stay.guest.first_name.slice(0, 1)}.
-          </p>
-          <p className="mt-0.5 text-[10px] opacity-75">
-            {nightsRemaining > 0 ? `${nightsRemaining} noche(s)` : 'Sale hoy'}
-          </p>
+    <div className="relative group">
+      <button
+        onClick={onClick}
+        title={`Habitación ${room.number} — ${status.name}`}
+        className="flex flex-col rounded-lg border-2 p-2.5 text-left transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 w-full"
+        style={{
+          backgroundColor: bgColor,
+          borderColor: `${bgColor}cc`,
+          color: textColor,
+          minWidth: '100px',
+          minHeight: '80px',
+        }}
+      >
+        {/* Room number */}
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-base font-bold leading-none">{room.number}</span>
+          <span
+            className="rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider opacity-90"
+            style={{ backgroundColor: `${bgColor}bb`, color: textColor }}
+          >
+            {room.room_type.name.slice(0, 3).toUpperCase()}
+          </span>
         </div>
+
+        {/* Status */}
+        <span className="mt-1 text-[10px] opacity-80">{status.name}</span>
+
+        {/* Guest info if occupied */}
+        {isOccupied && stay && (
+          <div className="mt-1.5 flex-1">
+            <p className="truncate text-[11px] font-medium leading-tight">
+              {stay.guest.last_name}, {stay.guest.first_name.slice(0, 1)}.
+            </p>
+            <p className="mt-0.5 text-[10px] opacity-75">
+              {nightsRemaining > 0 ? `${nightsRemaining} noche(s)` : 'Sale hoy'}
+            </p>
+          </div>
+        )}
+
+        {/* Reserved today indicator */}
+        {reservedStayToday && !isOccupied && (
+          <p className="mt-1.5 text-[10px] font-medium opacity-90">Llega hoy</p>
+        )}
+      </button>
+
+      {/* Confirm arrival overlay button for reserved rooms arriving today */}
+      {reservedStayToday && !isOccupied && (
+        <button
+          onClick={(e) => onConfirmArrival(reservedStayToday.id, e)}
+          className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 rounded bg-white/90 px-1.5 py-0.5 text-[9px] font-semibold text-gray-800 shadow hover:bg-white transition-colors"
+          title="Confirmar llegada"
+        >
+          <LogIn className="h-2.5 w-2.5" />
+          Confirmar
+        </button>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -99,6 +130,15 @@ function isColorDark(hex: string): boolean {
 // -------------------------------------------------------
 
 export function RoomMap({ rooms, filterStatus, filterType, filterFloor, onRoomClick }: RoomMapProps) {
+  const [arrivalModalOpen, setArrivalModalOpen] = useState(false);
+  const [selectedStayId, setSelectedStayId] = useState<string | null>(null);
+
+  function handleConfirmArrival(stayId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setSelectedStayId(stayId);
+    setArrivalModalOpen(true);
+  }
+
   // Apply filters
   let filtered = rooms;
   if (filterStatus) {
@@ -135,23 +175,32 @@ export function RoomMap({ rooms, filterStatus, filterType, filterFloor, onRoomCl
   }
 
   return (
-    <div className="space-y-6">
-      {floors.map((floor) => (
-        <div key={floor}>
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {floor === 'Sin piso' ? floor : `Piso ${floor}`}
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {(floorMap.get(floor) ?? []).map((room) => (
-              <RoomCard
-                key={room.id}
-                room={room}
-                onClick={() => onRoomClick(room)}
-              />
-            ))}
+    <>
+      <div className="space-y-6">
+        {floors.map((floor) => (
+          <div key={floor}>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {floor === 'Sin piso' ? floor : `Piso ${floor}`}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {(floorMap.get(floor) ?? []).map((room) => (
+                <RoomCard
+                  key={room.id}
+                  room={room}
+                  onClick={() => onRoomClick(room)}
+                  onConfirmArrival={handleConfirmArrival}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      <ConfirmArrivalModal
+        open={arrivalModalOpen}
+        onOpenChange={setArrivalModalOpen}
+        stayId={selectedStayId}
+      />
+    </>
   );
 }

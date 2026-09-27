@@ -28,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { TaskWithRelations } from '@/hooks/use-tasks';
 import type { Tables } from '@/types/database';
 import { updateTaskStatusAction } from '@/app/actions/tasks';
-import { AssigneeAvatars, formatDueDate, dueDateColor, PRIORITY_CONFIG } from './task-shared';
+import { AssigneeAvatars, UnassignedRoleChip, formatDueDate, dueDateColor, PRIORITY_CONFIG } from './task-shared';
 
 // -------------------------------------------------------
 // Types
@@ -95,7 +95,15 @@ function KanbanCard({ task, onClick, isDragging = false }: KanbanCardProps) {
 
         {/* Footer row */}
         <div className="mt-2 flex items-center justify-between gap-2">
-          <AssigneeAvatars assignees={task.assignees} size="xs" max={3} />
+          {task.assignees.length > 0 ? (
+            <AssigneeAvatars assignees={task.assignees} size="xs" max={3} />
+          ) : (task as unknown as Record<string, unknown>)['assigned_role_id'] ? (
+            <UnassignedRoleChip
+              roleName={((task as unknown as Record<string, unknown>)['assigned_role_name'] as string | undefined) ?? 'Rol'}
+              roleColor={((task as unknown as Record<string, unknown>)['assigned_role_color'] as string | null | undefined) ?? null}
+              size="xs"
+            />
+          ) : <span />}
 
           {dueDateStr && (
             <div className={`flex items-center gap-1 text-xs ${dateColor}`}>

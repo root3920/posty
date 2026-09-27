@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, Shield, Users, Clock, List, Palette } from 'lucide-react';
+import { Building2, Shield, Users, Clock, List, Palette, Zap } from 'lucide-react';
 
 const SETTINGS_SECTIONS = [
   {
@@ -39,6 +39,12 @@ const SETTINGS_SECTIONS = [
     label: 'Marca y apariencia',
     description: 'Logo, colores, tema',
     icon: Palette,
+  },
+  {
+    href: '/configuracion/automatizaciones',
+    label: 'Automatizaciones',
+    description: 'Plantillas de tareas por estancia',
+    icon: Zap,
   },
 ];
 

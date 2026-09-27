@@ -260,11 +260,12 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
         queryClient.invalidateQueries({ queryKey: ['hotel_reservations'] });
         queryClient.invalidateQueries({ queryKey: ['available_rooms_by_type'] });
 
-        const roomNumber = (result as { roomNumber?: string }).roomNumber;
+        const roomNumber = (result as { roomNumber?: string; tasksGenerated?: number }).roomNumber;
+        const tasksGenerated = (result as { roomNumber?: string; tasksGenerated?: number }).tasksGenerated ?? 0;
         const label = mode === 'checkin' ? 'Check-in realizado' : 'Reserva creada';
-        toast.success(
-          roomNumber ? `${label} · Habitación ${roomNumber} asignada` : label,
-        );
+        let msg = roomNumber ? `${label} · Hab. ${roomNumber}` : label;
+        if (tasksGenerated > 0) msg += ` · ${tasksGenerated} tareas generadas`;
+        toast.success(msg);
         reset();
         setSelectedGuest(null);
         setShowSpecificRoom(false);

@@ -2,6 +2,7 @@
 
 import { format, isToday, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { UserX } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import type { TaskPriority, TaskWithRelations } from '@/hooks/use-tasks';
@@ -46,6 +47,38 @@ export function dueDateColor(dateStr: string | null, completedAt: string | null)
   if (isPast(date) && !isToday(date)) return 'text-danger';
   if (isToday(date)) return 'text-warning';
   return 'text-muted-foreground';
+}
+
+// -------------------------------------------------------
+// UnassignedRoleChip
+// Shows a dashed chip when a task has an assigned_role_id but no assignees
+// -------------------------------------------------------
+
+interface UnassignedRoleChipProps {
+  roleName: string;
+  roleColor?: string | null;
+  size?: 'sm' | 'xs';
+}
+
+export function UnassignedRoleChip({ roleName, roleColor, size = 'sm' }: UnassignedRoleChipProps) {
+  const sizeClass = size === 'xs' ? 'text-[9px] px-1.5 py-0.5 gap-1' : 'text-[10px] px-2 py-0.5 gap-1.5';
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border border-dashed font-medium ${sizeClass}`}
+      style={
+        roleColor
+          ? {
+              borderColor: `${roleColor}60`,
+              backgroundColor: `${roleColor}10`,
+              color: roleColor,
+            }
+          : undefined
+      }
+    >
+      <UserX className={size === 'xs' ? 'h-2.5 w-2.5' : 'h-3 w-3'} />
+      Sin asignar · {roleName}
+    </span>
+  );
 }
 
 // -------------------------------------------------------

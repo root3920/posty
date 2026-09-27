@@ -20,6 +20,7 @@ import {
   AssigneeAvatars,
   PriorityBadge,
   LabelBadges,
+  UnassignedRoleChip,
   formatDueDate,
   dueDateColor,
 } from './task-shared';
@@ -103,9 +104,17 @@ function TaskRow({
         <PriorityBadge priority={task.priority} />
       </div>
 
-      {/* Assignees */}
+      {/* Assignees or unassigned role chip */}
       <div className="shrink-0">
-        <AssigneeAvatars assignees={task.assignees} size="xs" />
+        {task.assignees.length > 0 ? (
+          <AssigneeAvatars assignees={task.assignees} size="xs" />
+        ) : (task as unknown as Record<string, unknown>)['assigned_role_id'] ? (
+          <UnassignedRoleChip
+            roleName={((task as unknown as Record<string, unknown>)['assigned_role_name'] as string | undefined) ?? 'Rol'}
+            roleColor={((task as unknown as Record<string, unknown>)['assigned_role_color'] as string | null | undefined) ?? null}
+            size="xs"
+          />
+        ) : null}
       </div>
 
       {/* Due date */}

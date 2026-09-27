@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, Suspense } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, type Variants } from 'framer-motion';
 import {
@@ -26,9 +26,11 @@ import {
   Settings2,
   CircleCheck,
   Circle,
+  LogIn,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useHotelKPIs, useRoomTypes } from '@/hooks/use-hotel';
 import { useFinanceKPIs } from '@/hooks/use-finance';
 import { useTasks } from '@/hooks/use-tasks';
@@ -42,6 +44,7 @@ import {
   type TimeOffEntry,
 } from '@/lib/availability';
 import type { Tables, Enums } from '@/types/database';
+import { ConfirmArrivalModal } from '@/components/hotel/confirm-arrival-modal';
 
 // -------------------------------------------------------
 // Animation variants
@@ -210,6 +213,26 @@ function buildGreeting(hour: number): string {
 }
 
 // -------------------------------------------------------
+// Today arrivals fetcher
+// -------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchTodayArrivals(): Promise<Record<string, any>[]> {
+  const supabase = createClient();
+  const today = new Date().toISOString().split('T')[0];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from as any)('stays_view')
+    .select('id, guest_first_name, guest_last_name, room_number, status, check_in_date')
+    .eq('check_in_date', today)
+    .eq('status', 'reserved');
+  if (error) {
+    console.error('fetchTodayArrivals error:', error);
+    return [];
+  }
+  return data ?? [];
+}
+
+// -------------------------------------------------------
 // Team data fetcher (reused from equipo page pattern)
 // -------------------------------------------------------
 
@@ -235,6 +258,8 @@ async function fetchTeamSummary(): Promise<ProfileWithSchedules[]> {
 function DashboardContent() {
   const router = useRouter();
   const now = useMemo(() => new Date(), []);
+  const [arrivalModalOpen, setArrivalModalOpen] = useState(false);
+  const [selectedArrivalStayId, setSelectedArrivalStayId] = useState<string | null>(null);
 
   const todayStr = format(now, 'yyyy-MM-dd');
   const monthFrom = format(startOfMonth(now), 'yyyy-MM-dd');
@@ -253,6 +278,13 @@ function DashboardContent() {
     queryKey: ['team_summary_dashboard'],
     queryFn: fetchTeamSummary,
     staleTime: 2 * 60 * 1000,
+  });
+
+  const todayArrivalsQuery = useQuery({
+    queryKey: ['today_arrivals_dashboard'],
+    queryFn: fetchTodayArrivals,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
   });
 
   // -------------------------------------------------------
@@ -460,6 +492,57 @@ function DashboardContent() {
         </section>
 
         {/* ============================
+            Section: Llegadas de hoy
+        ============================ */}
+        {(todayArrivalsQuery.data?.length ?? 0) > 0 && (
+          <section className="space-y-3">
+            <SectionHeader title="Llegadas de hoy" href="/hotel/reservas" />
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-1.5"
+            >
+              {(todayArrivalsQuery.data ?? []).map((arrival) => (
+                <motion.div
+                  key={arrival.id}
+                  variants={cardVariants}
+                  className="flex items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-status-arrivals/10">
+                      <ArrowDownToLine className="h-4 w-4 text-status-arrivals" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {arrival.guest_first_name} {arrival.guest_last_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Hab. {arrival.room_number}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="outline" className="text-[10px] border-info/30 bg-info/10 text-info">
+                      Reservada
+                    </Badge>
+                    <Button
+                      size="sm"
+                      className="h-7 gap-1.5 text-xs"
+                      onClick={() => {
+                        setSelectedArrivalStayId(arrival.id);
+                        setArrivalModalOpen(true);
+                      }}
+                    >
+                      <LogIn className="h-3.5 w-3.5" />
+                      Confirmar
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </section>
+        )}
+
+        {/* ============================
             Section 2: Equipo hoy
         ============================ */}
         <section className="space-y-3">
@@ -602,6 +685,12 @@ function DashboardContent() {
           </div>
         </section>
       </div>
+
+      <ConfirmArrivalModal
+        open={arrivalModalOpen}
+        onOpenChange={setArrivalModalOpen}
+        stayId={selectedArrivalStayId}
+      />
     </div>
   );
 }

@@ -78,6 +78,7 @@ function TareasContent() {
   const filterLabel = searchParams.get('etiqueta') ?? undefined;
   const filterDateFrom = searchParams.get('desde') ?? undefined;
   const filterDateTo = searchParams.get('hasta') ?? undefined;
+  const filterUnassignedRole = searchParams.get('sin_asignar') === '1';
 
   // -------------------------------------------------------
   // Local state
@@ -117,7 +118,8 @@ function TareasContent() {
     filterAssignee ||
     filterLabel ||
     filterDateFrom ||
-    filterDateTo;
+    filterDateTo ||
+    filterUnassignedRole;
 
   // -------------------------------------------------------
   // Data fetching
@@ -133,7 +135,17 @@ function TareasContent() {
     parentTaskId: null,
   };
 
-  const { tasks, statuses, labels, teamMembers, isLoading } = useTasks(filters);
+  const { tasks: allTasks, statuses, labels, teamMembers, isLoading } = useTasks(filters);
+
+  // Apply client-side filter for unassigned-by-role tasks
+  const tasks = filterUnassignedRole
+    ? allTasks.filter(
+        (t) =>
+          (t as unknown as Record<string, unknown>)['source'] === 'stay_workflow' &&
+          t.assignees.length === 0 &&
+          (t as unknown as Record<string, unknown>)['assigned_role_id'],
+      )
+    : allTasks;
 
   // -------------------------------------------------------
   // Handlers
@@ -284,6 +296,16 @@ function TareasContent() {
               onChange={(e) => updateParam('hasta', e.target.value || null)}
             />
           </div>
+
+          {/* Unassigned by role filter */}
+          <Button
+            variant={filterUnassignedRole ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => updateParam('sin_asignar', filterUnassignedRole ? null : '1')}
+          >
+            Sin asignar (por rol)
+          </Button>
 
           {/* Clear */}
           {hasFilters && (

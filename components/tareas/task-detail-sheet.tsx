@@ -46,7 +46,7 @@ import {
   createTaskAction,
   updateTaskStatusAction,
 } from '@/app/actions/tasks';
-import { PRIORITY_CONFIG, AssigneeAvatars, initials } from './task-shared';
+import { PRIORITY_CONFIG, AssigneeAvatars, UnassignedRoleChip, initials } from './task-shared';
 
 // -------------------------------------------------------
 // Types
@@ -421,6 +421,15 @@ export function TaskDetailSheet({ taskId, open, onOpenChange }: TaskDetailSheetP
                 title="Asignados"
                 icon={<User2 className="h-3.5 w-3.5" />}
               >
+                {/* Unassigned role chip when role assigned but no person */}
+                {task.assignees.length === 0 && Boolean((task as unknown as Record<string, unknown>)['assigned_role_id']) && (
+                  <div className="mb-2 pt-1">
+                    <UnassignedRoleChip
+                      roleName={((task as unknown as Record<string, unknown>)['assigned_role_name'] as string | undefined) ?? 'Rol asignado'}
+                      roleColor={((task as unknown as Record<string, unknown>)['assigned_role_color'] as string | null | undefined) ?? null}
+                    />
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {teamMembers.map((member) => {
                     const isAssigned = task.assignees.some((a) => a.profile_id === member.id);

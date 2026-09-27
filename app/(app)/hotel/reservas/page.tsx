@@ -2,10 +2,10 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { format, isToday, isTomorrow, isPast } from 'date-fns';
+import { format, isToday, isTomorrow, isPast, isFuture } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Plus, CalendarDays } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Plus, CalendarDays, MoreHorizontal, LogIn } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,8 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 import { CheckInForm } from '@/components/hotel/check-in-form';
+import { ConfirmArrivalModal } from '@/components/hotel/confirm-arrival-modal';
 import { RoomBadge } from '@/components/shared/room-badge';
 import { GuestName } from '@/components/shared/guest-name';
 import { createClient } from '@/lib/supabase/client';
@@ -60,7 +67,7 @@ const STATUS_CONFIG: Record<StayStatus, { label: string; variant: 'default' | 'o
     className: 'border-info/30 bg-info/10 text-info',
   },
   checked_in: {
-    label: 'In-house',
+    label: 'Hospedado',
     variant: 'outline',
     className: 'border-success/30 bg-success/10 text-success',
   },
@@ -143,12 +150,15 @@ function ReservasContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const filterStatus = searchParams.get('estado') ?? '';
   const filterDateFrom = searchParams.get('desde') ?? '';
   const filterDateTo = searchParams.get('hasta') ?? '';
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [arrivalModalOpen, setArrivalModalOpen] = useState(false);
+  const [selectedStayId, setSelectedStayId] = useState<string | null>(null);
 
   const { data: reservations = [], isLoading } = useQuery({
     queryKey: ['stays_view'],
@@ -162,6 +172,17 @@ function ReservasContent() {
     if (!value) params.delete(key);
     else params.set(key, value);
     router.push(`${pathname}?${params.toString()}`);
+  }
+
+  function openArrivalModal(stayId: string) {
+    setSelectedStayId(stayId);
+    setArrivalModalOpen(true);
+  }
+
+  function handleConfirmed() {
+    queryClient.invalidateQueries({ queryKey: ['stays_view'] });
+    queryClient.invalidateQueries({ queryKey: ['hotel_rooms'] });
+    queryClient.invalidateQueries({ queryKey: ['hotel_kpis'] });
   }
 
   // Apply filters
@@ -253,11 +274,18 @@ function ReservasContent() {
                   <th className="whitespace-nowrap px-4 py-3 text-right">Noches</th>
                   <th className="whitespace-nowrap px-4 py-3 text-right">Tarifa</th>
                   <th className="whitespace-nowrap px-4 py-3 text-left">Estado</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-right">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {filtered.map((stay) => {
                   const statusCfg = STATUS_CONFIG[stay.status];
+                  const checkInDate = new Date(`${stay.check_in_date}T12:00:00`);
+                  const isArrivalToday = isToday(checkInDate);
+                  const isArrivalPast = isPast(checkInDate) && !isToday(checkInDate);
+                  const isArrivalFuture = isFuture(checkInDate) && !isToday(checkInDate);
+                  const isReserved = stay.status === 'reserved';
+
                   return (
                     <tr key={stay.id} className="hover:bg-muted/30 transition-colors">
                       <td className="whitespace-nowrap px-4 py-3">
@@ -308,6 +336,51 @@ function ReservasContent() {
                           {statusCfg.label}
                         </Badge>
                       </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">
+                        {isReserved && (
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Primary: today */}
+                            {isArrivalToday && (
+                              <Button
+                                size="sm"
+                                className="h-7 gap-1.5 text-xs"
+                                onClick={() => openArrivalModal(stay.id)}
+                              >
+                                <LogIn className="h-3.5 w-3.5" />
+                                Confirmar llegada
+                              </Button>
+                            )}
+
+                            {/* Outline: past arrival */}
+                            {isArrivalPast && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 gap-1.5 text-xs"
+                                onClick={() => openArrivalModal(stay.id)}
+                              >
+                                <LogIn className="h-3.5 w-3.5" />
+                                Confirmar llegada
+                              </Button>
+                            )}
+
+                            {/* Future: dropdown with Llegada anticipada */}
+                            {isArrivalFuture && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-input bg-background text-sm hover:bg-muted focus:outline-none">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => openArrivalModal(stay.id)}>
+                                    <LogIn className="mr-2 h-4 w-4" />
+                                    Llegada anticipada
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -319,6 +392,14 @@ function ReservasContent() {
 
       {/* Create reservation dialog */}
       <CheckInForm open={createOpen} onOpenChange={setCreateOpen} mode="reservation" />
+
+      {/* Confirm arrival modal */}
+      <ConfirmArrivalModal
+        open={arrivalModalOpen}
+        onOpenChange={setArrivalModalOpen}
+        stayId={selectedStayId}
+        onConfirmed={handleConfirmed}
+      />
     </div>
   );
 }
