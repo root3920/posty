@@ -155,10 +155,18 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - Tinte cálido `rgba(28,21,23,...)`, no gris
 - Dark mode: borde `#2e2728` + brillo interior sutil
 
-### Logo
+### Logo e íconos
 - `public/brand/posty-cat-white.png` — sobre fondos oscuros/vino
 - `public/brand/posty-cat-black.png` — sobre fondos claros
 - Componente `<PostyLogo variant="auto|white|black" withText size />`
+- **Favicon/íconos** (convención de archivos App Router, generan `<link>` automáticos):
+  - `app/favicon.ico` — favicon clásico
+  - `app/icon.svg` — favicon SVG
+  - `app/apple-icon.png` — Apple touch icon 180×180
+  - `public/icons/android-chrome-{192,512}x{192,512}.png` — PWA
+  - `app/manifest.ts` — Web App Manifest (reemplaza site.webmanifest)
+- **Fuente de diseño**: `design/brand/isotipo_gato/` (archivos originales)
+- Para reemplazar íconos: editar los archivos en `design/brand/isotipo_gato/`, copiar a `app/` y `public/icons/`
 
 ### Componente EntitySelect
 - `components/shared/entity-select.tsx` — Select que siempre muestra la etiqueta

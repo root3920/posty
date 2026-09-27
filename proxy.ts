@@ -10,10 +10,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow static assets and API routes that aren't protected
+  // Allow static assets, icons, and metadata files
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
+    pathname.startsWith('/icons/') ||
+    pathname.startsWith('/brand/') ||
+    pathname === '/icon.svg' ||
+    pathname === '/apple-icon.png' ||
+    pathname === '/manifest.webmanifest' ||
     pathname.includes('.')
   ) {
     return NextResponse.next();
@@ -80,6 +85,6 @@ export const config = {
      * - _next/image (image optimization)
      * - favicon.ico, sitemap.xml, robots.txt (metadata files)
      */
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest|icons/|brand/|sitemap.xml|robots.txt).*)',
   ],
 };

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Outfit, Plus_Jakarta_Sans, Geist_Mono } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -26,8 +26,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'POSTY — Gestión Hotelera',
+  title: {
+    template: '%s · POSTY',
+    default: 'POSTY — Gestión Hotelera',
+  },
   description: 'Software de gestión empresarial para hoteles',
+  applicationName: 'POSTY',
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#9c0b21' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f0c0d' },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
