@@ -236,60 +236,60 @@ function FinanzasContent() {
           ) : kpis ? (
             <>
               <KpiCardFinance
-                icon={<TrendingUp className="h-5 w-5 text-indigo-600" />}
+                icon={<TrendingUp className="h-5 w-5 text-status-occupancy" />}
                 label="Ingresos Totales"
                 value={kpis.totalRevenue}
                 formatValue={(n) => formatCurrency(n)}
                 changePct={calcChangePct(kpis.totalRevenue, prevKpis?.totalRevenue ?? 0)}
                 formula="Cargos de folio (estancias) + Otros ingresos del período"
-                color="text-indigo-600"
+                color="text-status-occupancy"
               />
               <KpiCardFinance
-                icon={<BarChart3 className="h-5 w-5 text-green-600" />}
+                icon={<BarChart3 className="h-5 w-5 text-success" />}
                 label="GOP"
                 value={kpis.gop}
                 formatValue={(n) => formatCurrency(n)}
                 subLabel={`Margen: ${formatPercent(kpis.gopMarginPct)}`}
                 changePct={calcChangePct(kpis.gop, prevKpis?.gop ?? 0)}
                 formula="GOP = Ingresos − Gastos departamentales − No distribuidos − Nómina. Margen% = GOP / Ingresos × 100"
-                color={kpis.gop >= 0 ? 'text-green-600' : 'text-red-600'}
+                color={kpis.gop >= 0 ? 'text-success' : 'text-danger'}
               />
               <KpiCardFinance
-                icon={<BedDouble className="h-5 w-5 text-blue-600" />}
+                icon={<BedDouble className="h-5 w-5 text-status-occupied" />}
                 label="Ocupación"
                 value={kpis.occupancyPct}
                 formatValue={(n) => formatPercent(n)}
                 subLabel={`${kpis.roomNightsSold} de ${kpis.roomNightsAvailable} noches`}
                 changePct={calcChangePct(kpis.occupancyPct, prevKpis?.occupancyPct ?? 0)}
                 formula="Noches vendidas / Noches disponibles × 100"
-                color="text-blue-600"
+                color="text-status-occupied"
               />
               <KpiCardFinance
-                icon={<DollarSign className="h-5 w-5 text-amber-600" />}
+                icon={<DollarSign className="h-5 w-5 text-status-dirty" />}
                 label="ADR"
                 value={kpis.adr}
                 formatValue={(n) => formatCurrency(n)}
                 changePct={calcChangePct(kpis.adr, prevKpis?.adr ?? 0)}
                 formula="ADR = Ingresos habitación / Noches vendidas"
-                color="text-amber-600"
+                color="text-status-dirty"
               />
               <KpiCardFinance
-                icon={<ArrowUpRight className="h-5 w-5 text-teal-600" />}
+                icon={<ArrowUpRight className="h-5 w-5 text-status-arrivals" />}
                 label="RevPAR"
                 value={kpis.revpar}
                 formatValue={(n) => formatCurrency(n)}
                 changePct={calcChangePct(kpis.revpar, prevKpis?.revpar ?? 0)}
                 formula="RevPAR = Ingresos habitación / Noches disponibles"
-                color="text-teal-600"
+                color="text-status-arrivals"
               />
               <KpiCardFinance
-                icon={<Banknote className="h-5 w-5 text-purple-600" />}
+                icon={<Banknote className="h-5 w-5 text-status-guests" />}
                 label="Flujo de Caja Neto"
                 value={kpis.netCashFlow}
                 formatValue={(n) => formatCurrency(n)}
                 changePct={calcChangePct(kpis.netCashFlow, prevKpis?.netCashFlow ?? 0)}
                 formula="Cobros del período − Gastos pagados del período"
-                color={kpis.netCashFlow >= 0 ? 'text-purple-600' : 'text-red-600'}
+                color={kpis.netCashFlow >= 0 ? 'text-status-guests' : 'text-danger'}
               />
             </>
           ) : null}
@@ -320,42 +320,42 @@ function FinanzasContent() {
         {kpis && !kpisLoading && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
             <KpiCardFinance
-              icon={<TrendingUp className="h-4 w-4 text-indigo-500" />}
+              icon={<TrendingUp className="h-4 w-4 text-status-occupancy" />}
               label="TRevPAR"
               value={kpis.trevpar}
               formatValue={(n) => formatCurrency(n)}
               formula="Ingresos totales / Noches disponibles"
             />
             <KpiCardFinance
-              icon={<BedDouble className="h-4 w-4 text-blue-500" />}
+              icon={<BedDouble className="h-4 w-4 text-status-occupied" />}
               label="ALOS"
               value={kpis.alos}
               formatValue={(n) => `${n.toFixed(1)} noches`}
               formula="Noches vendidas / Número de estancias"
             />
             <KpiCardFinance
-              icon={<BarChart3 className="h-4 w-4 text-green-500" />}
+              icon={<BarChart3 className="h-4 w-4 text-success" />}
               label="GOPPAR"
               value={kpis.goppar}
               formatValue={(n) => formatCurrency(n)}
               formula="GOP / Noches disponibles"
             />
             <KpiCardFinance
-              icon={<DollarSign className="h-4 w-4 text-amber-500" />}
+              icon={<DollarSign className="h-4 w-4 text-status-dirty" />}
               label="CPOR"
               value={kpis.cpor}
               formatValue={(n) => formatCurrency(n)}
               formula="(Gastos departamentales + No distribuidos) / Noches vendidas"
             />
             <KpiCardFinance
-              icon={<Banknote className="h-4 w-4 text-purple-500" />}
+              icon={<Banknote className="h-4 w-4 text-status-guests" />}
               label="Cuentas por cobrar"
               value={kpis.accountsReceivable}
               formatValue={(n) => formatCurrency(n)}
               formula="Suma de saldos positivos de estancias activas"
             />
             <KpiCardFinance
-              icon={<ArrowUpRight className="h-4 w-4 text-red-500" />}
+              icon={<ArrowUpRight className="h-4 w-4 text-danger" />}
               label="Cuentas por pagar"
               value={kpis.accountsPayable}
               formatValue={(n) => formatCurrency(n)}
@@ -371,19 +371,19 @@ function FinanzasContent() {
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Próximos 30 días</p>
-                <p className="text-lg font-bold text-indigo-600">
+                <p className="text-lg font-bold text-status-occupancy">
                   {formatCurrency(kpis.projectedRevenue30)}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Próximos 60 días</p>
-                <p className="text-lg font-bold text-teal-600">
+                <p className="text-lg font-bold text-status-arrivals">
                   {formatCurrency(kpis.projectedRevenue60)}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Próximos 90 días</p>
-                <p className="text-lg font-bold text-green-600">
+                <p className="text-lg font-bold text-success">
                   {formatCurrency(kpis.projectedRevenue90)}
                 </p>
               </div>

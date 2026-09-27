@@ -253,20 +253,20 @@ export function MyTasksView({
       {/* Overdue — shown first for urgency */}
       <CollapsibleSection
         title="Vencidas"
-        icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
+        icon={<AlertTriangle className="h-4 w-4 text-danger" />}
         count={overdueTasks.length}
         tasks={overdueTasks}
         statuses={statuses}
         onTaskClick={onTaskClick}
         onStatusChange={handleStatusChange}
-        headerClassName={overdueTasks.length > 0 ? 'text-red-600' : 'text-muted-foreground'}
+        headerClassName={overdueTasks.length > 0 ? 'text-danger' : 'text-muted-foreground'}
         emptyMessage="Sin tareas vencidas"
       />
 
       {/* Today */}
       <CollapsibleSection
         title="Hoy"
-        icon={<CalendarDays className="h-4 w-4 text-amber-500" />}
+        icon={<CalendarDays className="h-4 w-4 text-warning" />}
         count={todayTasks.length}
         tasks={todayTasks}
         statuses={statuses}
@@ -278,7 +278,7 @@ export function MyTasksView({
       {/* Upcoming */}
       <CollapsibleSection
         title="Próximas"
-        icon={<Calendar className="h-4 w-4 text-blue-500" />}
+        icon={<Calendar className="h-4 w-4 text-info" />}
         count={upcomingTasks.length}
         tasks={upcomingTasks}
         statuses={statuses}

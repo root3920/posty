@@ -91,7 +91,7 @@ function SubtaskRow({
         className="shrink-0 text-muted-foreground hover:text-primary"
       >
         {isDone ? (
-          <CheckSquare className="h-4 w-4 text-green-500" />
+          <CheckSquare className="h-4 w-4 text-success" />
         ) : (
           <Square className="h-4 w-4" />
         )}

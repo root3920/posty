@@ -147,14 +147,14 @@ function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps
               <Label className="text-xs">Nombre *</Label>
               <Input {...register('firstName')} placeholder="Nombre" />
               {errors.firstName && (
-                <p className="mt-0.5 text-xs text-red-500">{errors.firstName.message}</p>
+                <p className="mt-0.5 text-xs text-danger">{errors.firstName.message}</p>
               )}
             </div>
             <div>
               <Label className="text-xs">Apellido *</Label>
               <Input {...register('lastName')} placeholder="Apellido" />
               {errors.lastName && (
-                <p className="mt-0.5 text-xs text-red-500">{errors.lastName.message}</p>
+                <p className="mt-0.5 text-xs text-danger">{errors.lastName.message}</p>
               )}
             </div>
             <div>
@@ -180,7 +180,7 @@ function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps
               <Label className="text-xs">Email</Label>
               <Input {...register('email')} type="email" placeholder="correo@ejemplo.com" />
               {errors.email && (
-                <p className="mt-0.5 text-xs text-red-500">{errors.email.message}</p>
+                <p className="mt-0.5 text-xs text-danger">{errors.email.message}</p>
               )}
             </div>
             <div>
@@ -210,7 +210,7 @@ function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps
           </div>
 
           {serverError && (
-            <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-600">{serverError}</p>
+            <p className="rounded bg-danger/10 px-3 py-2 text-sm text-danger">{serverError}</p>
           )}
 
           <div className="flex justify-end gap-2">

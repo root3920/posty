@@ -139,14 +139,14 @@ function AddChargeDialog({
               placeholder="Seleccionar..."
             />
             {errors.revenueCenterId && (
-              <p className="mt-0.5 text-xs text-red-500">{errors.revenueCenterId.message}</p>
+              <p className="mt-0.5 text-xs text-danger">{errors.revenueCenterId.message}</p>
             )}
           </div>
           <div>
             <Label className="text-xs">Descripción *</Label>
             <Input {...register('description')} placeholder="Ej. Desayuno, Minibar..." />
             {errors.description && (
-              <p className="mt-0.5 text-xs text-red-500">{errors.description.message}</p>
+              <p className="mt-0.5 text-xs text-danger">{errors.description.message}</p>
             )}
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -175,7 +175,7 @@ function AddChargeDialog({
             </div>
           </div>
           {serverError && (
-            <p className="rounded bg-red-50 px-2 py-1.5 text-xs text-red-600">{serverError}</p>
+            <p className="rounded bg-danger/10 px-2 py-1.5 text-xs text-danger">{serverError}</p>
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
@@ -257,7 +257,7 @@ function RegisterPaymentDialog({
               placeholder="0"
             />
             {errors.amount && (
-              <p className="mt-0.5 text-xs text-red-500">{errors.amount.message}</p>
+              <p className="mt-0.5 text-xs text-danger">{errors.amount.message}</p>
             )}
           </div>
           <div>
@@ -269,7 +269,7 @@ function RegisterPaymentDialog({
               placeholder="Seleccionar..."
             />
             {errors.methodId && (
-              <p className="mt-0.5 text-xs text-red-500">{errors.methodId.message}</p>
+              <p className="mt-0.5 text-xs text-danger">{errors.methodId.message}</p>
             )}
           </div>
           <div>
@@ -277,7 +277,7 @@ function RegisterPaymentDialog({
             <Input {...register('reference')} placeholder="Número de transacción..." />
           </div>
           {serverError && (
-            <p className="rounded bg-red-50 px-2 py-1.5 text-xs text-red-600">{serverError}</p>
+            <p className="rounded bg-danger/10 px-2 py-1.5 text-xs text-danger">{serverError}</p>
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
@@ -355,11 +355,11 @@ function ExtendStayDialog({
             <Label className="text-xs">Nueva fecha de salida *</Label>
             <Input type="date" {...register('newCheckOutDate')} min={currentCheckOut} />
             {errors.newCheckOutDate && (
-              <p className="mt-0.5 text-xs text-red-500">{errors.newCheckOutDate.message}</p>
+              <p className="mt-0.5 text-xs text-danger">{errors.newCheckOutDate.message}</p>
             )}
           </div>
           {serverError && (
-            <p className="rounded bg-red-50 px-2 py-1.5 text-xs text-red-600">{serverError}</p>
+            <p className="rounded bg-danger/10 px-2 py-1.5 text-xs text-danger">{serverError}</p>
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
@@ -536,7 +536,7 @@ export function RoomDetailDrawer({ room, open, onOpenChange }: RoomDetailDrawerP
 
                 {/* Checkout error */}
                 {checkoutError && (
-                  <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                  <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">
                     {checkoutError}
                   </p>
                 )}
@@ -604,8 +604,8 @@ export function RoomDetailDrawer({ room, open, onOpenChange }: RoomDetailDrawerP
             {/* ============================= */}
             {!isOccupied && (
               <div className="flex flex-col items-center gap-4 py-8 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                  <User className="h-8 w-8 text-green-600" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+                  <User className="h-8 w-8 text-success" />
                 </div>
                 <div>
                   <p className="font-semibold">Habitación disponible</p>

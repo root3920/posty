@@ -161,9 +161,9 @@ export function OccupancyTable({ rooms, isLoading }: OccupancyTableProps) {
                       <span
                         className={
                           nightsLeft <= 0
-                            ? 'font-semibold text-red-600'
+                            ? 'font-semibold text-danger'
                             : nightsLeft === 1
-                            ? 'font-semibold text-amber-600'
+                            ? 'font-semibold text-warning'
                             : 'text-muted-foreground'
                         }
                       >

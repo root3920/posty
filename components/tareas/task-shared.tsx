@@ -43,8 +43,8 @@ export function formatDueDate(dateStr: string | null): string | null {
 export function dueDateColor(dateStr: string | null, completedAt: string | null): string {
   if (!dateStr || completedAt) return 'text-muted-foreground';
   const date = new Date(`${dateStr}T12:00:00`);
-  if (isPast(date) && !isToday(date)) return 'text-red-500';
-  if (isToday(date)) return 'text-amber-500';
+  if (isPast(date) && !isToday(date)) return 'text-danger';
+  if (isToday(date)) return 'text-warning';
   return 'text-muted-foreground';
 }
 
