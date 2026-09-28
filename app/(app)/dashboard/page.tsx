@@ -28,10 +28,10 @@ import {
   Circle,
   LogIn,
 } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { KpiGrid } from '@/components/shared/kpi-grid';
+import { KpiCard, KpiCardSkeleton } from '@/components/shared/kpi-card';
 import { useHotelKPIs, useRoomTypes } from '@/hooks/use-hotel';
 import { useFinanceKPIs } from '@/hooks/use-finance';
 import { useTasks } from '@/hooks/use-tasks';
@@ -68,35 +68,6 @@ const cardVariants: Variants = {
     transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] },
   },
 };
-
-// -------------------------------------------------------
-// KPI card component
-// -------------------------------------------------------
-
-interface DashKpiCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  subLabel?: string;
-  color?: string;
-}
-
-function DashKpiCard({ icon, label, value, subLabel, color = 'text-foreground' }: DashKpiCardProps) {
-  return (
-    <motion.div variants={cardVariants} className="rounded-xl border bg-card p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-          {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs leading-tight text-muted-foreground">{label}</p>
-          <p className={`text-xl font-bold leading-tight ${color}`}>{value}</p>
-          {subLabel && <p className="text-[11px] text-muted-foreground">{subLabel}</p>}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
 
 // -------------------------------------------------------
 // Alert item
@@ -452,7 +423,7 @@ function DashboardContent() {
           <SectionHeader title="Hotel hoy" href="/hotel" />
           {hotelLoading ? (
             <KpiGrid>
-              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+              {[...Array(4)].map((_, i) => <KpiCardSkeleton key={i} />)}
             </KpiGrid>
           ) : hotelKpis ? (
             <motion.div
@@ -461,30 +432,28 @@ function DashboardContent() {
               animate="visible"
             >
             <KpiGrid>
-              <DashKpiCard
-                icon={<TrendingUp className="h-5 w-5 text-status-occupancy" />}
+              <KpiCard
+                icon={<TrendingUp className="h-5 w-5" />}
                 label="Ocupación"
-                value={`${hotelKpis.occupancyPct}%`}
+                value={hotelKpis.occupancyPct}
+                formatValue={(n) => formatPercent(n)}
                 subLabel={`${hotelKpis.occupiedRooms} / ${hotelKpis.totalRooms} hab.`}
-                color="text-status-occupancy"
               />
-              <DashKpiCard
-                icon={<BedDouble className="h-5 w-5 text-status-available" />}
+              <KpiCard
+                icon={<BedDouble className="h-5 w-5" />}
                 label="Disponibles"
                 value={hotelKpis.availableRooms}
-                color="text-status-available"
+                subLabel={`de ${hotelKpis.totalRooms} habitaciones`}
               />
-              <DashKpiCard
-                icon={<ArrowDownToLine className="h-5 w-5 text-status-arrivals" />}
+              <KpiCard
+                icon={<ArrowDownToLine className="h-5 w-5" />}
                 label="Llegadas hoy"
                 value={hotelKpis.arrivalsToday}
-                color="text-status-arrivals"
               />
-              <DashKpiCard
-                icon={<ArrowUpFromLine className="h-5 w-5 text-status-departures" />}
+              <KpiCard
+                icon={<ArrowUpFromLine className="h-5 w-5" />}
                 label="Salidas hoy"
                 value={hotelKpis.departuresToday}
-                color="text-status-departures"
               />
             </KpiGrid>
             </motion.div>
@@ -549,7 +518,7 @@ function DashboardContent() {
           <SectionHeader title="Equipo hoy" href="/equipo" />
           {teamQuery.isLoading || tasksLoading ? (
             <KpiGrid>
-              {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+              {[...Array(6)].map((_, i) => <KpiCardSkeleton key={i} />)}
             </KpiGrid>
           ) : (
             <motion.div
@@ -558,42 +527,36 @@ function DashboardContent() {
               animate="visible"
             >
             <KpiGrid>
-              <DashKpiCard
-                icon={<UserCheck className="h-5 w-5 text-status-available" />}
+              <KpiCard
+                icon={<UserCheck className="h-5 w-5" />}
                 label="En turno"
                 value={teamKpis.onShift}
-                color="text-status-available"
               />
-              <DashKpiCard
-                icon={<Users className="h-5 w-5 text-status-occupied" />}
+              <KpiCard
+                icon={<Users className="h-5 w-5" />}
                 label="Disponibles"
                 value={teamKpis.available}
                 subLabel={`de ${teamKpis.total} total`}
-                color="text-status-occupied"
               />
-              <DashKpiCard
-                icon={<UserX className="h-5 w-5 text-status-out" />}
+              <KpiCard
+                icon={<UserX className="h-5 w-5" />}
                 label="Ausentes"
                 value={teamKpis.absent}
-                color="text-status-out"
               />
-              <DashKpiCard
-                icon={<ClipboardList className="h-5 w-5 text-status-dirty" />}
+              <KpiCard
+                icon={<ClipboardList className="h-5 w-5" />}
                 label="Tareas pendientes"
                 value={taskKpis.pending}
-                color="text-status-dirty"
               />
-              <DashKpiCard
-                icon={<CheckCircle2 className="h-5 w-5 text-status-available" />}
+              <KpiCard
+                icon={<CheckCircle2 className="h-5 w-5" />}
                 label="Completadas"
                 value={taskKpis.completed}
-                color="text-status-available"
               />
-              <DashKpiCard
-                icon={<Clock className="h-5 w-5 text-status-out" />}
+              <KpiCard
+                icon={<Clock className="h-5 w-5" />}
                 label="Vencidas"
                 value={taskKpis.overdue}
-                color={taskKpis.overdue > 0 ? 'text-status-out' : 'text-foreground'}
               />
             </KpiGrid>
             </motion.div>
@@ -611,31 +574,35 @@ function DashboardContent() {
             animate="visible"
           >
           <KpiGrid>
-            <DashKpiCard
-              icon={<DollarSign className="h-5 w-5 text-status-occupancy" />}
+            <KpiCard
+              icon={<DollarSign className="h-5 w-5" />}
               label="Ingresos hoy"
-              value={financeToday ? formatCurrency(financeToday.totalRevenue) : '—'}
-              color="text-status-occupancy"
+              value={financeToday?.totalRevenue ?? 0}
+              formatValue={(n) => formatCurrency(n)}
+              loading={!financeToday}
             />
-            <DashKpiCard
-              icon={<TrendingUp className="h-5 w-5 text-status-arrivals" />}
+            <KpiCard
+              icon={<TrendingUp className="h-5 w-5" />}
               label="Ingresos este mes"
-              value={financeMonth ? formatCurrency(financeMonth.totalRevenue) : '—'}
-              color="text-status-arrivals"
+              value={financeMonth?.totalRevenue ?? 0}
+              formatValue={(n) => formatCurrency(n)}
+              loading={!financeMonth}
             />
-            <DashKpiCard
-              icon={<BarChart3 className="h-5 w-5 text-status-available" />}
+            <KpiCard
+              icon={<BarChart3 className="h-5 w-5" />}
               label="GOP mes"
-              value={financeMonth ? formatCurrency(financeMonth.gop) : '—'}
+              value={financeMonth?.gop ?? 0}
+              formatValue={(n) => formatCurrency(n)}
               subLabel={financeMonth ? `Margen: ${formatPercent(financeMonth.gopMarginPct)}` : undefined}
-              color={financeMonth && financeMonth.gop >= 0 ? 'text-success' : 'text-danger'}
+              loading={!financeMonth}
             />
-            <DashKpiCard
-              icon={<BedDouble className="h-5 w-5 text-status-occupied" />}
+            <KpiCard
+              icon={<BedDouble className="h-5 w-5" />}
               label="Ocupación mes"
-              value={financeMonth ? formatPercent(financeMonth.occupancyPct) : '—'}
+              value={financeMonth?.occupancyPct ?? 0}
+              formatValue={(n) => formatPercent(n)}
               subLabel={financeMonth ? `${financeMonth.roomNightsSold} noches vendidas` : undefined}
-              color="text-status-occupied"
+              loading={!financeMonth}
             />
           </KpiGrid>
           </motion.div>

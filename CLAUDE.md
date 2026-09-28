@@ -28,7 +28,8 @@
 - **Dropdowns**: Todo dropdown que use IDs usa `EntitySelect` (`components/shared/entity-select.tsx`). Nunca mostrar UUIDs al usuario. `<SelectValue>` de Base UI muestra el valor crudo si las opciones no han cargado — por eso EntitySelect renderiza la etiqueta manualmente. Solo usar `<Select>` directo para enums hardcoded (prioridad, moneda, estado de limpieza)
 - **Visualización de datos**: Nunca mostrar IDs (ni completos ni cortados) al usuario. Las listas leen de vistas `*_view` (`stays_view`, `tasks_view`, `expenses_view`, `rooms_view`, `other_revenue_view`) con nombres legibles. Usar los componentes `RoomBadge`, `GuestName`, `ProfileChip` y `CatalogBadge` de `components/shared/`
 - **Borrado**: Soft delete (`archived_at`) en catálogos
-- **Migraciones**: Solo vía `supabase/migrations/`. Nunca SQL Editor manual
+- **Migraciones**: Solo vía `supabase/migrations/`. Nunca SQL Editor manual. NUNCA usar `supabase migration repair --status applied` sin antes confirmar con `npm run db:verify` que el SQL existe en la base
+- **Verificación de esquema**: Después de cada `db push`, correr `npm run db:verify` para detectar migraciones "registradas pero no ejecutadas"
 - **Tipos**: Regenerar con `npm run db:types` después de cada migración
 - **RLS**: Toda tabla con `organization_id` tiene RLS activado + políticas
 - **Clientes Supabase**: Nunca instanciados a nivel de módulo en código server

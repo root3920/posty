@@ -21,6 +21,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EntitySelect } from '@/components/shared/entity-select';
 import { PageHeader } from '@/components/shared/page-header';
 import { KpiGrid } from '@/components/shared/kpi-grid';
+import { KpiCard, KpiCardSkeleton } from '@/components/shared/kpi-card';
+import { formatPercent } from '@/lib/format';
 
 import { useRooms, useHotelKPIs, useRoomStatuses, useRoomTypes } from '@/hooks/use-hotel';
 import { RoomMap } from '@/components/hotel/room-map';
@@ -28,35 +30,6 @@ import { RoomDetailDrawer } from '@/components/hotel/room-detail-drawer';
 import { OccupancyTable } from '@/components/hotel/occupancy-table';
 import { CheckInForm } from '@/components/hotel/check-in-form';
 import type { RoomWithDetails } from '@/hooks/use-hotel';
-
-// -------------------------------------------------------
-// KPI card
-// -------------------------------------------------------
-
-interface KpiCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  subLabel?: string;
-  color?: string;
-}
-
-function KpiCard({ icon, label, value, subLabel, color = 'text-foreground' }: KpiCardProps) {
-  return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-          {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs leading-tight text-muted-foreground">{label}</p>
-          <p className={`text-xl font-bold leading-tight ${color}`}>{value}</p>
-          {subLabel && <p className="text-[11px] text-muted-foreground">{subLabel}</p>}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // -------------------------------------------------------
 // Main content
@@ -130,57 +103,51 @@ function HotelContent() {
         {/* ============================= */}
         <KpiGrid>
           {kpisLoading ? (
-            [...Array(8)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
+            [...Array(8)].map((_, i) => <KpiCardSkeleton key={i} />)
           ) : kpis ? (
             <>
               <KpiCard
-                icon={<BedDouble className="h-5 w-5 text-status-available" />}
+                icon={<BedDouble className="h-5 w-5" />}
                 label="Disponibles"
                 value={kpis.availableRooms}
-                color="text-status-available"
+                subLabel={`de ${kpis.totalRooms} habitaciones`}
               />
               <KpiCard
-                icon={<Users className="h-5 w-5 text-status-occupied" />}
+                icon={<Users className="h-5 w-5" />}
                 label="Ocupadas"
                 value={kpis.occupiedRooms}
-                color="text-status-occupied"
               />
               <KpiCard
-                icon={<Sparkles className="h-5 w-5 text-status-dirty" />}
+                icon={<Sparkles className="h-5 w-5" />}
                 label="Sucias / limpieza"
                 value={kpis.dirtyRooms}
-                color="text-status-dirty"
               />
               <KpiCard
-                icon={<AlertTriangle className="h-5 w-5 text-status-out" />}
+                icon={<AlertTriangle className="h-5 w-5" />}
                 label="Fuera de servicio"
                 value={kpis.outOfServiceRooms}
-                color="text-status-out"
               />
               <KpiCard
-                icon={<TrendingUp className="h-5 w-5 text-status-occupancy" />}
+                icon={<TrendingUp className="h-5 w-5" />}
                 label="Ocupación"
-                value={`${kpis.occupancyPct}%`}
+                value={kpis.occupancyPct}
+                formatValue={(n) => formatPercent(n)}
                 subLabel={`${kpis.occupiedRooms} / ${kpis.totalRooms} hab.`}
-                color="text-status-occupancy"
               />
               <KpiCard
-                icon={<ArrowDownToLine className="h-5 w-5 text-status-arrivals" />}
+                icon={<ArrowDownToLine className="h-5 w-5" />}
                 label="Llegadas hoy"
                 value={kpis.arrivalsToday}
-                color="text-status-arrivals"
               />
               <KpiCard
-                icon={<ArrowUpFromLine className="h-5 w-5 text-status-departures" />}
+                icon={<ArrowUpFromLine className="h-5 w-5" />}
                 label="Salidas hoy"
                 value={kpis.departuresToday}
-                color="text-status-departures"
               />
               <KpiCard
-                icon={<Users className="h-5 w-5 text-status-guests" />}
+                icon={<Users className="h-5 w-5" />}
                 label="Huéspedes en casa"
                 value={kpis.guestsInHouse}
-                color="text-status-guests"
               />
             </>
           ) : null}

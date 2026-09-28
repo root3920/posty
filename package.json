@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "db:types": "npx supabase gen types typescript --local > types/database.ts",
-    "db:reset": "npx supabase db reset"
+    "db:reset": "npx supabase db reset",
+    "db:verify": "npx supabase db query --linked --file scripts/verify-schema.sql"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

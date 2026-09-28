@@ -275,8 +275,6 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
           <PhoneInputCore
             ref={ref}
             country={country}
-            international
-            withCountryCallingCode
             value={(value as PhoneValue) ?? undefined}
             onChange={(v) => onChange?.(v as string | undefined)}
             onBlur={handleBlur}

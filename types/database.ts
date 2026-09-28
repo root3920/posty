@@ -487,6 +487,7 @@ export type Database = {
       organizations: {
         Row: {
           brand_color: string | null
+          country_code: string
           created_at: string
           currency: string
           date_format: string
@@ -503,6 +504,7 @@ export type Database = {
         }
         Insert: {
           brand_color?: string | null
+          country_code?: string
           created_at?: string
           currency?: string
           date_format?: string
@@ -519,6 +521,7 @@ export type Database = {
         }
         Update: {
           brand_color?: string | null
+          country_code?: string
           created_at?: string
           currency?: string
           date_format?: string
