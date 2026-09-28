@@ -98,24 +98,21 @@ function CountrySelector({ value, onChange, disabled }: CountrySelectorProps) {
     }))
     .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 
-  const callingCode = getCountryCallingCode(value);
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         type="button"
         disabled={disabled}
-        aria-label={`País: ${getCountryLabel(value)}, +${callingCode}`}
+        aria-label={`País: ${getCountryLabel(value)}`}
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          'flex h-full shrink-0 items-center gap-1 rounded-l-[10px] border-r border-input bg-muted/40 px-2.5 text-sm transition-colors',
+          'flex h-full w-14 shrink-0 items-center justify-center gap-0.5 rounded-l-[10px] border-r border-input bg-muted/40 transition-colors',
           'hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           disabled && 'cursor-not-allowed opacity-50',
         )}
       >
-        <span aria-hidden className="text-base leading-none">{getFlagEmoji(value)}</span>
-        <span className="tabular-nums text-muted-foreground">+{callingCode}</span>
+        <span aria-hidden className="text-lg leading-none">{getFlagEmoji(value)}</span>
         <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden />
       </PopoverTrigger>
       <PopoverContent
@@ -271,6 +268,11 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
             disabled={disabled}
           />
 
+          {/* Calling code prefix */}
+          <span className="flex shrink-0 items-center pl-2.5 text-sm tabular-nums text-muted-foreground select-none">
+            +{getCountryCallingCode(country)}
+          </span>
+
           {/* Phone number input */}
           <PhoneInputCore
             ref={ref}
@@ -283,7 +285,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
             aria-invalid={hasError}
             aria-label="Número de teléfono"
             className={cn(
-              'min-w-0 flex-1 bg-transparent px-3 py-1.5 text-sm tabular-nums outline-none placeholder:text-muted-foreground',
+              'min-w-0 flex-1 bg-transparent px-1.5 py-1.5 text-[16px] tabular-nums outline-none placeholder:text-muted-foreground sm:text-sm',
               'disabled:cursor-not-allowed',
             )}
           />

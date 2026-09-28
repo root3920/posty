@@ -200,7 +200,7 @@ function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps
               <Label className="text-xs">Número de documento</Label>
               <Input {...register('documentNumber')} placeholder="123456789" />
             </div>
-            <div>
+            <div className="sm:col-span-2">
               <Label className="text-xs">Teléfono</Label>
               <Controller
                 name="phone"
@@ -216,7 +216,7 @@ function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps
                 )}
               />
             </div>
-            <div>
+            <div className="sm:col-span-2">
               <Label className="text-xs">Email</Label>
               <Input {...register('email')} type="email" placeholder="correo@ejemplo.com" />
               {errors.email && (

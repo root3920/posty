@@ -408,7 +408,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
               <Label className="text-xs">Número de documento</Label>
               <Input {...register('guestData.documentNumber')} placeholder="123456789" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 sm:col-span-2">
               <Label className="text-xs">Teléfono</Label>
               <Controller
                 name="guestData.phone"
@@ -424,7 +424,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
                 )}
               />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 sm:col-span-2">
               <Label className="text-xs">Email</Label>
               <Input {...register('guestData.email')} type="email" placeholder="correo@ejemplo.com" />
               {errors.guestData?.email && (
