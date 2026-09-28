@@ -22,25 +22,15 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useStayDetail, useStayTasks, useStayStatusHistory } from '@/hooks/use-hotel';
 import { useProfile } from '@/hooks/use-profile';
+import { useOrganization } from '@/hooks/use-organization';
 import { formatCurrency } from '@/lib/format';
+import { getStayBadges, BADGE_STYLES } from '@/lib/stays/badges';
+import { todayInTimezone } from '@/lib/dates';
 import { StayPhasesStepper, deriveCurrentPhase } from '@/components/hotel/stay-phases-stepper';
 import { TeamProgressPanel } from '@/components/hotel/team-progress-panel';
 import { StayHistoryTimeline } from '@/components/hotel/stay-history-timeline';
 import { FolioTable } from '@/components/hotel/folio-table';
 import { ConfirmArrivalModal } from '@/components/hotel/confirm-arrival-modal';
-
-// -------------------------------------------------------
-// Status display config
-// -------------------------------------------------------
-
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  reserved: { label: 'Reservado', color: 'bg-info text-info-foreground' },
-  checked_in: { label: 'Hospedado', color: 'bg-emerald-500 text-white' },
-  checked_out: { label: 'Check-out', color: 'bg-muted text-muted-foreground' },
-  cancelled: { label: 'Cancelado', color: 'bg-destructive text-destructive-foreground' },
-  no_show: { label: 'No-show', color: 'bg-warning text-warning-foreground' },
-  pending_payment: { label: 'Pago pendiente', color: 'bg-warning text-warning-foreground' },
-};
 
 // -------------------------------------------------------
 // Page
@@ -55,6 +45,8 @@ export default function StayDetailPage() {
   const { data: tasks = [] } = useStayTasks(stayId);
   const { data: history = [] } = useStayStatusHistory(stayId);
   const { data: profile } = useProfile();
+  const { timezone } = useOrganization();
+  const today = todayInTimezone(timezone);
 
   const currency = profile?.organization?.currency ?? 'COP';
   const locale = profile?.organization?.locale ?? 'es-CO';
@@ -101,7 +93,7 @@ export default function StayDetailPage() {
     );
   }
 
-  const status = STATUS_CONFIG[stay.status] ?? STATUS_CONFIG.reserved;
+  const stayBadges = getStayBadges(stay, today);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const guest = stay.guest as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,7 +124,7 @@ export default function StayDetailPage() {
               <h1 className="text-xl font-bold truncate">
                 {guest?.first_name} {guest?.last_name}
               </h1>
-              <Badge className={status.color}>{status.label}</Badge>
+              <Badge variant="outline" className={BADGE_STYLES[stayBadges.status.variant]}>{stayBadges.status.label}</Badge>
               <span className="text-xs text-muted-foreground font-mono">{stay.code}</span>
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">

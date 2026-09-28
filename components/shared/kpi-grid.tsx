@@ -18,7 +18,7 @@ export function KpiGrid({ children, className }: KpiGridProps) {
         className,
       )}
       style={{
-        gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
       }}
     >
       {children}

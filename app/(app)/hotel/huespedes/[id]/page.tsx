@@ -21,19 +21,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PhoneDisplay } from '@/components/shared/phone-display';
 import { useGuestDetail, useGuestStays } from '@/hooks/use-hotel';
 import { useProfile } from '@/hooks/use-profile';
+import { useOrganization } from '@/hooks/use-organization';
 import { formatCurrency } from '@/lib/format';
-
-// -------------------------------------------------------
-// Status display
-// -------------------------------------------------------
-
-const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
-  reserved: { label: 'Reservado', variant: 'default' },
-  checked_in: { label: 'Hospedado', variant: 'default' },
-  checked_out: { label: 'Check-out', variant: 'secondary' },
-  cancelled: { label: 'Cancelado', variant: 'destructive' },
-  no_show: { label: 'No-show', variant: 'outline' },
-};
+import { getStayBadges, BADGE_STYLES } from '@/lib/stays/badges';
+import { todayInTimezone } from '@/lib/dates';
 
 // -------------------------------------------------------
 // Page
@@ -47,6 +38,8 @@ export default function GuestDetailPage() {
   const { data: guest, isLoading: guestLoading } = useGuestDetail(guestId);
   const { data: stays = [], isLoading: staysLoading } = useGuestStays(guestId);
   const { data: profile } = useProfile();
+  const { timezone } = useOrganization();
+  const today = todayInTimezone(timezone);
 
   const currency = profile?.organization?.currency ?? 'COP';
   const locale = profile?.organization?.locale ?? 'es-CO';
@@ -146,18 +139,18 @@ export default function GuestDetailPage() {
           ) : (
             <div className="space-y-2">
               {stays.map((stay) => {
-                const statusCfg = STATUS_LABELS[stay.status] ?? STATUS_LABELS.reserved;
+                const stayBadges = getStayBadges(stay as { status: 'reserved' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show'; check_in_date: string; check_out_date: string; actual_check_in_at?: string | null; actual_check_out_at?: string | null }, today);
                 return (
                   <Link
                     key={stay.id}
                     href={`/hotel/reservas/${stay.id}`}
-                    className="flex items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 hover:bg-muted/30 transition-colors"
+                    className={`flex items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 hover:bg-muted/30 transition-colors ${stayBadges.status.dimmed ? 'opacity-50' : ''}`}
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs text-muted-foreground">{stay.code}</span>
-                        <Badge variant={statusCfg.variant} className="text-[10px]">
-                          {statusCfg.label}
+                        <Badge variant="outline" className={`text-[10px] ${BADGE_STYLES[stayBadges.status.variant]}`}>
+                          {stayBadges.status.label}
                         </Badge>
                       </div>
                       <p className="text-sm mt-0.5">

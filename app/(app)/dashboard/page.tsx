@@ -46,6 +46,9 @@ import {
 } from '@/lib/availability';
 import type { Tables, Enums } from '@/types/database';
 import { ConfirmArrivalModal } from '@/components/hotel/confirm-arrival-modal';
+import { getStayBadges, BADGE_STYLES } from '@/lib/stays/badges';
+import { useOrganization } from '@/hooks/use-organization';
+import { todayInTimezone } from '@/lib/dates';
 
 // -------------------------------------------------------
 // Animation variants
@@ -194,7 +197,7 @@ async function fetchTodayArrivals(): Promise<Record<string, any>[]> {
   const today = new Date().toISOString().split('T')[0];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase.from as any)('stays_view')
-    .select('id, guest_first_name, guest_last_name, room_number, status, check_in_date')
+    .select('id, guest_first_name, guest_last_name, room_number, status, check_in_date, check_out_date')
     .eq('check_in_date', today)
     .eq('status', 'reserved');
   if (error) {
@@ -233,7 +236,8 @@ function DashboardContent() {
   const [arrivalModalOpen, setArrivalModalOpen] = useState(false);
   const [selectedArrivalStayId, setSelectedArrivalStayId] = useState<string | null>(null);
 
-  const todayStr = format(now, 'yyyy-MM-dd');
+  const { timezone } = useOrganization();
+  const todayStr = todayInTimezone(timezone);
   const monthFrom = format(startOfMonth(now), 'yyyy-MM-dd');
   const monthTo = format(endOfMonth(now), 'yyyy-MM-dd');
   const todayPeriod = { from: todayStr, to: todayStr };
@@ -359,7 +363,7 @@ function DashboardContent() {
 
   const greeting = buildGreeting(now.getHours());
   const firstName = profile?.full_name?.split(' ')[0] ?? '';
-  const dateLabel = format(now, "EEEE, d 'de' MMMM yyyy", { locale: es });
+  const dateLabel = format(now, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
 
   return (
     <div className="space-y-8">
@@ -368,7 +372,7 @@ function DashboardContent() {
         <h1 className="text-2xl font-bold tracking-tight">
           {greeting}{firstName ? `, ${firstName}` : ''}
         </h1>
-        <p className="mt-0.5 text-sm text-muted-foreground capitalize">{dateLabel}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">{dateLabel}</p>
       </div>
 
         {/* ============================
@@ -490,9 +494,21 @@ function DashboardContent() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="outline" className="text-[10px] border-info/30 bg-info/10 text-info">
-                      Reservada
-                    </Badge>
+                    {(() => {
+                      const badges = getStayBadges(
+                        {
+                          status: arrival.status,
+                          check_in_date: arrival.check_in_date,
+                          check_out_date: arrival.check_out_date ?? arrival.check_in_date,
+                        },
+                        todayStr,
+                      );
+                      return (
+                        <Badge variant="outline" className={`text-[10px] ${BADGE_STYLES[badges.status.variant]}`}>
+                          {badges.status.label}
+                        </Badge>
+                      );
+                    })()}
                     <Button
                       size="sm"
                       className="h-7 gap-1.5 text-xs"

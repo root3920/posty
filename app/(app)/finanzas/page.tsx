@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { KpiGrid } from '@/components/shared/kpi-grid';
 import { useFinanceKPIs, type FinancePeriod } from '@/hooks/use-finance';
 import { KpiCard, KpiCardSkeleton } from '@/components/shared/kpi-card';
-import { formatCurrency, formatPercent } from '@/lib/format';
+import { formatCurrency, formatPercent, formatDateRange } from '@/lib/format';
 import {
   RevenueExpenseChart,
   RevenueByCenterChart,
@@ -149,8 +149,8 @@ function FinanzasContent() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Finanzas</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground capitalize">
-            {format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {format(now, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -222,7 +222,7 @@ function FinanzasContent() {
 
         {/* Period label */}
         <p className="text-xs text-muted-foreground -mt-2">
-          Período: {activePeriod.from} → {activePeriod.to}
+          Período: {formatDateRange(activePeriod.from, activePeriod.to)}
         </p>
 
         {/* KPI Cards */}
@@ -233,7 +233,7 @@ function FinanzasContent() {
             <>
               <KpiCard
                 icon={<TrendingUp className="h-5 w-5" />}
-                label="Ingresos Totales"
+                label="Ingresos totales"
                 value={kpis.totalRevenue}
                 formatValue={(n) => formatCurrency(n)}
                 changePct={calcChangePct(kpis.totalRevenue, prevKpis?.totalRevenue ?? 0)}
@@ -275,7 +275,7 @@ function FinanzasContent() {
               />
               <KpiCard
                 icon={<Banknote className="h-5 w-5" />}
-                label="Flujo de Caja Neto"
+                label="Flujo de caja neto"
                 value={kpis.netCashFlow}
                 formatValue={(n) => formatCurrency(n)}
                 changePct={calcChangePct(kpis.netCashFlow, prevKpis?.netCashFlow ?? 0)}
@@ -287,26 +287,29 @@ function FinanzasContent() {
 
         {/* Charts */}
         {kpis && !kpisLoading && (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Revenue by center */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-12">
+            {/* Revenue by center — 4 cols on desktop */}
             {kpis.revenueByCenter.length > 0 && (
-              <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="rounded-xl border bg-card p-4 shadow-sm xl:col-span-4">
                 <h3 className="mb-3 text-sm font-semibold">Ingresos por centro</h3>
-                <div className="h-[220px] md:h-[320px]">
+                <div style={{ minHeight: 220 }}>
                   <RevenueByCenterChart data={kpis.revenueByCenter} />
                 </div>
               </div>
             )}
 
-            {/* Revenue by payment method */}
+            {/* Revenue by payment method — 4 cols */}
             {Object.keys(kpis.cashByPaymentMethod).length > 0 && (
-              <div className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="rounded-xl border bg-card p-4 shadow-sm xl:col-span-4">
                 <h3 className="mb-3 text-sm font-semibold">Cobros por método de pago</h3>
-                <div className="h-[220px] md:h-[320px]">
+                <div style={{ minHeight: 220 }}>
                   <RevenueByPaymentChart data={kpis.cashByPaymentMethod} />
                 </div>
               </div>
             )}
+
+            {/* Placeholder for additional chart — fills remaining space */}
+            <div className="hidden xl:block xl:col-span-4" />
           </div>
         )}
 

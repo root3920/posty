@@ -108,7 +108,7 @@ export function KpiCard({
   const fmt = formatValue ?? defaultFormat;
 
   return (
-    <div className="rounded-[10px] border bg-card p-4 shadow-md xl:p-5">
+    <div className="rounded-[10px] border bg-card p-4 shadow-md xl:p-5" style={{ containerType: 'inline-size' }}>
       {/* Row 1: icon + help button */}
       <div className="flex items-center justify-between">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-posty-50 xl:h-10 xl:w-10 dark:bg-[rgba(156,11,33,0.15)]">
@@ -147,8 +147,8 @@ export function KpiCard({
         <Skeleton className="mt-1 h-7 w-24" />
       ) : (
         <p
-          className="mt-1 font-heading font-semibold tabular-nums leading-tight text-foreground"
-          style={{ fontSize: 'clamp(22px, 4vw, 32px)' }}
+          className="mt-1 min-w-0 font-heading font-semibold tabular-nums leading-tight text-foreground"
+          style={{ fontSize: 'clamp(20px, 13cqi, 34px)', overflowWrap: 'anywhere' }}
           data-slot="kpi-value"
         >
           <AnimatedNumber value={value} format={fmt} />

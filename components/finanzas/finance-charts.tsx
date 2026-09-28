@@ -183,15 +183,48 @@ export function RevenueByCenterChart({ data }: RevenueByCenterChartProps) {
     value: item.total,
   }));
 
+  const total = chartData.reduce((sum, d) => sum + d.value, 0);
+
+  // ≤2 categories: horizontal bars instead of donut
+  if (chartData.length <= 2) {
+    return (
+      <div className="space-y-3">
+        {chartData.map((item, i) => {
+          const pct = total > 0 ? (item.value / total) * 100 : 0;
+          return (
+            <div key={item.name} className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">{item.name}</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {formatCurrency(item.value)} · {pct.toFixed(0)}%
+                </span>
+              </div>
+              <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${pct}%`,
+                    backgroundColor: COLORS[i % COLORS.length],
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // 3+ categories: donut with total in center
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height="100%">
       <PieChart>
         <Pie
           data={chartData}
           cx="50%"
           cy="50%"
-          innerRadius={55}
-          outerRadius={80}
+          innerRadius="40%"
+          outerRadius="65%"
           paddingAngle={2}
           dataKey="value"
         >

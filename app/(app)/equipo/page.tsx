@@ -321,8 +321,8 @@ export default function EquipoPage() {
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Equipo</h1>
-        <p className="mt-1 text-sm text-muted-foreground capitalize">
-          {format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
+        <p className="mt-1 text-sm text-muted-foreground">
+          {format(now, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
         </p>
       </div>
 
