@@ -80,28 +80,37 @@ const ANCHOR_LABELS: Record<string, string> = {
 
 async function fetchTemplates(): Promise<Template[]> {
   const supabase = createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase.from as any)('task_templates')
-    .select(
-      `
-      *,
-      role:roles(id, name, color, system_key)
-      `,
-    )
-    .order('offset_days', { ascending: true });
 
-  if (error) {
-    console.error('fetchTemplates error:', error);
+  // Fetch templates and roles separately (no FK relationship exists)
+  const [templatesRes, rolesRes] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from as any)('task_templates')
+      .select('*')
+      .order('sort_order', { ascending: true }),
+    supabase.from('roles')
+      .select('id, name, color, system_key'),
+  ]);
+
+  if (templatesRes.error) {
+    console.error('fetchTemplates error:', templatesRes.error);
     return [];
   }
 
+  // Build role lookup by system_key
+  const roleMap = new Map<string, { name: string; color: string | null; system_key: string | null }>();
+  for (const r of (rolesRes.data ?? [])) {
+    if (r.system_key) roleMap.set(r.system_key, r);
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return ((data ?? []) as any[]).map((t: any) => ({
-    ...t,
-    role_name: t.role?.name ?? null,
-    role_color: t.role?.color ?? null,
-    role_system_key: t.role?.system_key ?? null,
-  }));
+  return ((templatesRes.data ?? []) as any[]).map((t: any) => {
+    const role = roleMap.get(t.role_system_key);
+    return {
+      ...t,
+      role_name: role?.name ?? null,
+      role_color: role?.color ?? null,
+    };
+  });
 }
 
 // -------------------------------------------------------

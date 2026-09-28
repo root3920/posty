@@ -17,6 +17,12 @@ import {
   ChevronRight,
   Zap,
   Sparkles,
+  Building,
+  Shield,
+  UserPlus,
+  List,
+  Palette,
+  Clock,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -56,6 +62,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: Settings,
     module: 'settings',
     children: [
+      { href: '/configuracion/empresa', label: 'Empresa', icon: Building },
+      { href: '/configuracion/roles', label: 'Roles', icon: Shield },
+      { href: '/configuracion/usuarios', label: 'Usuarios', icon: UserPlus },
+      { href: '/configuracion/catalogos', label: 'Catálogos', icon: List },
+      { href: '/configuracion/horarios', label: 'Horarios', icon: Clock },
+      { href: '/configuracion/marca', label: 'Marca', icon: Palette },
       { href: '/configuracion/automatizaciones', label: 'Automatizaciones', icon: Zap },
     ],
   },
