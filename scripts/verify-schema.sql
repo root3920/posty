@@ -42,7 +42,9 @@ WITH expected_columns(table_name, column_name) AS (VALUES
   ('task_templates', 'id'), ('task_templates', 'workflow'), ('task_templates', 'phase'),
   ('task_templates', 'role_system_key'), ('task_templates', 'scope'), ('task_templates', 'anchor'),
   -- Hotel
-  ('rooms', 'id'), ('rooms', 'room_type_id'), ('rooms', 'status_id'), ('rooms', 'housekeeping_status'),
+  ('rooms', 'id'), ('rooms', 'room_type_id'), ('rooms', 'status_id'), ('rooms', 'housekeeping_status'), ('rooms', 'rate_override'),
+  ('room_type_photos', 'id'), ('room_type_photos', 'room_type_id'), ('room_type_photos', 'storage_path'),
+  ('room_types', 'code'), ('room_types', 'bed_config'), ('room_types', 'size_sqm'),
   ('guests', 'id'), ('guests', 'document_type_id'),
   ('stays', 'id'), ('stays', 'room_id'), ('stays', 'primary_guest_id'), ('stays', 'status'),
   ('stay_guests', 'stay_id'),

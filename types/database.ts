@@ -1402,11 +1402,58 @@ export type Database = {
           },
         ]
       }
+      room_type_photos: {
+        Row: {
+          created_at: string
+          id: string
+          is_cover: boolean
+          organization_id: string
+          room_type_id: string
+          sort_order: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_cover?: boolean
+          organization_id: string
+          room_type_id: string
+          sort_order?: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_cover?: boolean
+          organization_id?: string
+          room_type_id?: string
+          sort_order?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_type_photos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_type_photos_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_types: {
         Row: {
           amenities: string[] | null
           archived_at: string | null
           base_rate: number
+          bed_config: Json | null
+          code: string | null
           description: string | null
           id: string
           is_active: boolean
@@ -1414,11 +1461,14 @@ export type Database = {
           max_children: number
           name: string
           organization_id: string
+          size_sqm: number | null
         }
         Insert: {
           amenities?: string[] | null
           archived_at?: string | null
           base_rate?: number
+          bed_config?: Json | null
+          code?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
@@ -1426,11 +1476,14 @@ export type Database = {
           max_children?: number
           name: string
           organization_id: string
+          size_sqm?: number | null
         }
         Update: {
           amenities?: string[] | null
           archived_at?: string | null
           base_rate?: number
+          bed_config?: Json | null
+          code?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
@@ -1438,6 +1491,7 @@ export type Database = {
           max_children?: number
           name?: string
           organization_id?: string
+          size_sqm?: number | null
         }
         Relationships: [
           {
@@ -1462,6 +1516,7 @@ export type Database = {
           notes: string | null
           number: string
           organization_id: string
+          rate_override: number | null
           room_type_id: string
           status_id: string
           updated_at: string
@@ -1478,6 +1533,7 @@ export type Database = {
           notes?: string | null
           number: string
           organization_id: string
+          rate_override?: number | null
           room_type_id: string
           status_id: string
           updated_at?: string
@@ -1494,6 +1550,7 @@ export type Database = {
           notes?: string | null
           number?: string
           organization_id?: string
+          rate_override?: number | null
           room_type_id?: string
           status_id?: string
           updated_at?: string
@@ -2573,14 +2630,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "room_cleanings_cleaning_type_id_fkey"
-            columns: ["next_cleaning_type_id"]
+            columns: ["last_cleaning_type_id"]
             isOneToOne: false
             referencedRelation: "cleaning_types"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "room_cleanings_cleaning_type_id_fkey"
-            columns: ["last_cleaning_type_id"]
+            columns: ["next_cleaning_type_id"]
             isOneToOne: false
             referencedRelation: "cleaning_types"
             referencedColumns: ["id"]
@@ -2613,11 +2670,15 @@ export type Database = {
             | null
           id: string | null
           is_active: boolean | null
+          last_cleaned_at: string | null
+          last_cleaned_by: string | null
           max_adults: number | null
           max_children: number | null
           notes: string | null
           number: string | null
           organization_id: string | null
+          rate_override: number | null
+          room_type_code: string | null
           room_type_id: string | null
           room_type_name: string | null
           room_type_rate: number | null
@@ -2627,6 +2688,13 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "rooms_last_cleaned_by_fkey"
+            columns: ["last_cleaned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rooms_organization_id_fkey"
             columns: ["organization_id"]
@@ -2956,6 +3024,22 @@ export type Database = {
           p_replace_weekly?: boolean
           p_room_ids: string[]
           p_scheduled_for: string
+        }
+        Returns: Json
+      }
+      create_room_type_with_rooms: {
+        Args: {
+          p_amenities?: string[]
+          p_base_rate?: number
+          p_bed_config?: Json
+          p_code?: string
+          p_description?: string
+          p_max_adults?: number
+          p_max_children?: number
+          p_name: string
+          p_photo_paths?: string[]
+          p_rooms?: Json
+          p_size_sqm?: number
         }
         Returns: Json
       }
