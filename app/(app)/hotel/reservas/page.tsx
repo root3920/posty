@@ -30,6 +30,10 @@ import { CheckInForm } from '@/components/hotel/check-in-form';
 import { ConfirmArrivalModal } from '@/components/hotel/confirm-arrival-modal';
 import { RoomBadge } from '@/components/shared/room-badge';
 import { GuestName } from '@/components/shared/guest-name';
+import { PageHeader } from '@/components/shared/page-header';
+import { FilterBar } from '@/components/shared/filter-bar';
+import { ResponsiveTable, type Column } from '@/components/shared/responsive-table';
+import { Fab } from '@/components/layout/fab';
 import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/types/database';
 
@@ -198,55 +202,228 @@ function ReservasContent() {
     filtered = filtered.filter((r) => r.check_in_date <= filterDateTo);
   }
 
+  const activeFilterCount = [filterStatus, filterDateFrom, filterDateTo].filter(Boolean).length;
+
+  const columns: Column<StayViewRow>[] = [
+    {
+      key: 'code',
+      header: 'Código',
+      priority: 1,
+      render: (stay) => (
+        <Link href={`/hotel/reservas/${stay.id}`} className="font-mono text-xs text-muted-foreground hover:underline hover:text-foreground">
+          {stay.code}
+        </Link>
+      ),
+    },
+    {
+      key: 'guest',
+      header: 'Huésped',
+      priority: 1,
+      render: (stay) => (
+        <GuestName
+          firstName={stay.guest_first_name}
+          lastName={stay.guest_last_name}
+          documentNumber={stay.guest_document_number}
+        />
+      ),
+    },
+    {
+      key: 'room',
+      header: 'Habitación',
+      priority: 1,
+      render: (stay) => (
+        <RoomBadge
+          number={stay.room_number}
+          typeName={stay.room_type_name ?? undefined}
+          floor={stay.room_floor ?? undefined}
+        />
+      ),
+    },
+    {
+      key: 'check_in',
+      header: 'Entrada',
+      priority: 2,
+      render: (stay) => (
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">
+            {format(new Date(`${stay.check_in_date}T12:00:00`), 'd MMM yyyy', { locale: es })}
+          </span>
+          <ArrivalBadge checkInDate={stay.check_in_date} />
+        </div>
+      ),
+    },
+    {
+      key: 'check_out',
+      header: 'Salida',
+      priority: 2,
+      render: (stay) => (
+        <span className="text-muted-foreground">
+          {format(new Date(`${stay.check_out_date}T12:00:00`), 'd MMM yyyy', { locale: es })}
+        </span>
+      ),
+    },
+    {
+      key: 'nights',
+      header: 'Noches',
+      priority: 3,
+      render: (stay) => stay.nights,
+    },
+    {
+      key: 'rate',
+      header: 'Tarifa',
+      priority: 3,
+      render: (stay) => <span className="font-medium">{copFormatter.format(stay.rate_per_night)}</span>,
+    },
+    {
+      key: 'status',
+      header: 'Estado',
+      priority: 1,
+      render: (stay) => {
+        const statusCfg = STATUS_CONFIG[stay.status];
+        return (
+          <Badge variant="outline" className={`text-[11px] ${statusCfg.className}`}>
+            {statusCfg.label}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'action',
+      header: 'Acción',
+      priority: 2,
+      render: (stay) => {
+        const checkInDate = new Date(`${stay.check_in_date}T12:00:00`);
+        const isArrivalToday = isToday(checkInDate);
+        const isArrivalPast = isPast(checkInDate) && !isToday(checkInDate);
+        const isArrivalFuture = isFuture(checkInDate) && !isToday(checkInDate);
+        const isReserved = stay.status === 'reserved';
+        if (!isReserved) return null;
+        return (
+          <div className="flex items-center justify-end gap-1">
+            {isArrivalToday && (
+              <Button size="sm" className="h-7 gap-1.5 text-xs" onClick={() => openArrivalModal(stay.id)}>
+                <LogIn className="h-3.5 w-3.5" />
+                Confirmar llegada
+              </Button>
+            )}
+            {isArrivalPast && (
+              <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={() => openArrivalModal(stay.id)}>
+                <LogIn className="h-3.5 w-3.5" />
+                Confirmar llegada
+              </Button>
+            )}
+            {isArrivalFuture && (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-input bg-background text-sm hover:bg-muted focus:outline-none">
+                  <MoreHorizontal className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => openArrivalModal(stay.id)}>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Llegada anticipada
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
+  function renderCard(stay: StayViewRow) {
+    const statusCfg = STATUS_CONFIG[stay.status];
+    const checkInDate = new Date(`${stay.check_in_date}T12:00:00`);
+    const isArrivalToday = isToday(checkInDate);
+    const isArrivalPast = isPast(checkInDate) && !isToday(checkInDate);
+    const isReserved = stay.status === 'reserved';
+    return (
+      <div className="rounded-xl border bg-card p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <Link href={`/hotel/reservas/${stay.id}`} className="font-mono text-xs text-muted-foreground hover:underline">
+            {stay.code}
+          </Link>
+          <Badge variant="outline" className={`text-[11px] ${statusCfg.className}`}>
+            {statusCfg.label}
+          </Badge>
+        </div>
+        <div>
+          <GuestName firstName={stay.guest_first_name} lastName={stay.guest_last_name} documentNumber={stay.guest_document_number} />
+        </div>
+        <RoomBadge number={stay.room_number} typeName={stay.room_type_name ?? undefined} floor={stay.room_floor ?? undefined} />
+        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+          <div>
+            <p className="font-medium text-foreground">Entrada</p>
+            <div className="flex items-center gap-1">
+              {format(new Date(`${stay.check_in_date}T12:00:00`), 'd MMM yyyy', { locale: es })}
+              <ArrivalBadge checkInDate={stay.check_in_date} />
+            </div>
+          </div>
+          <div>
+            <p className="font-medium text-foreground">Salida</p>
+            {format(new Date(`${stay.check_out_date}T12:00:00`), 'd MMM yyyy', { locale: es })}
+          </div>
+        </div>
+        {isReserved && (isArrivalToday || isArrivalPast) && (
+          <Button className="w-full gap-1.5" size="sm" onClick={() => openArrivalModal(stay.id)}>
+            <LogIn className="h-3.5 w-3.5" />
+            Confirmar llegada
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="border-b px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Reservas</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Próximas llegadas y estancias activas
-            </p>
-          </div>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Nueva reserva
-          </Button>
-        </div>
+        <PageHeader
+          title="Reservas"
+          description="Próximas llegadas y estancias activas"
+          actions={
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Nueva reserva
+            </Button>
+          }
+          className="mb-0"
+        />
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 border-b px-6 py-2.5">
-        <Select value={filterStatus} onValueChange={(v) => updateParam('estado', v || null)}>
-          <SelectTrigger className="h-7 w-36 text-xs">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
-            {(Object.entries(STATUS_CONFIG) as [StayStatus, (typeof STATUS_CONFIG)[StayStatus]][]).map(([key, cfg]) => (
-              <SelectItem key={key} value={key}>
-                {cfg.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="border-b px-6 py-2.5">
+        <FilterBar activeCount={activeFilterCount}>
+          <Select value={filterStatus} onValueChange={(v) => updateParam('estado', v || null)}>
+            <SelectTrigger className="h-7 w-36 text-xs">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos</SelectItem>
+              {(Object.entries(STATUS_CONFIG) as [StayStatus, (typeof STATUS_CONFIG)[StayStatus]][]).map(([key, cfg]) => (
+                <SelectItem key={key} value={key}>
+                  {cfg.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <div className="flex items-center gap-1">
-          <Input
-            type="date"
-            className="h-7 w-32 text-xs"
-            value={filterDateFrom}
-            onChange={(e) => updateParam('desde', e.target.value || null)}
-          />
-          <span className="text-xs text-muted-foreground">—</span>
-          <Input
-            type="date"
-            className="h-7 w-32 text-xs"
-            value={filterDateTo}
-            onChange={(e) => updateParam('hasta', e.target.value || null)}
-          />
-        </div>
+          <div className="flex items-center gap-1">
+            <Input
+              type="date"
+              className="h-7 w-32 text-xs"
+              value={filterDateFrom}
+              onChange={(e) => updateParam('desde', e.target.value || null)}
+            />
+            <span className="text-xs text-muted-foreground">—</span>
+            <Input
+              type="date"
+              className="h-7 w-32 text-xs"
+              value={filterDateTo}
+              onChange={(e) => updateParam('hasta', e.target.value || null)}
+            />
+          </div>
+        </FilterBar>
       </div>
 
       {/* Content */}
@@ -263,135 +440,17 @@ function ReservasContent() {
             <p className="text-muted-foreground">No hay reservas que coincidan con los filtros.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="whitespace-nowrap px-4 py-3 text-left">Código</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left">Huésped</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left">Habitación</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left">Entrada</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left">Salida</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-right">Noches</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-right">Tarifa</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-left">Estado</th>
-                  <th className="whitespace-nowrap px-4 py-3 text-right">Acción</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filtered.map((stay) => {
-                  const statusCfg = STATUS_CONFIG[stay.status];
-                  const checkInDate = new Date(`${stay.check_in_date}T12:00:00`);
-                  const isArrivalToday = isToday(checkInDate);
-                  const isArrivalPast = isPast(checkInDate) && !isToday(checkInDate);
-                  const isArrivalFuture = isFuture(checkInDate) && !isToday(checkInDate);
-                  const isReserved = stay.status === 'reserved';
-
-                  return (
-                    <tr key={stay.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="whitespace-nowrap px-4 py-3">
-                        <Link href={`/hotel/reservas/${stay.id}`} className="font-mono text-xs text-muted-foreground hover:underline hover:text-foreground">
-                          {stay.code}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        <GuestName
-                          firstName={stay.guest_first_name}
-                          lastName={stay.guest_last_name}
-                          documentNumber={stay.guest_document_number}
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <RoomBadge
-                          number={stay.room_number}
-                          typeName={stay.room_type_name ?? undefined}
-                          floor={stay.room_floor ?? undefined}
-                        />
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-muted-foreground">
-                            {format(
-                              new Date(`${stay.check_in_date}T12:00:00`),
-                              "d MMM yyyy",
-                              { locale: es },
-                            )}
-                          </span>
-                          <ArrivalBadge checkInDate={stay.check_in_date} />
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                        {format(
-                          new Date(`${stay.check_out_date}T12:00:00`),
-                          "d MMM yyyy",
-                          { locale: es },
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">{stay.nights}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-medium">
-                        {copFormatter.format(stay.rate_per_night)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge
-                          variant="outline"
-                          className={`text-[11px] ${statusCfg.className}`}
-                        >
-                          {statusCfg.label}
-                        </Badge>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right">
-                        {isReserved && (
-                          <div className="flex items-center justify-end gap-1">
-                            {/* Primary: today */}
-                            {isArrivalToday && (
-                              <Button
-                                size="sm"
-                                className="h-7 gap-1.5 text-xs"
-                                onClick={() => openArrivalModal(stay.id)}
-                              >
-                                <LogIn className="h-3.5 w-3.5" />
-                                Confirmar llegada
-                              </Button>
-                            )}
-
-                            {/* Outline: past arrival */}
-                            {isArrivalPast && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 gap-1.5 text-xs"
-                                onClick={() => openArrivalModal(stay.id)}
-                              >
-                                <LogIn className="h-3.5 w-3.5" />
-                                Confirmar llegada
-                              </Button>
-                            )}
-
-                            {/* Future: dropdown with Llegada anticipada */}
-                            {isArrivalFuture && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-input bg-background text-sm hover:bg-muted focus:outline-none">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => openArrivalModal(stay.id)}>
-                                    <LogIn className="mr-2 h-4 w-4" />
-                                    Llegada anticipada
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            columns={columns}
+            data={filtered}
+            renderCard={renderCard}
+            keyExtractor={(stay) => stay.id}
+          />
         )}
       </div>
+
+      {/* FAB for mobile */}
+      <Fab icon={Plus} label="Nueva reserva" onClick={() => setCreateOpen(true)} />
 
       {/* Create reservation dialog */}
       <CheckInForm open={createOpen} onOpenChange={setCreateOpen} mode="reservation" />

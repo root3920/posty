@@ -255,4 +255,53 @@
     border: 1px solid var(--border);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
   }
+
+  /* Safe area insets for iPhone notch/home bar */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Full height using dvh */
+  .h-screen-safe {
+    height: 100dvh;
+  }
+
+  /* Touch target minimum */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent iOS zoom on input focus */
+  @media (max-width: 767px) {
+    input, select, textarea, [role="combobox"] {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Page margins responsive */
+  .page-px {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  @media (min-width: 768px) {
+    .page-px {
+      padding-left: 24px;
+      padding-right: 24px;
+    }
+  }
+  @media (min-width: 1280px) {
+    .page-px {
+      padding-left: 32px;
+      padding-right: 32px;
+    }
+  }
+
+  /* Container queries for KPI grids */
+  @container kpi-grid (max-width: 359px) {
+    .kpi-card { grid-column: span 1; }
+  }
 }

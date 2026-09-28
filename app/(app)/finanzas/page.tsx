@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { KpiGrid } from '@/components/shared/kpi-grid';
 import { useFinanceKPIs, type FinancePeriod } from '@/hooks/use-finance';
 import { KpiCardFinance } from '@/components/finanzas/kpi-card-finance';
 import { formatCurrency, formatPercent } from '@/lib/format';
@@ -230,7 +231,7 @@ function FinanzasContent() {
         </p>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <KpiGrid>
           {kpisLoading ? (
             [...Array(6)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
           ) : kpis ? (
@@ -293,7 +294,7 @@ function FinanzasContent() {
               />
             </>
           ) : null}
-        </div>
+        </KpiGrid>
 
         {/* Charts */}
         {kpis && !kpisLoading && (
@@ -302,7 +303,9 @@ function FinanzasContent() {
             {kpis.revenueByCenter.length > 0 && (
               <div className="rounded-xl border bg-card p-4 shadow-sm">
                 <h3 className="mb-3 text-sm font-semibold">Ingresos por centro</h3>
-                <RevenueByCenterChart data={kpis.revenueByCenter} />
+                <div className="h-[220px] md:h-[320px]">
+                  <RevenueByCenterChart data={kpis.revenueByCenter} />
+                </div>
               </div>
             )}
 
@@ -310,7 +313,9 @@ function FinanzasContent() {
             {Object.keys(kpis.cashByPaymentMethod).length > 0 && (
               <div className="rounded-xl border bg-card p-4 shadow-sm">
                 <h3 className="mb-3 text-sm font-semibold">Cobros por método de pago</h3>
-                <RevenueByPaymentChart data={kpis.cashByPaymentMethod} />
+                <div className="h-[220px] md:h-[320px]">
+                  <RevenueByPaymentChart data={kpis.cashByPaymentMethod} />
+                </div>
               </div>
             )}
           </div>
@@ -318,7 +323,7 @@ function FinanzasContent() {
 
         {/* Secondary KPIs */}
         {kpis && !kpisLoading && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+          <KpiGrid>
             <KpiCardFinance
               icon={<TrendingUp className="h-4 w-4 text-status-occupancy" />}
               label="TRevPAR"
@@ -361,7 +366,7 @@ function FinanzasContent() {
               formatValue={(n) => formatCurrency(n)}
               formula="Suma de gastos con estado 'pendiente'"
             />
-          </div>
+          </KpiGrid>
         )}
 
         {/* Projected revenue */}

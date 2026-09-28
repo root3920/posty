@@ -19,6 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EntitySelect } from '@/components/shared/entity-select';
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
+import { ResponsiveTable, type Column } from '@/components/shared/responsive-table';
 import { useExpenses, type ExpenseFilters, type ExpenseWithCategory } from '@/hooks/use-finance';
 import { formatCurrency } from '@/lib/format';
 import {
@@ -131,17 +133,27 @@ function ExpenseFormModal({ open, onClose, onSaved, editingExpense }: ExpenseFor
     }
   }
 
-  if (!open) return null;
-
   const paymentStatus = watch('paymentStatus');
 
+  const formFooter = (
+    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <Button type="button" variant="outline" onClick={onClose}>
+        Cancelar
+      </Button>
+      <Button type="submit" form="expense-form" disabled={saving}>
+        {saving ? 'Guardando...' : 'Guardar'}
+      </Button>
+    </div>
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-xl border bg-card p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-        <h2 className="mb-4 text-lg font-bold">
-          {editingExpense ? 'Editar gasto' : 'Registrar gasto'}
-        </h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={(v) => !v && onClose()}
+      title={editingExpense ? 'Editar gasto' : 'Registrar gasto'}
+      footer={formFooter}
+    >
+      <form id="expense-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium">Categoría *</label>
             <EntitySelect
@@ -158,7 +170,7 @@ function ExpenseFormModal({ open, onClose, onSaved, editingExpense }: ExpenseFor
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium">Proveedor</label>
               <input
@@ -198,7 +210,7 @@ function ExpenseFormModal({ open, onClose, onSaved, editingExpense }: ExpenseFor
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium">Monto *</label>
               <input
@@ -224,7 +236,7 @@ function ExpenseFormModal({ open, onClose, onSaved, editingExpense }: ExpenseFor
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium">Fecha del gasto *</label>
               <input
@@ -242,18 +254,8 @@ function ExpenseFormModal({ open, onClose, onSaved, editingExpense }: ExpenseFor
               />
             </div>
           </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Guardando...' : 'Guardar'}
-            </Button>
-          </div>
         </form>
-      </div>
-    </div>
+    </ResponsiveDialog>
   );
 }
 
@@ -398,110 +400,147 @@ function GastosContent() {
         )}
 
         {/* Table */}
-        <div className="rounded-xl border bg-card shadow-sm overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/40">
-                <th className="py-2.5 px-4 text-left font-semibold text-muted-foreground">Fecha</th>
-                <th className="py-2.5 px-4 text-left font-semibold text-muted-foreground">Categoría</th>
-                <th className="py-2.5 px-4 text-left font-semibold text-muted-foreground">Proveedor</th>
-                <th className="py-2.5 px-4 text-left font-semibold text-muted-foreground">Descripción</th>
-                <th className="py-2.5 px-4 text-right font-semibold text-muted-foreground">Monto</th>
-                <th className="py-2.5 px-4 text-center font-semibold text-muted-foreground">Estado</th>
-                <th className="py-2.5 px-4 text-right font-semibold text-muted-foreground">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                [...Array(5)].map((_, i) => (
-                  <tr key={i} className="border-t">
-                    {[...Array(7)].map((_, j) => (
-                      <td key={j} className="px-4 py-3">
-                        <Skeleton className="h-4 w-full" />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : expenses.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground text-sm">
-                    No hay gastos registrados para este período
-                  </td>
-                </tr>
-              ) : (
-                expenses.map((exp) => {
-                  const statusConf = STATUS_CONFIG[exp.payment_status];
-                  const StatusIcon = statusConf.icon;
-                  return (
-                    <tr key={exp.id} className="border-t hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                        {format(new Date(exp.expense_date), 'd MMM yyyy', { locale: es })}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="font-medium">{exp.category?.name ?? '—'}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {GROUP_LABELS[exp.category?.category_group ?? ''] ?? ''}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{exp.supplier ?? '—'}</td>
-                      <td className="px-4 py-3">{exp.description}</td>
-                      <td className="px-4 py-3 text-right font-medium tabular-nums">
-                        {formatCurrency(exp.amount)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusConf.color}`}
-                        >
-                          <StatusIcon className="h-3 w-3" />
-                          {statusConf.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                            onClick={() => {
-                              setEditingExpense(exp);
-                              setFormOpen(true);
-                            }}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-danger"
-                            onClick={() => handleDelete(exp.id)}
-                            disabled={deletingId === exp.id}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-            {expenses.length > 0 && (
-              <tfoot>
-                <tr className="border-t bg-muted/20">
-                  <td colSpan={4} className="px-4 py-2.5 text-sm font-semibold">
-                    Total
-                  </td>
-                  <td className="px-4 py-2.5 text-right font-bold tabular-nums">
-                    {formatCurrency(grandTotal)}
-                  </td>
-                  <td colSpan={2} />
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
+          </div>
+        ) : expenses.length === 0 ? (
+          <p className="py-12 text-center text-muted-foreground text-sm">
+            No hay gastos registrados para este período
+          </p>
+        ) : (() => {
+          const expColumns: Column<ExpenseWithCategory>[] = [
+            {
+              key: 'date',
+              header: 'Fecha',
+              priority: 1,
+              render: (exp) => (
+                <span className="text-muted-foreground whitespace-nowrap">
+                  {format(new Date(exp.expense_date), 'd MMM yyyy', { locale: es })}
+                </span>
+              ),
+            },
+            {
+              key: 'category',
+              header: 'Categoría',
+              priority: 1,
+              render: (exp) => (
+                <div>
+                  <p className="font-medium">{exp.category?.name ?? '—'}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {GROUP_LABELS[exp.category?.category_group ?? ''] ?? ''}
+                  </p>
+                </div>
+              ),
+            },
+            {
+              key: 'supplier',
+              header: 'Proveedor',
+              priority: 3,
+              render: (exp) => <span className="text-muted-foreground">{exp.supplier ?? '—'}</span>,
+            },
+            {
+              key: 'description',
+              header: 'Descripción',
+              priority: 2,
+              render: (exp) => exp.description,
+            },
+            {
+              key: 'amount',
+              header: 'Monto',
+              priority: 1,
+              render: (exp) => <span className="font-medium tabular-nums">{formatCurrency(exp.amount)}</span>,
+              className: 'text-right',
+            },
+            {
+              key: 'status',
+              header: 'Estado',
+              priority: 2,
+              render: (exp) => {
+                const statusConf = STATUS_CONFIG[exp.payment_status];
+                const StatusIcon = statusConf.icon;
+                return (
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusConf.color}`}>
+                    <StatusIcon className="h-3 w-3" />
+                    {statusConf.label}
+                  </span>
+                );
+              },
+            },
+            {
+              key: 'actions',
+              header: 'Acciones',
+              priority: 1,
+              render: (exp) => (
+                <div className="flex justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                    onClick={() => { setEditingExpense(exp); setFormOpen(true); }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-danger"
+                    onClick={() => handleDelete(exp.id)}
+                    disabled={deletingId === exp.id}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ),
+              className: 'text-right',
+            },
+          ];
+          return (
+            <ResponsiveTable
+              columns={expColumns}
+              data={expenses}
+              keyExtractor={(exp) => exp.id}
+              renderCard={(exp) => {
+                const statusConf = STATUS_CONFIG[exp.payment_status];
+                const StatusIcon = statusConf.icon;
+                return (
+                  <div className="rounded-xl border bg-card p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium">{exp.category?.name ?? '—'}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {GROUP_LABELS[exp.category?.category_group ?? ''] ?? ''}
+                        </p>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusConf.color}`}>
+                        <StatusIcon className="h-3 w-3" />
+                        {statusConf.label}
+                      </span>
+                    </div>
+                    <p className="text-sm">{exp.description}</p>
+                    {exp.supplier && <p className="text-xs text-muted-foreground">{exp.supplier}</p>}
+                    <div className="flex items-center justify-between pt-1">
+                      <div>
+                        <p className="font-bold tabular-nums">{formatCurrency(exp.amount)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(exp.expense_date), 'd MMM yyyy', { locale: es })}
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditingExpense(exp); setFormOpen(true); }}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-danger" onClick={() => handleDelete(exp.id)} disabled={deletingId === exp.id}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }}
+            />
+          );
+        })()}
       </div>
 
       <ExpenseFormModal

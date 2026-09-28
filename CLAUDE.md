@@ -176,6 +176,35 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - `components/shared/entity-select.tsx` — Select que siempre muestra la etiqueta
 - Usado en vez del Select nativo de shadcn para campos con IDs (UUIDs)
 
+## Responsive
+
+### Breakpoints
+- Mobile: < 768px · Tablet vertical: 768–1023px · Tablet horizontal: 1024–1279px · Desktop: ≥ 1280px
+- Márgenes: 16px mobile, 24px tablet, 32px desktop (clase `page-px`)
+- Ancho máximo: 1440px centrado
+
+### Navegación
+- Mobile: hamburger + Sheet drawer (vino, 85vw max 320px) + MobileHeader (56px sticky)
+- Tablet vertical: sidebar riel 72px (solo íconos)
+- Tablet horizontal: sidebar colapsado, expandible
+- Desktop: sidebar completo 240px
+
+### Componentes responsive obligatorios
+- **`ResponsiveDialog`**: Dialog en desktop, bottom Sheet en mobile (sticky header/footer, safe-area)
+- **`ResponsiveTable`**: tabla con sticky first col en desktop, tarjetas en mobile (via `renderCard`)
+- **`PageHeader`**: título fluido, acciones ocultas en mobile (usa FAB)
+- **`FilterBar`**: inline en desktop, bottom sheet "Filtros (N)" en mobile
+- **`KPIGrid`**: CSS grid auto-fill con container queries, min 2 cols mobile
+- **`FAB`**: botón flotante para acción principal, solo mobile
+
+### Reglas de formularios
+- 1 columna mobile, 2 columnas desde `sm:` (640px)
+- Todos los hijos de grid: `min-w-0`
+- Touch target: `min-h-[44px]` en mobile
+- Font-size inputs: 16px mínimo en mobile (iOS zoom prevention via CSS)
+- Usar `ResponsiveDialog` para formularios, nunca Dialog directo
+- Viewport: `width=device-width`, `viewportFit: 'cover'`, dvh para alturas
+
 ## TODO futuro
 - [ ] Exportación TRA/SIRE (regulatorio colombiano)
 - [ ] Notificaciones en tiempo real (Supabase Realtime)

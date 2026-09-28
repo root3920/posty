@@ -56,7 +56,7 @@ export default function ConfiguracionPage() {
         <p className="text-muted-foreground text-sm">Gestiona la configuración de tu hotel</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {SETTINGS_SECTIONS.map((section) => {
           const Icon = section.icon;
           return (

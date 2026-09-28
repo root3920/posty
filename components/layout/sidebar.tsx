@@ -71,8 +71,14 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'flex h-full flex-col transition-all duration-300',
-        collapsed ? 'w-[68px]' : 'w-[240px]',
+        // Hidden on mobile, flex on tablet+
+        'hidden md:flex',
+        'h-full flex-col transition-all duration-300',
+        // md (768-1023): rail mode 72px always
+        // lg (1024-1279): collapsed by default (managed by store, starts as false so 240px)
+        // xl (1280+): full width
+        // The store collapse state controls width:
+        collapsed ? 'w-[68px]' : 'md:w-[72px] lg:w-[240px]',
       )}
       style={{
         background: 'linear-gradient(180deg, var(--sidebar) 0%, #82091b 100%)',
@@ -81,7 +87,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className={cn(
         'flex h-16 items-center gap-2.5 border-b border-white/15 px-4',
-        collapsed && 'justify-center px-2',
+        (collapsed || true) && 'md:justify-center md:px-2 lg:justify-start lg:px-4',
       )}>
         <Image
           src="/brand/posty-cat-white.png"
@@ -91,11 +97,13 @@ export function Sidebar() {
           className="shrink-0"
           priority
         />
-        {!collapsed && (
-          <span className="font-heading text-[17px] font-bold tracking-tight text-white">
-            POSTY
-          </span>
-        )}
+        <span className={cn(
+          'font-heading text-[17px] font-bold tracking-tight text-white',
+          // Hide label on collapsed desktop or on tablet (rail mode)
+          collapsed ? 'hidden' : 'hidden lg:inline',
+        )}>
+          POSTY
+        </span>
       </div>
 
       {/* Navigation */}
@@ -108,6 +116,11 @@ export function Sidebar() {
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const Icon = item.icon;
 
+              // Rail mode: tablet md-lg always shows icons only
+              // Desktop collapsed: icons only
+              // Desktop expanded: icons + labels
+              const isIconOnly = collapsed;
+
               const linkElement = (
                 <Link
                   href={item.href}
@@ -116,7 +129,10 @@ export function Sidebar() {
                     isActive
                       ? 'bg-white text-[var(--sidebar-primary-foreground)] shadow-sm dark:bg-[#0f0c0d] dark:text-white'
                       : 'text-white/78 hover:bg-white/10 hover:text-white',
-                    collapsed && 'justify-center px-2.5',
+                    // Tablet: center icons (rail)
+                    'md:justify-center md:px-2.5 lg:justify-start lg:px-3',
+                    // Desktop collapsed: center
+                    isIconOnly && 'justify-center px-2.5',
                   )}
                   style={isActive ? {
                     color: 'var(--sidebar-primary-foreground)',
@@ -124,11 +140,20 @@ export function Sidebar() {
                   } : undefined}
                 >
                   <Icon className="h-[18px] w-[18px] shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
+                  <span className={cn(
+                    // Hide label on tablet (rail) and desktop collapsed
+                    'hidden lg:inline',
+                    isIconOnly && 'lg:hidden',
+                  )}>
+                    {item.label}
+                  </span>
                 </Link>
               );
 
-              if (collapsed) {
+              // Always show tooltip on tablet rail and desktop collapsed
+              const showTooltip = isIconOnly;
+
+              if (showTooltip) {
                 return (
                   <Tooltip key={item.href}>
                     <TooltipTrigger render={<div />}>{linkElement}</TooltipTrigger>
@@ -139,10 +164,16 @@ export function Sidebar() {
 
               return (
                 <div key={item.href}>
-                  {linkElement}
-                  {/* Sub-navigation */}
-                  {item.children && isActive && !collapsed && (
-                    <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/15 pl-3">
+                  {/* Tablet rail: always tooltip */}
+                  <Tooltip>
+                    <TooltipTrigger render={<div className="lg:contents" />}>
+                      {linkElement}
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="lg:hidden">{item.label}</TooltipContent>
+                  </Tooltip>
+                  {/* Sub-navigation (desktop expanded only) */}
+                  {item.children && isActive && !isIconOnly && (
+                    <div className="ml-4 mt-0.5 hidden space-y-0.5 border-l border-white/15 pl-3 lg:block">
                       {item.children.map((child) => {
                         const childActive = pathname === child.href;
                         const ChildIcon = child.icon;
@@ -153,8 +184,8 @@ export function Sidebar() {
                             className={cn(
                               'flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all duration-150',
                               childActive
-                                ? 'text-white bg-white/15'
-                                : 'text-white/60 hover:text-white hover:bg-white/8',
+                                ? 'bg-white/15 text-white'
+                                : 'text-white/60 hover:bg-white/8 hover:text-white',
                             )}
                           >
                             <ChildIcon className="h-3.5 w-3.5 shrink-0" />
@@ -169,8 +200,8 @@ export function Sidebar() {
             })}
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="border-t border-white/15 p-2.5">
+      {/* Collapse toggle — only on desktop (lg+) */}
+      <div className="hidden border-t border-white/15 p-2.5 lg:block">
         <button
           onClick={toggle}
           className="flex w-full items-center justify-center rounded-[10px] p-2 text-white/60 transition-all duration-150 hover:bg-white/10 hover:text-white"

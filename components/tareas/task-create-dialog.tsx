@@ -6,13 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { CalendarIcon, X } from 'lucide-react';
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -131,14 +125,33 @@ export function TaskCreateDialog({ open, onOpenChange, defaultStatusId }: TaskCr
     }
   }
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Crear tarea</DialogTitle>
-        </DialogHeader>
+  const dialogFooter = (
+    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => {
+          reset();
+          onOpenChange(false);
+        }}
+        disabled={isSubmitting}
+      >
+        Cancelar
+      </Button>
+      <Button type="submit" form="task-create-form" disabled={isSubmitting}>
+        {isSubmitting ? 'Creando…' : 'Crear tarea'}
+      </Button>
+    </div>
+  );
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+  return (
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Crear tarea"
+      footer={dialogFooter}
+    >
+        <form id="task-create-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Title */}
           <div className="space-y-1.5">
             <Label htmlFor="title">Título *</Label>
@@ -165,7 +178,7 @@ export function TaskCreateDialog({ open, onOpenChange, defaultStatusId }: TaskCr
           </div>
 
           {/* Status + Priority row */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5 min-w-0">
               <Label>Estado</Label>
               <Controller
@@ -302,25 +315,7 @@ export function TaskCreateDialog({ open, onOpenChange, defaultStatusId }: TaskCr
               {serverError}
             </p>
           )}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                reset();
-                onOpenChange(false);
-              }}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creando…' : 'Crear tarea'}
-            </Button>
-          </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

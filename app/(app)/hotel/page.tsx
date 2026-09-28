@@ -19,6 +19,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EntitySelect } from '@/components/shared/entity-select';
+import { PageHeader } from '@/components/shared/page-header';
+import { KpiGrid } from '@/components/shared/kpi-grid';
 
 import { useRooms, useHotelKPIs, useRoomStatuses, useRoomTypes } from '@/hooks/use-hotel';
 import { RoomMap } from '@/components/hotel/room-map';
@@ -109,30 +111,29 @@ function HotelContent() {
       {/* Header */}
       {/* ============================= */}
       <div className="border-b px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Hotel</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground capitalize">
-              {format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => router.push('/hotel/reservas')}>
-              Reservas
-            </Button>
-            <Button onClick={() => setCheckInOpen(true)} size="sm">
-              <Plus className="mr-1.5 h-4 w-4" />
-              Nuevo check-in
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title="Hotel"
+          description={format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => router.push('/hotel/reservas')}>
+                Reservas
+              </Button>
+              <Button onClick={() => setCheckInOpen(true)} size="sm">
+                <Plus className="mr-1.5 h-4 w-4" />
+                Nuevo check-in
+              </Button>
+            </div>
+          }
+          className="mb-0"
+        />
       </div>
 
       <div className="flex-1 overflow-auto px-6 py-5 space-y-6">
         {/* ============================= */}
         {/* KPIs */}
         {/* ============================= */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        <KpiGrid>
           {kpisLoading ? (
             [...Array(8)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
           ) : kpis ? (
@@ -188,7 +189,7 @@ function HotelContent() {
               />
             </>
           ) : null}
-        </div>
+        </KpiGrid>
 
         {/* ============================= */}
         {/* View tabs */}
@@ -258,7 +259,7 @@ function HotelContent() {
         {/* ============================= */}
         {activeTab === 'mapa' ? (
           roomsLoading ? (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
+            <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
               {[...Array(12)].map((_, i) => (
                 <Skeleton key={i} className="h-20 rounded-lg" />
               ))}

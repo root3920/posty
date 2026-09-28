@@ -20,6 +20,7 @@ import {
 import type { Tables, Enums } from '@/types/database';
 
 import { KpiRow, KpiRowSkeleton, type TeamKPIs } from '@/components/equipo/kpi-row';
+import { KpiGrid } from '@/components/shared/kpi-grid';
 import {
   EmployeeCard,
   EmployeeCardSkeleton,
@@ -417,7 +418,7 @@ export default function EquipoPage() {
 
         {/* Employee grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
             {Array.from({ length: 8 }).map((_, i) => (
               <EmployeeCardSkeleton key={i} />
             ))}
@@ -443,7 +444,7 @@ export default function EquipoPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
             {filteredCards.map((card) => (
               <EmployeeCard key={card.id} employee={card} />
             ))}

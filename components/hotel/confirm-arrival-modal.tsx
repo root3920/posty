@@ -14,13 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -200,13 +194,34 @@ export function ConfirmArrivalModal({
     onOpenChange(v);
   }
 
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Confirmar llegada</DialogTitle>
-        </DialogHeader>
+  const modalFooter = (
+    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
+        Cancelar
+      </Button>
+      <Button
+        onClick={handleConfirm}
+        disabled={isSubmitting || isLoading || !documentVerified}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Confirmando...
+          </>
+        ) : (
+          'Confirmar llegada'
+        )}
+      </Button>
+    </div>
+  );
 
+  return (
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="Confirmar llegada"
+      footer={modalFooter}
+    >
         {isLoading || !stay ? (
           <div className="space-y-3">
             <Skeleton className="h-16 rounded-lg" />
@@ -332,26 +347,6 @@ export function ConfirmArrivalModal({
             </div>
           </div>
         )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={isSubmitting || isLoading || !documentVerified}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Confirmando...
-              </>
-            ) : (
-              'Confirmar llegada'
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

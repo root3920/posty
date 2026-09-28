@@ -12,12 +12,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { EntitySelect, type EntityOption } from '@/components/shared/entity-select';
 import { PhoneInput } from '@/components/shared/phone-input';
 import { useDefaultCountry } from '@/components/providers/geo-provider';
@@ -289,14 +284,36 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
   const hasNoRoomsAtAll = totalRoomsInOrg === 0 && !availLoading;
   const rpcFailed = !!availError && !availLoading;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
+  const formFooter = (
+    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+        Cancelar
+      </Button>
+      <Button
+        type="submit"
+        form="check-in-form"
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Procesando...
+          </>
+        ) : (
+          submitLabel
+        )}
+      </Button>
+    </div>
+  );
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+  return (
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      footer={formFooter}
+    >
+        <form id="check-in-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {/* ============================= */}
           {/* Guest search */}
           {/* ============================= */}
@@ -361,7 +378,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
           </div>
 
           {/* Guest data fields */}
-          <div className="grid grid-cols-2 gap-3" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="min-w-0">
               <Label className="text-xs">Nombre *</Label>
               <Input {...register('guestData.firstName')} placeholder="Nombre" />
@@ -422,7 +439,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
           <div className="border-t pt-4 space-y-3">
             <Label className="text-sm font-semibold">Datos de la estancia</Label>
 
-            <div className="grid grid-cols-2 gap-3" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)' }}>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {/* Dates FIRST — availability depends on them */}
               <div className="min-w-0">
                 <Label className="text-xs">Fecha de entrada *</Label>
@@ -585,23 +602,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Procesando...
-                </>
-              ) : (
-                submitLabel
-              )}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

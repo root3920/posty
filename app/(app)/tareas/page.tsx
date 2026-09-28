@@ -24,6 +24,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EntitySelect } from '@/components/shared/entity-select';
+import { PageHeader } from '@/components/shared/page-header';
+import { FilterBar } from '@/components/shared/filter-bar';
+import { Fab } from '@/components/layout/fab';
 
 import { useTasks, type TaskFilters, type TaskWithRelations } from '@/hooks/use-tasks';
 import { useProfile } from '@/hooks/use-profile';
@@ -71,7 +74,7 @@ function TareasContent() {
   // URL-driven state
   // -------------------------------------------------------
 
-  const activeTab = (searchParams.get('vista') as ViewTab) ?? 'lista';
+  const activeTab = (searchParams.get('vista') as ViewTab) ?? (typeof window !== 'undefined' && window.innerWidth < 768 ? 'lista' : 'lista');
   const filterStatus = searchParams.get('estado') ?? undefined;
   const filterPriority = searchParams.get('prioridad') ?? undefined;
   const filterAssignee = searchParams.get('asignado') ?? undefined;
@@ -176,18 +179,17 @@ function TareasContent() {
       {/* Page header */}
       {/* ============================= */}
       <div className="border-b px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Tareas</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground capitalize">
-              {format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
-            </p>
-          </div>
-          <Button onClick={() => setCreateOpen(true)} size="sm">
-            <Plus className="mr-1.5 h-4 w-4" />
-            Crear tarea
-          </Button>
-        </div>
+        <PageHeader
+          title="Tareas"
+          description={format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
+          actions={
+            <Button onClick={() => setCreateOpen(true)} size="sm">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Crear tarea
+            </Button>
+          }
+          className="mb-0"
+        />
 
         {/* Tabs */}
         <div className="mt-4 flex items-center gap-1">
@@ -215,8 +217,8 @@ function TareasContent() {
       {/* Filters bar */}
       {/* ============================= */}
       {activeTab !== 'mis-tareas' && (
-        <div className="flex flex-wrap items-center gap-2 border-b px-6 py-2.5">
-          <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <div className="border-b px-6 py-2.5">
+          <FilterBar activeCount={[filterStatus, filterPriority, filterAssignee, filterLabel, filterDateFrom, filterDateTo, filterUnassignedRole].filter(Boolean).length}>
 
           {/* Status filter */}
           <EntitySelect
@@ -319,6 +321,7 @@ function TareasContent() {
               Limpiar filtros
             </Button>
           )}
+          </FilterBar>
         </div>
       )}
 
@@ -378,6 +381,9 @@ function TareasContent() {
         onOpenChange={setCreateOpen}
         defaultStatusId={filterStatus}
       />
+
+      {/* FAB for mobile */}
+      <Fab icon={Plus} label="Crear tarea" onClick={() => setCreateOpen(true)} />
     </div>
   );
 }

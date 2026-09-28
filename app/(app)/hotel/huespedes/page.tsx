@@ -14,12 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
+import { ResponsiveTable, type Column } from '@/components/shared/responsive-table';
 import { EntitySelect } from '@/components/shared/entity-select';
 import { PhoneInput } from '@/components/shared/phone-input';
 import { PhoneDisplay } from '@/components/shared/phone-display';
@@ -149,15 +145,32 @@ function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps
     onOpenChange(false);
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{editGuest ? 'Editar huésped' : 'Nuevo huésped'}</DialogTitle>
-        </DialogHeader>
+  const formFooter = (
+    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+        Cancelar
+      </Button>
+      <Button type="submit" form="guest-form" disabled={isSubmitting}>
+        {isSubmitting ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : editGuest ? (
+          'Guardar cambios'
+        ) : (
+          'Crear huésped'
+        )}
+      </Button>
+    </div>
+  );
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+  return (
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editGuest ? 'Editar huésped' : 'Nuevo huésped'}
+      footer={formFooter}
+    >
+        <form id="guest-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label className="text-xs">Nombre *</Label>
               <Input {...register('firstName')} placeholder="Nombre" />
@@ -239,24 +252,8 @@ function GuestFormDialog({ open, onOpenChange, editGuest }: GuestFormDialogProps
           {serverError && (
             <p className="rounded bg-danger/10 px-3 py-2 text-sm text-danger">{serverError}</p>
           )}
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : editGuest ? (
-                'Guardar cambios'
-              ) : (
-                'Crear huésped'
-              )}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }
 
@@ -328,74 +325,117 @@ function HuespedesContent() {
               {search ? 'No se encontraron huéspedes.' : 'No hay huéspedes registrados.'}
             </p>
           </div>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 text-left">Nombre</th>
-                  <th className="px-4 py-3 text-left">Documento</th>
-                  <th className="px-4 py-3 text-left">Teléfono</th>
-                  <th className="px-4 py-3 text-left">Email</th>
-                  <th className="px-4 py-3 text-left">Origen</th>
-                  <th className="px-4 py-3 text-left">Registrado</th>
-                  <th className="px-4 py-3 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {guests.map((guest) => (
-                  <tr key={guest.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                          {guest.first_name[0]}
-                          {guest.last_name[0]}
-                        </div>
-                        <Link href={`/hotel/huespedes/${guest.id}`} className="font-medium hover:underline">
-                          {guest.first_name} {guest.last_name}
-                        </Link>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {guest.document_number ?? '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <PhoneDisplay value={guest.phone} showActions={false} />
-                    </td>
-                    <td className="px-4 py-3">
-                      {guest.email ? (
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          {guest.email}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {[guest.city_of_origin, guest.country_of_origin]
-                        .filter(Boolean)
-                        .join(', ') || '—'}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                      {format(new Date(guest.created_at), "d MMM yyyy", { locale: es })}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => setEditGuest(guest)}
-                      >
-                        Editar
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        ) : (() => {
+          type GuestRow = typeof guests[number];
+          const columns: Column<GuestRow>[] = [
+            {
+              key: 'name',
+              header: 'Nombre',
+              priority: 1,
+              render: (guest) => (
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                    {guest.first_name[0]}{guest.last_name[0]}
+                  </div>
+                  <Link href={`/hotel/huespedes/${guest.id}`} className="font-medium hover:underline">
+                    {guest.first_name} {guest.last_name}
+                  </Link>
+                </div>
+              ),
+            },
+            {
+              key: 'document',
+              header: 'Documento',
+              priority: 2,
+              render: (guest) => <span className="text-muted-foreground">{guest.document_number ?? '—'}</span>,
+            },
+            {
+              key: 'phone',
+              header: 'Teléfono',
+              priority: 2,
+              render: (guest) => <PhoneDisplay value={guest.phone} showActions={false} />,
+            },
+            {
+              key: 'email',
+              header: 'Email',
+              priority: 3,
+              render: (guest) => guest.email ? (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Mail className="h-3 w-3" />
+                  {guest.email}
+                </div>
+              ) : <span className="text-muted-foreground">—</span>,
+            },
+            {
+              key: 'origin',
+              header: 'Origen',
+              priority: 3,
+              render: (guest) => (
+                <span className="text-muted-foreground">
+                  {[guest.city_of_origin, guest.country_of_origin].filter(Boolean).join(', ') || '—'}
+                </span>
+              ),
+            },
+            {
+              key: 'created',
+              header: 'Registrado',
+              priority: 3,
+              render: (guest) => (
+                <span className="text-muted-foreground whitespace-nowrap">
+                  {format(new Date(guest.created_at), 'd MMM yyyy', { locale: es })}
+                </span>
+              ),
+            },
+            {
+              key: 'actions',
+              header: 'Acciones',
+              priority: 1,
+              render: (guest) => (
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditGuest(guest)}>
+                  Editar
+                </Button>
+              ),
+              className: 'text-right',
+            },
+          ];
+          return (
+            <ResponsiveTable
+              columns={columns}
+              data={guests}
+              keyExtractor={(g) => g.id}
+              renderCard={(guest) => (
+                <div className="rounded-xl border bg-card p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                      {guest.first_name[0]}{guest.last_name[0]}
+                    </div>
+                    <Link href={`/hotel/huespedes/${guest.id}`} className="font-medium hover:underline">
+                      {guest.first_name} {guest.last_name}
+                    </Link>
+                  </div>
+                  {guest.document_number && (
+                    <p className="text-xs text-muted-foreground">Doc: {guest.document_number}</p>
+                  )}
+                  <PhoneDisplay value={guest.phone} showActions={false} />
+                  {guest.email && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Mail className="h-3 w-3" />
+                      {guest.email}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(guest.created_at), 'd MMM yyyy', { locale: es })}
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditGuest(guest)}>
+                      Editar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            />
+          );
+        })()}
       </div>
 
       {/* Dialogs */}

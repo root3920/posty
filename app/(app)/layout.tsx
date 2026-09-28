@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
+import { MobileHeader } from '@/components/layout/mobile-header';
+import { MobileNavWrapper } from '@/components/layout/mobile-nav-wrapper';
 import { GeoProvider } from '@/components/providers/geo-provider';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -10,11 +12,27 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <GeoProvider initialCountry={initialCountry}>
-      <div className="flex h-full">
+      <div className="h-screen-safe flex">
+        {/* Sidebar: hidden on mobile, rail on tablet (md-lg), full on desktop (xl+) */}
         <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
+
+        {/* Mobile nav drawer — rendered outside main flow */}
+        <MobileNavWrapper />
+
+        {/* Main column */}
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          {/* Mobile header (< 768px) */}
+          <MobileHeader />
+
+          {/* Desktop header (≥ 768px) */}
           <Header />
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
+
+          {/* Page content */}
+          <main className="flex-1 overflow-y-auto">
+            <div className="page-px mx-auto max-w-[1440px] py-6">
+              {children}
+            </div>
+          </main>
         </div>
       </div>
     </GeoProvider>

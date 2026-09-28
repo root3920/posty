@@ -31,6 +31,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { KpiGrid } from '@/components/shared/kpi-grid';
 import { useHotelKPIs, useRoomTypes } from '@/hooks/use-hotel';
 import { useFinanceKPIs } from '@/hooks/use-finance';
 import { useTasks } from '@/hooks/use-tasks';
@@ -452,16 +453,16 @@ function DashboardContent() {
         <section className="space-y-3">
           <SectionHeader title="Hotel hoy" href="/hotel" />
           {hotelLoading ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <KpiGrid>
               {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
-            </div>
+            </KpiGrid>
           ) : hotelKpis ? (
             <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-2 gap-3 sm:grid-cols-4"
             >
+            <KpiGrid>
               <DashKpiCard
                 icon={<TrendingUp className="h-5 w-5 text-status-occupancy" />}
                 label="Ocupación"
@@ -487,6 +488,7 @@ function DashboardContent() {
                 value={hotelKpis.departuresToday}
                 color="text-status-departures"
               />
+            </KpiGrid>
             </motion.div>
           ) : null}
         </section>
@@ -548,16 +550,16 @@ function DashboardContent() {
         <section className="space-y-3">
           <SectionHeader title="Equipo hoy" href="/equipo" />
           {teamQuery.isLoading || tasksLoading ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <KpiGrid>
               {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
-            </div>
+            </KpiGrid>
           ) : (
             <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
             >
+            <KpiGrid>
               <DashKpiCard
                 icon={<UserCheck className="h-5 w-5 text-status-available" />}
                 label="En turno"
@@ -595,6 +597,7 @@ function DashboardContent() {
                 value={taskKpis.overdue}
                 color={taskKpis.overdue > 0 ? 'text-status-out' : 'text-foreground'}
               />
+            </KpiGrid>
             </motion.div>
           )}
         </section>
@@ -608,8 +611,8 @@ function DashboardContent() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4"
           >
+          <KpiGrid>
             <DashKpiCard
               icon={<DollarSign className="h-5 w-5 text-status-occupancy" />}
               label="Ingresos hoy"
@@ -636,6 +639,7 @@ function DashboardContent() {
               subLabel={financeMonth ? `${financeMonth.roomNightsSold} noches vendidas` : undefined}
               color="text-status-occupied"
             />
+          </KpiGrid>
           </motion.div>
         </section>
 
