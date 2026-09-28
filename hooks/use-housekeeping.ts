@@ -39,10 +39,7 @@ async function fetchTodayCleanings(): Promise<CleaningRow[]> {
     .neq('status', 'cancelled')
     .order('scheduled_for', { ascending: true });
 
-  if (error) {
-    console.error('fetchTodayCleanings error:', error);
-    return [];
-  }
+  if (error) throw error;
   return data ?? [];
 }
 
@@ -67,10 +64,7 @@ async function fetchRoomCleaningStatus(): Promise<CleaningStatusRow[]> {
     .order('floor', { ascending: true })
     .order('room_number', { ascending: true });
 
-  if (error) {
-    console.error('fetchRoomCleaningStatus error:', error);
-    return [];
-  }
+  if (error) throw error;
   return data ?? [];
 }
 
@@ -117,10 +111,7 @@ async function fetchHousekeepingConfig(): Promise<HousekeepingConfigRow | null> 
     .from('housekeeping_config')
     .select('*')
     .maybeSingle();
-  if (error) {
-    console.error('fetchHousekeepingConfig error:', error);
-    return null;
-  }
+  if (error) throw error;
   return data;
 }
 
@@ -195,10 +186,7 @@ async function fetchCleaningHistory(filters: CleaningHistoryFilters): Promise<Cl
   if (filters.dateTo) query = query.lte('completed_at', filters.dateTo + 'T23:59:59');
 
   const { data, error } = await query;
-  if (error) {
-    console.error('fetchCleaningHistory error:', error);
-    return [];
-  }
+  if (error) throw error;
   return data ?? [];
 }
 
@@ -226,10 +214,7 @@ async function fetchStayCleanings(stayId: string): Promise<CleaningRow[]> {
     .eq('stay_id', stayId)
     .order('scheduled_for', { ascending: true });
 
-  if (error) {
-    console.error('fetchStayCleanings error:', error);
-    return [];
-  }
+  if (error) throw error;
   return data ?? [];
 }
 

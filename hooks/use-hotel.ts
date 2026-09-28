@@ -335,10 +335,7 @@ async function fetchStayStatusHistory(stayId: string): Promise<StatusHistoryRow[
     .select('*, changed_by_profile:profiles(full_name)')
     .eq('stay_id', stayId)
     .order('changed_at', { ascending: true });
-  if (error) {
-    console.error('fetchStayStatusHistory error:', error);
-    return [];
-  }
+  if (error) throw error;
   return (data ?? []) as StatusHistoryRow[];
 }
 
@@ -365,10 +362,7 @@ async function fetchGuestDetail(guestId: string): Promise<GuestDetailRow | null>
     .select('*, document_type:document_types(name, code)')
     .eq('id', guestId)
     .single();
-  if (error) {
-    console.error('fetchGuestDetail error:', error);
-    return null;
-  }
+  if (error) throw error;
   return data as GuestDetailRow;
 }
 

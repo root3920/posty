@@ -23,6 +23,7 @@ import {
   List,
   Palette,
   Clock,
+  ServerCog,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -69,6 +70,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/configuracion/horarios', label: 'Horarios', icon: Clock },
       { href: '/configuracion/marca', label: 'Marca', icon: Palette },
       { href: '/configuracion/automatizaciones', label: 'Automatizaciones', icon: Zap },
+      { href: '/configuracion/sistema', label: 'Sistema', icon: ServerCog },
     ],
   },
 ];
