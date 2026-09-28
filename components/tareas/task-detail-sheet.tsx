@@ -421,15 +421,33 @@ export function TaskDetailSheet({ taskId, open, onOpenChange }: TaskDetailSheetP
                 title="Asignados"
                 icon={<User2 className="h-3.5 w-3.5" />}
               >
-                {/* Unassigned role chip when role assigned but no person */}
-                {task.assignees.length === 0 && Boolean((task as unknown as Record<string, unknown>)['assigned_role_id']) && (
-                  <div className="mb-2 pt-1">
-                    <UnassignedRoleChip
-                      roleName={((task as unknown as Record<string, unknown>)['assigned_role_name'] as string | undefined) ?? 'Rol asignado'}
-                      roleColor={((task as unknown as Record<string, unknown>)['assigned_role_color'] as string | null | undefined) ?? null}
-                    />
-                  </div>
-                )}
+                {/* Role context: unassigned chip OR role badge with person */}
+                {(() => {
+                  const taskAny = task as unknown as Record<string, unknown>;
+                  const roleId = taskAny['assigned_role_id'];
+                  const roleName = taskAny['assigned_role_name'] as string | undefined;
+                  const roleColor = taskAny['assigned_role_color'] as string | null | undefined;
+
+                  if (task.assignees.length === 0 && roleId) {
+                    return (
+                      <div className="mb-2 pt-1">
+                        <UnassignedRoleChip roleName={roleName ?? 'Sin rol'} roleColor={roleColor ?? null} />
+                      </div>
+                    );
+                  }
+                  if (task.assignees.length > 0 && roleName) {
+                    return (
+                      <div className="mb-2 pt-1">
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                          style={roleColor ? { backgroundColor: `${roleColor}15`, color: roleColor } : undefined}>
+                          {roleColor && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: roleColor }} />}
+                          {roleName}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {teamMembers.map((member) => {
                     const isAssigned = task.assignees.some((a) => a.profile_id === member.id);
