@@ -49,7 +49,7 @@ function KpiCard({ icon, label, value, subLabel, color = 'text-foreground' }: Kp
           {icon}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs text-muted-foreground">{label}</p>
+          <p className="text-xs leading-tight text-muted-foreground">{label}</p>
           <p className={`text-xl font-bold leading-tight ${color}`}>{value}</p>
           {subLabel && <p className="text-[11px] text-muted-foreground">{subLabel}</p>}
         </div>
@@ -106,30 +106,25 @@ function HotelContent() {
   });
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="space-y-6">
       {/* ============================= */}
       {/* Header */}
       {/* ============================= */}
-      <div className="border-b px-6 py-4">
-        <PageHeader
-          title="Hotel"
-          description={format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
-          actions={
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => router.push('/hotel/reservas')}>
-                Reservas
-              </Button>
-              <Button onClick={() => setCheckInOpen(true)} size="sm">
-                <Plus className="mr-1.5 h-4 w-4" />
-                Nuevo check-in
-              </Button>
-            </div>
-          }
-          className="mb-0"
-        />
-      </div>
-
-      <div className="flex-1 overflow-auto px-6 py-5 space-y-6">
+      <PageHeader
+        title="Hotel"
+        description={format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => router.push('/hotel/reservas')}>
+              Reservas
+            </Button>
+            <Button onClick={() => setCheckInOpen(true)} size="sm">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Nuevo check-in
+            </Button>
+          </div>
+        }
+      />
         {/* ============================= */}
         {/* KPIs */}
         {/* ============================= */}
@@ -192,21 +187,21 @@ function HotelContent() {
         </KpiGrid>
 
         {/* ============================= */}
-        {/* View tabs */}
+        {/* View tabs + Filters */}
         {/* ============================= */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-1">
             {(['mapa', 'lista'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => updateParam('vista', tab)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   activeTab === tab
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
-                {tab === 'mapa' ? 'Mapa de habitaciones' : 'Ocupación actual'}
+                {tab === 'mapa' ? 'Mapa' : 'Ocupación'}
               </button>
             ))}
           </div>
@@ -276,7 +271,6 @@ function HotelContent() {
         ) : (
           <OccupancyTable rooms={rooms} isLoading={roomsLoading} />
         )}
-      </div>
 
       {/* ============================= */}
       {/* Room detail drawer */}

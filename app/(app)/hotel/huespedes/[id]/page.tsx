@@ -78,9 +78,9 @@ export default function GuestDetailPage() {
   const isRecurrent = totalStays > 1;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="border-b px-6 py-4">
+      <div>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
@@ -104,7 +104,7 @@ export default function GuestDetailPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto px-6 py-5 space-y-6">
+      <div className="space-y-6">
         {/* Profile card */}
         <div className="rounded-xl border bg-card p-5 space-y-4">
           <h2 className="text-sm font-semibold">Información personal</h2>

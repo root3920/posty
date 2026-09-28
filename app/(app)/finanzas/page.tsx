@@ -145,38 +145,34 @@ function FinanzasContent() {
   const now = new Date();
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="border-b px-6 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Finanzas</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground capitalize">
-              {format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
-            </p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/ingresos')}>
-              <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" />
-              Ingresos
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/gastos')}>
-              <DollarSign className="mr-1.5 h-3.5 w-3.5" />
-              Gastos
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/pyg')}>
-              <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
-              P&G
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/presupuesto')}>
-              <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
-              Presupuesto
-            </Button>
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Finanzas</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground capitalize">
+            {format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
+          </p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/ingresos')}>
+            <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" />
+            Ingresos
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/gastos')}>
+            <DollarSign className="mr-1.5 h-3.5 w-3.5" />
+            Gastos
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/pyg')}>
+            <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
+            P&G
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/presupuesto')}>
+            <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
+            Presupuesto
+          </Button>
         </div>
       </div>
-
-      <div className="flex-1 overflow-auto px-6 py-5 space-y-6">
         {/* Period selector */}
         <div className="flex flex-wrap items-center gap-2">
           {presets.map((preset) => (
@@ -398,7 +394,6 @@ function FinanzasContent() {
             </p>
           </div>
         )}
-      </div>
     </div>
   );
 }

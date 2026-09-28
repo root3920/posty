@@ -89,7 +89,7 @@ function DashKpiCard({ icon, label, value, subLabel, color = 'text-foreground' }
           {icon}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs text-muted-foreground">{label}</p>
+          <p className="text-xs leading-tight text-muted-foreground">{label}</p>
           <p className={`text-xl font-bold leading-tight ${color}`}>{value}</p>
           {subLabel && <p className="text-[11px] text-muted-foreground">{subLabel}</p>}
         </div>
@@ -391,16 +391,14 @@ function DashboardContent() {
   const dateLabel = format(now, "EEEE, d 'de' MMMM yyyy", { locale: es });
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="border-b px-6 py-4">
+      <div>
         <h1 className="text-2xl font-bold tracking-tight">
           {greeting}{firstName ? `, ${firstName}` : ''}
         </h1>
         <p className="mt-0.5 text-sm text-muted-foreground capitalize">{dateLabel}</p>
       </div>
-
-      <div className="flex-1 overflow-auto px-6 py-5 space-y-8">
 
         {/* ============================
             Onboarding card (shown when no rooms exist)
@@ -688,7 +686,6 @@ function DashboardContent() {
             </Button>
           </div>
         </section>
-      </div>
 
       <ConfirmArrivalModal
         open={arrivalModalOpen}

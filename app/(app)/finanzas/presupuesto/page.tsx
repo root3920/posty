@@ -153,9 +153,9 @@ function PresupuestoContent() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="border-b px-6 py-4">
+      <div>
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Presupuesto</h1>
@@ -202,7 +202,7 @@ function PresupuestoContent() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div className="overflow-x-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

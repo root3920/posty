@@ -208,24 +208,20 @@ function IngresosContent() {
   const grandTotal = revenues.reduce((sum, rev) => sum + rev.amount, 0);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="border-b px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Ingresos</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Otros ingresos (no asociados a estancias)
-            </p>
-          </div>
-          <Button onClick={() => setCreateOpen(true)} size="sm">
-            <Plus className="mr-1.5 h-4 w-4" />
-            Registrar ingreso
-          </Button>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Ingresos</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Otros ingresos (no asociados a estancias)
+          </p>
         </div>
+        <Button onClick={() => setCreateOpen(true)} size="sm">
+          <Plus className="mr-1.5 h-4 w-4" />
+          Registrar ingreso
+        </Button>
       </div>
-
-      <div className="flex-1 overflow-auto px-6 py-5 space-y-5">
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
           <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -348,7 +344,6 @@ function IngresosContent() {
             )}
           </table>
         </div>
-      </div>
 
       <CreateRevenueModal
         open={createOpen}

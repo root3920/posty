@@ -317,7 +317,7 @@ export default function EquipoPage() {
   // -------------------------------------------------------
 
   return (
-    <div className="space-y-8 p-6">
+    <div className="space-y-8">
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Equipo</h1>
@@ -418,7 +418,7 @@ export default function EquipoPage() {
 
         {/* Employee grid */}
         {isLoading ? (
-          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))' }}>
             {Array.from({ length: 8 }).map((_, i) => (
               <EmployeeCardSkeleton key={i} />
             ))}
@@ -444,7 +444,7 @@ export default function EquipoPage() {
             )}
           </div>
         ) : (
-          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))' }}>
             {filteredCards.map((card) => (
               <EmployeeCard key={card.id} employee={card} />
             ))}

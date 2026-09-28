@@ -65,9 +65,9 @@ function PygContent() {
   const monthLabel = format(monthDate, 'MMMM yyyy', { locale: es });
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="border-b px-6 py-4">
+      <div>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Estado de Resultados (P&G)</h1>
@@ -101,7 +101,7 @@ function PygContent() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto px-6 py-6">
+      <div>
         {kpisLoading ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

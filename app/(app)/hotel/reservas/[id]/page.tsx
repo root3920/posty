@@ -120,9 +120,9 @@ export default function StayDetailPage() {
   ];
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="border-b px-6 py-4 space-y-3">
+      <div className="space-y-3">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
@@ -162,7 +162,7 @@ export default function StayDetailPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto px-6 py-5 space-y-6">
+      <div className="space-y-6">
         {/* KPI Cards */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           <KPICard

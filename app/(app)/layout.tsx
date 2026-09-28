@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <MobileNavWrapper />
 
         {/* Main column */}
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col md:overflow-hidden overflow-x-clip">
           {/* Mobile header (< 768px) */}
           <MobileHeader />
 
@@ -28,7 +28,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <Header />
 
           {/* Page content */}
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 md:overflow-y-auto">
             <div className="page-px mx-auto max-w-[1440px] py-6">
               {children}
             </div>

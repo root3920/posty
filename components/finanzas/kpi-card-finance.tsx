@@ -120,7 +120,7 @@ export function KpiCardFinance({
             {icon}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs text-muted-foreground">{label}</p>
+            <p className="text-xs leading-tight text-muted-foreground">{label}</p>
             {loading ? (
               <div className="mt-1 h-6 w-20 animate-pulse rounded bg-muted" />
             ) : (

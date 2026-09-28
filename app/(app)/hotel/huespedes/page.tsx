@@ -280,38 +280,34 @@ function HuespedesContent() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="border-b px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Huéspedes</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Registro de huéspedes del establecimiento
-            </p>
-          </div>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Nuevo huésped
-          </Button>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Huéspedes</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Registro de huéspedes del establecimiento
+          </p>
         </div>
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Plus className="mr-1.5 h-4 w-4" />
+          Nuevo huésped
+        </Button>
       </div>
 
       {/* Search */}
-      <div className="border-b px-6 py-3">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre o documento..."
-            value={search}
-            onChange={(e) => updateSearch(e.target.value)}
-            className="pl-8"
-          />
-        </div>
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nombre o documento..."
+          value={search}
+          onChange={(e) => updateSearch(e.target.value)}
+          className="pl-8"
+        />
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto px-6 py-4">
+      <div>
         {isLoading ? (
           <div className="space-y-2">
             {[...Array(5)].map((_, i) => (

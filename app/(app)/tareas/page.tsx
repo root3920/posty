@@ -174,50 +174,48 @@ function TareasContent() {
   const now = new Date();
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="space-y-4">
       {/* ============================= */}
       {/* Page header */}
       {/* ============================= */}
-      <div className="border-b px-6 py-4">
-        <PageHeader
-          title="Tareas"
-          description={format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
-          actions={
-            <Button onClick={() => setCreateOpen(true)} size="sm">
-              <Plus className="mr-1.5 h-4 w-4" />
-              Crear tarea
-            </Button>
-          }
-          className="mb-0"
-        />
+      <PageHeader
+        title="Tareas"
+        description={format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
+        actions={
+          <Button onClick={() => setCreateOpen(true)} size="sm">
+            <Plus className="mr-1.5 h-4 w-4" />
+            Crear tarea
+          </Button>
+        }
+        className="mb-0"
+      />
 
-        {/* Tabs */}
-        <div className="mt-4 flex items-center gap-1">
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setTab(tab.key)}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+      {/* Tabs */}
+      <div className="flex flex-wrap items-center gap-1">
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setTab(tab.key)}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* ============================= */}
       {/* Filters bar */}
       {/* ============================= */}
       {activeTab !== 'mis-tareas' && (
-        <div className="border-b px-6 py-2.5">
+        <div className="py-1">
           <FilterBar activeCount={[filterStatus, filterPriority, filterAssignee, filterLabel, filterDateFrom, filterDateTo, filterUnassignedRole].filter(Boolean).length}>
 
           {/* Status filter */}
@@ -328,7 +326,7 @@ function TareasContent() {
       {/* ============================= */}
       {/* View content */}
       {/* ============================= */}
-      <div className="flex-1 overflow-auto px-6 py-4">
+      <div>
         {activeTab === 'lista' && (
           <TaskListView
             tasks={tasks}
