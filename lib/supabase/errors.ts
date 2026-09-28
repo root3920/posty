@@ -16,6 +16,7 @@ const PG_ERROR_MAP: Record<string, string> = {
   '23514': 'El valor ingresado no es válido',
   '42501': 'No tienes permiso para realizar esta acción',
   '42703': 'Error de configuración del sistema. Ya quedó registrado; intenta de nuevo en unos minutos o contacta a soporte',
+  '42804': 'Error de configuración del sistema. Ya quedó registrado; intenta de nuevo en unos minutos o contacta a soporte',
   '42883': 'Error de configuración del sistema. Ya quedó registrado; intenta de nuevo en unos minutos o contacta a soporte',
   '42P01': 'Error de configuración del sistema. Ya quedó registrado; intenta de nuevo en unos minutos o contacta a soporte',
   '22P02': 'El formato del dato ingresado no es válido',
