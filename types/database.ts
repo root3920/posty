@@ -90,6 +90,62 @@ export type Database = {
           },
         ]
       }
+      cleaning_types: {
+        Row: {
+          archived_at: string | null
+          color: string
+          created_at: string
+          default_checklist: Json | null
+          estimated_minutes: number
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          requires_inspection: boolean
+          sort_order: number
+          system_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          color?: string
+          created_at?: string
+          default_checklist?: Json | null
+          estimated_minutes?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          requires_inspection?: boolean
+          sort_order?: number
+          system_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          color?: string
+          created_at?: string
+          default_checklist?: Json | null
+          estimated_minutes?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          requires_inspection?: boolean
+          sort_order?: number
+          system_key?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaning_types_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_room_snapshots: {
         Row: {
           available_rooms: number
@@ -339,6 +395,13 @@ export type Database = {
             foreignKeyName: "folio_charges_stay_id_fkey"
             columns: ["stay_id"]
             isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
+          },
+          {
+            foreignKeyName: "folio_charges_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
             referencedRelation: "stay_balances"
             referencedColumns: ["stay_id"]
           },
@@ -428,6 +491,47 @@ export type Database = {
             foreignKeyName: "guests_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      housekeeping_config: {
+        Row: {
+          created_at: string
+          default_time: string
+          frequency_days: number
+          organization_id: string
+          require_inspection: boolean
+          skip_pre_arrival_hours: number
+          updated_at: string
+          vacant_refresh_days: number
+        }
+        Insert: {
+          created_at?: string
+          default_time?: string
+          frequency_days?: number
+          organization_id: string
+          require_inspection?: boolean
+          skip_pre_arrival_hours?: number
+          updated_at?: string
+          vacant_refresh_days?: number
+        }
+        Update: {
+          created_at?: string
+          default_time?: string
+          frequency_days?: number
+          organization_id?: string
+          require_inspection?: boolean
+          skip_pre_arrival_hours?: number
+          updated_at?: string
+          vacant_refresh_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "housekeeping_config_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -691,6 +795,13 @@ export type Database = {
             foreignKeyName: "payments_stay_id_fkey"
             columns: ["stay_id"]
             isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
+          },
+          {
+            foreignKeyName: "payments_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
             referencedRelation: "stay_balances"
             referencedColumns: ["stay_id"]
           },
@@ -930,6 +1041,212 @@ export type Database = {
           },
         ]
       }
+      room_cleanings: {
+        Row: {
+          assigned_role_id: string | null
+          assigned_to: string | null
+          checklist: Json | null
+          cleaning_type_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string | null
+          duration_minutes: number | null
+          id: string
+          inspected_at: string | null
+          inspected_by: string | null
+          inspection_notes: string | null
+          inspection_status: Database["public"]["Enums"]["inspection_status"]
+          issue_description: string | null
+          issues_found: boolean
+          minibar_charged: boolean
+          notes: string | null
+          organization_id: string
+          origin: Database["public"]["Enums"]["cleaning_origin"]
+          room_id: string
+          scheduled_for: string
+          skipped_note: string | null
+          skipped_reason: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["cleaning_status"]
+          stay_id: string | null
+          task_id: string | null
+        }
+        Insert: {
+          assigned_role_id?: string | null
+          assigned_to?: string | null
+          checklist?: Json | null
+          cleaning_type_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          id?: string
+          inspected_at?: string | null
+          inspected_by?: string | null
+          inspection_notes?: string | null
+          inspection_status?: Database["public"]["Enums"]["inspection_status"]
+          issue_description?: string | null
+          issues_found?: boolean
+          minibar_charged?: boolean
+          notes?: string | null
+          organization_id: string
+          origin: Database["public"]["Enums"]["cleaning_origin"]
+          room_id: string
+          scheduled_for: string
+          skipped_note?: string | null
+          skipped_reason?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["cleaning_status"]
+          stay_id?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          assigned_role_id?: string | null
+          assigned_to?: string | null
+          checklist?: Json | null
+          cleaning_type_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          id?: string
+          inspected_at?: string | null
+          inspected_by?: string | null
+          inspection_notes?: string | null
+          inspection_status?: Database["public"]["Enums"]["inspection_status"]
+          issue_description?: string | null
+          issues_found?: boolean
+          minibar_charged?: boolean
+          notes?: string | null
+          organization_id?: string
+          origin?: Database["public"]["Enums"]["cleaning_origin"]
+          room_id?: string
+          scheduled_for?: string
+          skipped_note?: string | null
+          skipped_reason?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["cleaning_status"]
+          stay_id?: string | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_cleanings_assigned_role_id_fkey"
+            columns: ["assigned_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_cleaning_type_id_fkey"
+            columns: ["cleaning_type_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_inspected_by_fkey"
+            columns: ["inspected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["room_id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stay_balances"
+            referencedColumns: ["stay_id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_statuses: {
         Row: {
           archived_at: string | null
@@ -1032,6 +1349,8 @@ export type Database = {
           housekeeping_status: Database["public"]["Enums"]["housekeeping_status"]
           id: string
           is_active: boolean
+          last_cleaned_at: string | null
+          last_cleaned_by: string | null
           notes: string | null
           number: string
           organization_id: string
@@ -1046,6 +1365,8 @@ export type Database = {
           housekeeping_status?: Database["public"]["Enums"]["housekeeping_status"]
           id?: string
           is_active?: boolean
+          last_cleaned_at?: string | null
+          last_cleaned_by?: string | null
           notes?: string | null
           number: string
           organization_id: string
@@ -1060,6 +1381,8 @@ export type Database = {
           housekeeping_status?: Database["public"]["Enums"]["housekeeping_status"]
           id?: string
           is_active?: boolean
+          last_cleaned_at?: string | null
+          last_cleaned_by?: string | null
           notes?: string | null
           number?: string
           organization_id?: string
@@ -1068,6 +1391,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rooms_last_cleaned_by_fkey"
+            columns: ["last_cleaned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rooms_organization_id_fkey"
             columns: ["organization_id"]
@@ -1154,6 +1484,13 @@ export type Database = {
             foreignKeyName: "stay_guests_stay_id_fkey"
             columns: ["stay_id"]
             isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
+          },
+          {
+            foreignKeyName: "stay_guests_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
             referencedRelation: "stay_balances"
             referencedColumns: ["stay_id"]
           },
@@ -1218,6 +1555,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stay_status_history_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
           },
           {
             foreignKeyName: "stay_status_history_stay_id_fkey"
@@ -1340,6 +1684,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "guests"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["room_id"]
           },
           {
             foreignKeyName: "stays_room_id_fkey"
@@ -1785,6 +2136,13 @@ export type Database = {
             foreignKeyName: "fk_tasks_room"
             columns: ["room_id"]
             isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["room_id"]
+          },
+          {
+            foreignKeyName: "fk_tasks_room"
+            columns: ["room_id"]
+            isOneToOne: false
             referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
@@ -1843,6 +2201,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "task_statuses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
           },
           {
             foreignKeyName: "tasks_stay_id_fkey"
@@ -2061,6 +2426,73 @@ export type Database = {
           },
         ]
       }
+      room_cleaning_status_view: {
+        Row: {
+          check_in_date: string | null
+          check_out_date: string | null
+          current_stay_id: string | null
+          days_since_last: number | null
+          floor: string | null
+          guest_first_name: string | null
+          guest_last_name: string | null
+          housekeeping_status:
+            | Database["public"]["Enums"]["housekeeping_status"]
+            | null
+          is_active: boolean | null
+          is_overdue: boolean | null
+          last_cleaned_at: string | null
+          last_cleaning_at: string | null
+          last_cleaning_by_name: string | null
+          last_cleaning_id: string | null
+          last_cleaning_type_id: string | null
+          last_cleaning_type_name: string | null
+          next_cleaning_at: string | null
+          next_cleaning_id: string | null
+          next_cleaning_origin:
+            | Database["public"]["Enums"]["cleaning_origin"]
+            | null
+          next_cleaning_status:
+            | Database["public"]["Enums"]["cleaning_status"]
+            | null
+          next_cleaning_type_id: string | null
+          next_cleaning_type_name: string | null
+          primary_guest_id: string | null
+          room_id: string | null
+          room_number: string | null
+          room_type_id: string | null
+          room_type_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_cleanings_cleaning_type_id_fkey"
+            columns: ["next_cleaning_type_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_cleanings_cleaning_type_id_fkey"
+            columns: ["last_cleaning_type_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_primary_guest_id_fkey"
+            columns: ["primary_guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rooms_view: {
         Row: {
           counts_as_available: boolean | null
@@ -2202,6 +2634,13 @@ export type Database = {
             foreignKeyName: "stays_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["room_id"]
+          },
+          {
+            foreignKeyName: "stays_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
             referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
@@ -2259,6 +2698,13 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_tasks_room"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["room_id"]
+          },
           {
             foreignKeyName: "fk_tasks_room"
             columns: ["room_id"]
@@ -2326,6 +2772,13 @@ export type Database = {
             foreignKeyName: "tasks_stay_id_fkey"
             columns: ["stay_id"]
             isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
+          },
+          {
+            foreignKeyName: "tasks_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
             referencedRelation: "stay_balances"
             referencedColumns: ["stay_id"]
           },
@@ -2361,6 +2814,17 @@ export type Database = {
           max_children: number
           name: string
         }[]
+      }
+      complete_cleaning: {
+        Args: {
+          p_checklist?: Json
+          p_cleaning_id: string
+          p_issue_description?: string
+          p_issues_found?: boolean
+          p_minibar_charged?: boolean
+          p_notes?: string
+        }
+        Returns: Json
       }
       confirm_guest_arrival: {
         Args: {
@@ -2400,16 +2864,54 @@ export type Database = {
       }
       current_org_id: { Args: never; Returns: string }
       ensure_workflow_roles: { Args: { p_org_id: string }; Returns: undefined }
+      evaluate_condition: {
+        Args: {
+          p_channel: Record<string, unknown>
+          p_condition: string
+          p_guest: Record<string, unknown>
+          p_is_same_day: boolean
+          p_room_is_inspected: boolean
+          p_stay: Record<string, unknown>
+        }
+        Returns: boolean
+      }
       generate_arrived_tasks: { Args: { p_stay_id: string }; Returns: number }
       generate_stay_tasks: { Args: { p_stay_id: string }; Returns: number }
       get_my_permissions: { Args: never; Returns: string[] }
       get_my_profile: { Args: never; Returns: Json }
       has_permission: { Args: { p_key: string }; Returns: boolean }
+      inspect_cleaning: {
+        Args: { p_approved: boolean; p_cleaning_id: string; p_notes?: string }
+        Returns: Json
+      }
       reassign_workflow_tasks_for_role: {
         Args: { p_org_id: string; p_role_id: string }
         Returns: undefined
       }
+      resolve_title: {
+        Args: {
+          p_guest: Record<string, unknown>
+          p_room: Record<string, unknown>
+          p_stay: Record<string, unknown>
+          p_template: string
+          p_today: string
+        }
+        Returns: string
+      }
+      schedule_checkout_cleaning: {
+        Args: { p_stay_id: string }
+        Returns: undefined
+      }
+      schedule_pre_arrival_cleaning: {
+        Args: { p_stay_id: string }
+        Returns: undefined
+      }
+      seed_cleaning_types: { Args: { p_org_id: string }; Returns: undefined }
       seed_default_task_templates: {
+        Args: { p_org_id: string }
+        Returns: undefined
+      }
+      seed_housekeeping_config: {
         Args: { p_org_id: string }
         Returns: undefined
       }
@@ -2417,6 +2919,15 @@ export type Database = {
         Args: { p_org_id: string }
         Returns: undefined
       }
+      seed_same_day_templates: {
+        Args: { p_org_id: string }
+        Returns: undefined
+      }
+      skip_cleaning: {
+        Args: { p_cleaning_id: string; p_note?: string; p_reason: string }
+        Returns: Json
+      }
+      start_cleaning: { Args: { p_cleaning_id: string }; Returns: Json }
       team_task_stats: {
         Args: { p_from: string; p_to: string }
         Returns: {
@@ -2430,12 +2941,25 @@ export type Database = {
     }
     Enums: {
       availability_status: "available" | "busy" | "resting"
+      cleaning_origin:
+        | "auto_weekly"
+        | "pre_arrival"
+        | "checkout"
+        | "guest_request"
+        | "manual"
+      cleaning_status:
+        | "scheduled"
+        | "in_progress"
+        | "completed"
+        | "skipped"
+        | "cancelled"
       expense_category_group:
         | "departmental"
         | "undistributed"
         | "fixed"
         | "payroll"
-      housekeeping_status: "clean" | "dirty" | "inspected"
+      housekeeping_status: "clean" | "dirty" | "inspected" | "cleaning"
+      inspection_status: "not_required" | "pending" | "approved" | "rejected"
       payment_status: "paid" | "pending"
       stay_status:
         | "reserved"
@@ -2469,6 +2993,7 @@ export type Database = {
         | "no_show_event"
         | "cancelled_event"
         | "weekly"
+        | "walk_in"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2597,13 +3122,28 @@ export const Constants = {
   public: {
     Enums: {
       availability_status: ["available", "busy", "resting"],
+      cleaning_origin: [
+        "auto_weekly",
+        "pre_arrival",
+        "checkout",
+        "guest_request",
+        "manual",
+      ],
+      cleaning_status: [
+        "scheduled",
+        "in_progress",
+        "completed",
+        "skipped",
+        "cancelled",
+      ],
       expense_category_group: [
         "departmental",
         "undistributed",
         "fixed",
         "payroll",
       ],
-      housekeeping_status: ["clean", "dirty", "inspected"],
+      housekeeping_status: ["clean", "dirty", "inspected", "cleaning"],
+      inspection_status: ["not_required", "pending", "approved", "rejected"],
       payment_status: ["paid", "pending"],
       stay_status: [
         "reserved",
@@ -2639,6 +3179,7 @@ export const Constants = {
         "no_show_event",
         "cancelled_event",
         "weekly",
+        "walk_in",
       ],
     },
   },

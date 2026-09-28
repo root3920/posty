@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -47,6 +48,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/hotel/huespedes', label: 'Huéspedes', icon: UserRound },
     ],
   },
+  { href: '/limpieza', label: 'Limpieza', icon: Sparkles, module: 'housekeeping' },
   { href: '/finanzas', label: 'Finanzas', icon: DollarSign, module: 'finance' },
   {
     href: '/configuracion',

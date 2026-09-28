@@ -46,6 +46,7 @@ app/
   (app)/equipo                   ← Módulo Equipo
   (app)/tareas                   ← Módulo Tareas
   (app)/hotel                    ← Módulo Hotel
+  (app)/limpieza                 ← Módulo Limpieza (Housekeeping)
   (app)/finanzas                 ← Módulo Finanzas
   (app)/configuracion            ← Configuración
 components/
