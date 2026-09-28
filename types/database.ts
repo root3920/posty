@@ -90,6 +90,114 @@ export type Database = {
           },
         ]
       }
+      cleaning_schedules: {
+        Row: {
+          assigned_role_id: string | null
+          assigned_to: string | null
+          cleaning_type_id: string
+          created_at: string
+          created_by: string | null
+          default_time: string
+          id: string
+          instructions: string | null
+          is_active: boolean
+          organization_id: string
+          priority: string
+          repeat_end_date: string | null
+          repeat_interval: string
+          room_id: string
+        }
+        Insert: {
+          assigned_role_id?: string | null
+          assigned_to?: string | null
+          cleaning_type_id: string
+          created_at?: string
+          created_by?: string | null
+          default_time?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          organization_id: string
+          priority?: string
+          repeat_end_date?: string | null
+          repeat_interval?: string
+          room_id: string
+        }
+        Update: {
+          assigned_role_id?: string | null
+          assigned_to?: string | null
+          cleaning_type_id?: string
+          created_at?: string
+          created_by?: string | null
+          default_time?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          organization_id?: string
+          priority?: string
+          repeat_end_date?: string | null
+          repeat_interval?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaning_schedules_assigned_role_id_fkey"
+            columns: ["assigned_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_schedules_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_schedules_cleaning_type_id_fkey"
+            columns: ["cleaning_type_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_schedules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_schedules_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["room_id"]
+          },
+          {
+            foreignKeyName: "cleaning_schedules_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_schedules_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cleaning_types: {
         Row: {
           archived_at: string | null
@@ -2815,6 +2923,11 @@ export type Database = {
           name: string
         }[]
       }
+      backfill_housekeeping_cleanings: { Args: never; Returns: Json }
+      cancel_cleaning: {
+        Args: { p_cleaning_id: string; p_reason?: string }
+        Returns: Json
+      }
       complete_cleaning: {
         Args: {
           p_checklist?: Json
@@ -2831,6 +2944,18 @@ export type Database = {
           p_document_verified?: boolean
           p_payment_confirmed?: boolean
           p_stay_id: string
+        }
+        Returns: Json
+      }
+      create_manual_cleaning: {
+        Args: {
+          p_assigned_to?: string
+          p_cleaning_type_id: string
+          p_instructions?: string
+          p_priority?: string
+          p_replace_weekly?: boolean
+          p_room_ids: string[]
+          p_scheduled_for: string
         }
         Returns: Json
       }
@@ -2888,6 +3013,17 @@ export type Database = {
         Args: { p_org_id: string; p_role_id: string }
         Returns: undefined
       }
+      register_past_cleaning: {
+        Args: {
+          p_cleaning_type_id: string
+          p_completed_at: string
+          p_completed_by?: string
+          p_notes?: string
+          p_room_id: string
+          p_started_at: string
+        }
+        Returns: Json
+      }
       resolve_title: {
         Args: {
           p_guest: Record<string, unknown>
@@ -2937,6 +3073,16 @@ export type Database = {
           profile_id: string
           stat_date: string
         }[]
+      }
+      update_cleaning: {
+        Args: {
+          p_assigned_to?: string
+          p_cleaning_id: string
+          p_cleaning_type_id?: string
+          p_notes?: string
+          p_scheduled_for?: string
+        }
+        Returns: Json
       }
     }
     Enums: {

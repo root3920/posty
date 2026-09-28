@@ -198,6 +198,132 @@ export async function requestCleaningAction(
 }
 
 // -------------------------------------------------------
+// Schedule cleaning (multi-room)
+// -------------------------------------------------------
+
+export async function scheduleCleaningAction(data: {
+  roomIds: string[];
+  cleaningTypeId: string;
+  scheduledFor: string;
+  assignedTo?: string;
+  priority?: string;
+  instructions?: string;
+  replaceWeekly?: boolean;
+}) {
+  try {
+    const { supabase } = await getAuthenticatedUser();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: result, error } = await (supabase.rpc as any)('create_manual_cleaning', {
+      p_room_ids: data.roomIds,
+      p_cleaning_type_id: data.cleaningTypeId,
+      p_scheduled_for: data.scheduledFor,
+      p_assigned_to: data.assignedTo ?? null,
+      p_priority: data.priority ?? 'normal',
+      p_instructions: data.instructions ?? null,
+      p_replace_weekly: data.replaceWeekly ?? false,
+    });
+    if (error) {
+      logSupabaseError(error, 'scheduleCleaningAction');
+      return { error: getSupabaseErrorMessage(error) };
+    }
+    revalidateHousekeeping();
+    return { success: true, ...(result as object) };
+  } catch (err) {
+    console.error('scheduleCleaningAction error:', err);
+    return { error: 'Error inesperado al programar la limpieza' };
+  }
+}
+
+// -------------------------------------------------------
+// Edit cleaning
+// -------------------------------------------------------
+
+export async function editCleaningAction(
+  cleaningId: string,
+  data: { scheduledFor?: string; cleaningTypeId?: string; assignedTo?: string; notes?: string },
+) {
+  try {
+    const { supabase } = await getAuthenticatedUser();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)('update_cleaning', {
+      p_cleaning_id: cleaningId,
+      p_scheduled_for: data.scheduledFor ?? null,
+      p_cleaning_type_id: data.cleaningTypeId ?? null,
+      p_assigned_to: data.assignedTo ?? null,
+      p_notes: data.notes ?? null,
+    });
+    if (error) {
+      logSupabaseError(error, 'editCleaningAction');
+      return { error: getSupabaseErrorMessage(error) };
+    }
+    revalidateHousekeeping();
+    return { success: true };
+  } catch (err) {
+    console.error('editCleaningAction error:', err);
+    return { error: 'Error inesperado al editar la limpieza' };
+  }
+}
+
+// -------------------------------------------------------
+// Cancel cleaning
+// -------------------------------------------------------
+
+export async function cancelCleaningAction(cleaningId: string, reason?: string) {
+  try {
+    const { supabase } = await getAuthenticatedUser();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)('cancel_cleaning', {
+      p_cleaning_id: cleaningId,
+      p_reason: reason ?? null,
+    });
+    if (error) {
+      logSupabaseError(error, 'cancelCleaningAction');
+      return { error: getSupabaseErrorMessage(error) };
+    }
+    revalidateHousekeeping();
+    return { success: true };
+  } catch (err) {
+    console.error('cancelCleaningAction error:', err);
+    return { error: 'Error inesperado al cancelar la limpieza' };
+  }
+}
+
+// -------------------------------------------------------
+// Register past cleaning
+// -------------------------------------------------------
+
+export async function registerPastCleaningAction(data: {
+  roomId: string;
+  cleaningTypeId: string;
+  startedAt: string;
+  completedAt: string;
+  completedBy?: string;
+  notes?: string;
+}) {
+  try {
+    const { supabase } = await getAuthenticatedUser();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: result, error } = await (supabase.rpc as any)('register_past_cleaning', {
+      p_room_id: data.roomId,
+      p_cleaning_type_id: data.cleaningTypeId,
+      p_started_at: data.startedAt,
+      p_completed_at: data.completedAt,
+      p_completed_by: data.completedBy ?? null,
+      p_notes: data.notes ?? null,
+    });
+    if (error) {
+      logSupabaseError(error, 'registerPastCleaningAction');
+      return { error: getSupabaseErrorMessage(error) };
+    }
+    revalidateHousekeeping();
+    return { success: true, ...(result as object) };
+  } catch (err) {
+    console.error('registerPastCleaningAction error:', err);
+    return { error: 'Error inesperado al registrar la limpieza' };
+  }
+}
+
+// -------------------------------------------------------
 // Update housekeeping config
 // -------------------------------------------------------
 

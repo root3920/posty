@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Sparkles,
+  Plus,
   Calendar,
   Play,
   CheckCircle2,
@@ -12,15 +13,24 @@ import {
   AlertTriangle,
   Clock,
   BedDouble,
+  MoreHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { KpiGrid } from '@/components/shared/kpi-grid';
 import { KpiCard, KpiCardSkeleton } from '@/components/shared/kpi-card';
 import { PageHeader } from '@/components/shared/page-header';
+import { Fab } from '@/components/layout/fab';
+import { ScheduleCleaningDialog } from '@/components/housekeeping/schedule-cleaning-dialog';
 import {
   useTodayCleanings,
   useHousekeepingKPIs,
@@ -29,7 +39,7 @@ import {
   type CleaningRow,
 } from '@/hooks/use-housekeeping';
 import { usePermissions } from '@/hooks/use-permissions';
-import { startCleaningAction, completeCleaningAction, skipCleaningAction, inspectCleaningAction } from '@/app/actions/housekeeping';
+import { startCleaningAction, completeCleaningAction, skipCleaningAction, inspectCleaningAction, cancelCleaningAction } from '@/app/actions/housekeeping';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDate } from '@/lib/format';
 
@@ -59,6 +69,7 @@ const ORIGIN_LABELS: Record<string, string> = {
 
 export default function LimpiezaPage() {
   const [activeTab, setActiveTab] = useState<string>('hoy');
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const { has: hasPerm } = usePermissions();
 
   const tabs = [
@@ -72,6 +83,14 @@ export default function LimpiezaPage() {
       <PageHeader
         title="Limpieza"
         description={format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+        actions={
+          hasPerm('housekeeping.manage') ? (
+            <Button size="sm" onClick={() => setScheduleOpen(true)}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Programar limpieza
+            </Button>
+          ) : undefined
+        }
       />
 
       {/* Tabs */}
@@ -91,9 +110,15 @@ export default function LimpiezaPage() {
         ))}
       </div>
 
-      {activeTab === 'hoy' && <TodayTab />}
+      {activeTab === 'hoy' && <TodayTab onSchedule={() => setScheduleOpen(true)} />}
       {activeTab === 'habitaciones' && <HabitacionesTab />}
       {activeTab === 'reportes' && <ReportesTab />}
+
+      <ScheduleCleaningDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
+
+      {hasPerm('housekeeping.manage') && (
+        <Fab icon={Plus} onClick={() => setScheduleOpen(true)} label="Programar limpieza" />
+      )}
     </div>
   );
 }
@@ -102,7 +127,7 @@ export default function LimpiezaPage() {
 // Tab: Hoy
 // -------------------------------------------------------
 
-function TodayTab() {
+function TodayTab({ onSchedule }: { onSchedule?: () => void }) {
   const { data: cleanings = [], isLoading } = useTodayCleanings();
   const kpis = useHousekeepingKPIs();
   const queryClient = useQueryClient();
@@ -146,6 +171,17 @@ function TodayTab() {
     }
   }
 
+  async function handleCancel(id: string) {
+    const result = await cancelCleaningAction(id, 'Cancelada manualmente');
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success('Limpieza cancelada');
+      queryClient.invalidateQueries({ queryKey: ['today_cleanings'] });
+      queryClient.invalidateQueries({ queryKey: ['room_cleaning_status'] });
+    }
+  }
+
   async function handleInspect(id: string, approved: boolean) {
     const result = await inspectCleaningAction(id, approved, approved ? undefined : 'Revisar nuevamente');
     if (result.error) {
@@ -183,12 +219,18 @@ function TodayTab() {
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
           <Sparkles className="h-10 w-10 text-muted-foreground/40 mb-3" />
           <p className="text-sm text-muted-foreground">No hay limpiezas programadas para hoy</p>
+          {onSchedule && (
+            <Button variant="outline" size="sm" className="mt-3" onClick={onSchedule}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              Programar limpieza
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <BoardColumn title="Programadas" count={groups.scheduled.length} color="text-info">
             {groups.scheduled.map((c) => (
-              <CleaningCard key={c.id} cleaning={c} onStart={canExecute ? () => handleStart(c.id) : undefined} />
+              <CleaningCard key={c.id} cleaning={c} onStart={canExecute ? () => handleStart(c.id) : undefined} onCancel={canManage ? () => handleCancel(c.id) : undefined} />
             ))}
           </BoardColumn>
           <BoardColumn title="En curso" count={groups.inProgress.length} color="text-warning">
@@ -239,12 +281,13 @@ function BoardColumn({ title, count, color, children }: {
 // Cleaning card
 // -------------------------------------------------------
 
-function CleaningCard({ cleaning, onStart, onComplete, onInspectApprove, onInspectReject }: {
+function CleaningCard({ cleaning, onStart, onComplete, onInspectApprove, onInspectReject, onCancel }: {
   cleaning: CleaningRow;
   onStart?: () => void;
   onComplete?: () => void;
   onInspectApprove?: () => void;
   onInspectReject?: () => void;
+  onCancel?: () => void;
 }) {
   const ct = cleaning.cleaning_type;
   const room = cleaning.room;
@@ -258,15 +301,29 @@ function CleaningCard({ cleaning, onStart, onComplete, onInspectApprove, onInspe
           <span className="font-bold text-sm">{room?.number ?? '—'}</span>
           <span className="text-[10px] text-muted-foreground">P{room?.floor ?? '?'}</span>
         </div>
-        {ct && (
-          <Badge
-            variant="outline"
-            className="text-[10px]"
-            style={{ borderColor: ct.color, color: ct.color }}
-          >
-            {ct.name}
-          </Badge>
-        )}
+        <div className="flex items-center gap-1">
+          {ct && (
+            <Badge
+              variant="outline"
+              className="text-[10px]"
+              style={{ borderColor: ct.color, color: ct.color }}
+            >
+              {ct.name}
+            </Badge>
+          )}
+          {onCancel && (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted">
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onCancel} className="text-destructive">
+                  Cancelar limpieza
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
