@@ -33,6 +33,7 @@
 - **Enum casts**: SIEMPRE usar casts explícitos al asignar texto a columnas enum en PL/pgSQL (e.g. `'clean'::housekeeping_status`, `'scheduled'::cleaning_status`). Nunca asignar texto crudo a un enum
 - **Errores de Supabase**: Nunca convertir un error en un estado vacío (`if (error) return []`). Las funciones de fetch deben lanzar el error (`if (error) throw error`); React Query lo captura en su estado `error` y los componentes lo muestran. Solo las funciones de auth (profile, permissions) pueden devolver null en caso de error
 - **Procesos programados**: Usar `pg_cron` (dentro de Postgres) en vez de crons de Vercel. Los jobs se registran en migraciones con `cron.schedule()`. Visible en Configuración → Sistema. Después de cada `db push`, verificar que los jobs siguen activos con `db:verify`
+- **Motor de automatizaciones**: Patrón outbox: los triggers insertan eventos en `automation_events`, y `process_automation_queue()` (pg_cron cada minuto) los procesa. Protección contra bucles: `depth > 3` se ignora, rate limit 500/h/org, unique `(automation_id, event_id)`. Las acciones se definen en `lib/automation-engine.ts`
 - **Tipos**: Regenerar con `npm run db:types` después de cada migración
 - **RLS**: Toda tabla con `organization_id` tiene RLS activado + políticas
 - **Clientes Supabase**: Nunca instanciados a nivel de módulo en código server

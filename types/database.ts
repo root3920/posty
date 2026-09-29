@@ -14,6 +14,282 @@ export type Database = {
   }
   public: {
     Tables: {
+      automation_events: {
+        Row: {
+          depth: number
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id: string
+          occurred_at: string
+          organization_id: string
+          payload: Json
+          processed_at: string | null
+        }
+        Insert: {
+          depth?: number
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id?: string
+          occurred_at?: string
+          organization_id: string
+          payload?: Json
+          processed_at?: string | null
+        }
+        Update: {
+          depth?: number
+          entity_id?: string
+          entity_type?: string
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          organization_id?: string
+          payload?: Json
+          processed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_run_steps: {
+        Row: {
+          attempts: number
+          created_at: string
+          error: string | null
+          id: string
+          input: Json | null
+          output: Json | null
+          run_at: string | null
+          run_id: string
+          status: string
+          step_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          run_at?: string | null
+          run_id: string
+          status?: string
+          step_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          run_at?: string | null
+          run_id?: string
+          status?: string
+          step_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_run_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "automation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_run_steps_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "automation_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_runs: {
+        Row: {
+          automation_id: string
+          created_at: string
+          error: string | null
+          event_id: string | null
+          finished_at: string | null
+          id: string
+          is_test: boolean
+          started_at: string
+          status: string
+        }
+        Insert: {
+          automation_id: string
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          finished_at?: string | null
+          id?: string
+          is_test?: boolean
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          automation_id?: string
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          finished_at?: string | null
+          id?: string
+          is_test?: boolean
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "automation_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_steps: {
+        Row: {
+          action_config: Json
+          action_type: string
+          automation_id: string
+          branch: string | null
+          created_at: string
+          id: string
+          parent_step_id: string | null
+          position: number
+        }
+        Insert: {
+          action_config?: Json
+          action_type: string
+          automation_id: string
+          branch?: string | null
+          created_at?: string
+          id?: string
+          parent_step_id?: string | null
+          position?: number
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          automation_id?: string
+          branch?: string | null
+          created_at?: string
+          id?: string
+          parent_step_id?: string | null
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_steps_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_steps_parent_step_id_fkey"
+            columns: ["parent_step_id"]
+            isOneToOne: false
+            referencedRelation: "automation_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automations: {
+        Row: {
+          conditions: Json | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          folder: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          organization_id: string
+          system_key: string | null
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          conditions?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          folder?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          organization_id: string
+          system_key?: string | null
+          trigger_config?: Json | null
+          trigger_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          conditions?: Json | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          folder?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          organization_id?: string
+          system_key?: string | null
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_channels: {
         Row: {
           archived_at: string | null
@@ -654,6 +930,7 @@ export type Database = {
           link: string | null
           organization_id: string
           profile_id: string
+          role_id: string | null
           title: string
           type: string
         }
@@ -665,6 +942,7 @@ export type Database = {
           link?: string | null
           organization_id: string
           profile_id: string
+          role_id?: string | null
           title: string
           type: string
         }
@@ -676,6 +954,7 @@ export type Database = {
           link?: string | null
           organization_id?: string
           profile_id?: string
+          role_id?: string | null
           title?: string
           type?: string
         }
@@ -692,6 +971,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
         ]
@@ -3084,8 +3370,23 @@ export type Database = {
         }
         Returns: boolean
       }
+      execute_automation_create_task: {
+        Args: {
+          p_config: Json
+          p_entity_id: string
+          p_org_id: string
+          p_payload: Json
+        }
+        Returns: undefined
+      }
+      execute_automation_notify: {
+        Args: { p_config: Json; p_org_id: string; p_payload: Json }
+        Returns: undefined
+      }
       generate_arrived_tasks: { Args: { p_stay_id: string }; Returns: number }
       generate_stay_tasks: { Args: { p_stay_id: string }; Returns: number }
+      get_cron_jobs: { Args: never; Returns: Json }
+      get_cron_run_details: { Args: never; Returns: Json }
       get_my_permissions: { Args: never; Returns: string[] }
       get_my_profile: { Args: never; Returns: Json }
       has_permission: { Args: { p_key: string }; Returns: boolean }
@@ -3093,6 +3394,7 @@ export type Database = {
         Args: { p_approved: boolean; p_cleaning_id: string; p_notes?: string }
         Returns: Json
       }
+      process_automation_queue: { Args: never; Returns: number }
       reassign_workflow_tasks_for_role: {
         Args: { p_org_id: string; p_role_id: string }
         Returns: undefined
