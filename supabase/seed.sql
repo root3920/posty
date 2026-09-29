@@ -584,6 +584,14 @@ from public.tasks t
 where t.organization_id = v_org_id;
 
 -- =============================================================
+-- STEP: Long-stay pricing on room types
+-- =============================================================
+
+update public.room_types set monthly_rate = 2400000, weekly_rate = 700000, biweekly_rate = 1300000 where organization_id = v_org_id and name = 'Estándar';
+update public.room_types set monthly_rate = 3200000, weekly_rate = 900000, biweekly_rate = 1700000 where organization_id = v_org_id and name = 'Superior';
+update public.room_types set monthly_rate = 5500000, weekly_rate = 1500000, biweekly_rate = 2900000 where organization_id = v_org_id and name = 'Suite';
+
+-- =============================================================
 -- Done
 -- =============================================================
 

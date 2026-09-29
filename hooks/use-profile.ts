@@ -33,6 +33,10 @@ export interface UserProfile {
     tax_rate: number;
     default_check_in_time: string;
     default_check_out_time: string;
+    contract_min_nights: number;
+    contract_default_payment_day: number;
+    contract_default_deposit_months: number;
+    contract_provisional_hours: number;
   } | null;
 }
 

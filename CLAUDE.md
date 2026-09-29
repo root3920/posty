@@ -52,7 +52,8 @@ app/
   (app)/hotel                    ← Módulo Hotel
   (app)/limpieza                 ← Módulo Limpieza (Housekeeping)
   (app)/finanzas                 ← Módulo Finanzas
-  (app)/configuracion            ← Configuración (incluye tareas-automaticas con 3 tabs)
+  (app)/contratos                ← Módulo Contratos de Larga Estadía
+  (app)/configuracion            ← Configuración (incluye tareas-automaticas con 3 tabs, contratos)
 components/
   ui/                            ← Componentes shadcn/ui
   layout/                        ← Sidebar, Header, stores
@@ -122,7 +123,7 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 11. Cada migración nueva se aplica con `npx supabase db push` y se confirma con `npx supabase migration list` antes de entregar. Nunca dejar migraciones sin aplicar.
 12. No duplicar timestamps de migración — verificar con `ls supabase/migrations/` antes de crear
 
-## Fase actual: 7 (Dashboard + Config + Seed) ✅ — TODAS LAS FASES COMPLETADAS
+## Fase actual: Contratos de Larga Estadía — Entrega 1 ✅
 
 ## Estado de fases
 
@@ -134,6 +135,20 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [x] Fase 5: Módulo Hotel — habitaciones, huéspedes, estancias, folio
 - [x] Fase 6: Módulo Finanzas — ingresos, gastos, P&G, presupuesto
 - [x] Fase 7: Dashboard principal, configuración completa, seed demo
+- [x] Contratos E1: Precios LE, wizard 4 pasos, cuotas con prorrateo, pagos, depósito, sección /contratos, detalle, config
+- [ ] Contratos E2: Plantilla PDF, firma electrónica, otrosí, renovación, terminación, tareas automáticas, Finanzas
+
+## Módulo Contratos de Larga Estadía
+
+- **Tablas**: `contracts`, `contract_installments`, `contract_payments`
+- **Enums**: `stay_type`, `contract_status`, `billing_cycle`, `installment_status`
+- **Columnas nuevas**: `room_types.monthly_rate/weekly_rate/biweekly_rate`, `stays.stay_type/contract_id`, `organizations.contract_*`
+- **Vista**: `contracts_view` (join con guest, room, room_type, resumen de cuotas)
+- **Funciones**: `create_contract_with_stay`, `generate_contract_installments`, `register_contract_payment`, `register_deposit_payment`, `available_rooms_for_contract`, `available_rooms_of_type_for_period`, `get_contract_kpis`
+- **Permisos**: `contracts.view`, `contracts.create`, `contracts.edit`, `contracts.terminate`, `contracts.payments`
+- **Cuotas**: Se generan con prorrateo del primer y último período. El pago soporta parciales y excedentes que se aplican a la siguiente cuota
+- **Depósito**: Se registra como pasivo (no ingreso). Estado: pending/paid/partial/returned/applied
+- **Estancia bloqueada**: Cada contrato crea una estancia `stay_type='long_stay'` que bloquea la habitación por el anti-double-booking constraint
 
 ## Sistema de diseño
 
