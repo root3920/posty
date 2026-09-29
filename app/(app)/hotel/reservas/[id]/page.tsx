@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dates';
 import {
   ArrowLeft,
   BedDouble,
@@ -67,7 +68,7 @@ export default function StayDetailPage() {
   const nightsRemaining = useMemo(() => {
     if (!stay) return 0;
     const today = new Date();
-    const checkOut = new Date(stay.check_out_date);
+    const checkOut = parseDateOnly(stay.check_out_date);
     const diff = differenceInCalendarDays(checkOut, today);
     return Math.max(0, diff);
   }, [stay]);
@@ -166,13 +167,13 @@ export default function StayDetailPage() {
           <KPICard
             icon={<CalendarDays className="h-4 w-4" />}
             label="Entrada"
-            value={format(new Date(stay.check_in_date), 'd MMM', { locale: es })}
+            value={format(parseDateOnly(stay.check_in_date), 'd MMM', { locale: es })}
             sub={stay.actual_check_in_at ? format(new Date(stay.actual_check_in_at), 'HH:mm') : 'Pendiente'}
           />
           <KPICard
             icon={<CalendarDays className="h-4 w-4" />}
             label="Salida"
-            value={format(new Date(stay.check_out_date), 'd MMM', { locale: es })}
+            value={format(parseDateOnly(stay.check_out_date), 'd MMM', { locale: es })}
             sub={stay.actual_check_out_at ? format(new Date(stay.actual_check_out_at), 'HH:mm') : 'Pendiente'}
           />
           <KPICard
@@ -232,7 +233,7 @@ export default function StayDetailPage() {
               <Field label="Nacionalidad" value={guest?.nationality ?? '—'} />
               <Field label="Teléfono" value={guest?.phone ?? '—'} />
               <Field label="Email" value={guest?.email ?? '—'} />
-              <Field label="Fecha de nacimiento" value={guest?.birth_date ? format(new Date(guest.birth_date), 'd MMM yyyy', { locale: es }) : '—'} />
+              <Field label="Fecha de nacimiento" value={guest?.birth_date ? format(parseDateOnly(guest.birth_date), 'd MMM yyyy', { locale: es }) : '—'} />
             </div>
             <Link href={`/hotel/huespedes/${guest?.id}`} className="text-xs text-primary hover:underline">
               Ver ficha completa del huésped

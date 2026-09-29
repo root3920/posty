@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { addMonths, format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Loader2, Check, User, BedDouble, DollarSign, ClipboardCheck } from 'lucide-react';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { EntitySelect } from '@/components/shared/entity-select';
+import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/hooks/use-profile';
 import { useGuests } from '@/hooks/use-hotel';
 import {
@@ -19,7 +20,8 @@ import {
   useAvailableRoomsForContract,
   useCreateContract,
 } from '@/hooks/use-contracts';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatCurrency } from '@/lib/format';
+import { addMonthsDateOnly, diffNights, formatDateOnly, formatDateRangeOnly } from '@/lib/dates';
 import { INCLUDED_SERVICES_OPTIONS, BILLING_CYCLE_LABELS } from './contract-status-badge';
 
 // -------------------------------------------------------
@@ -61,6 +63,7 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
   const defaultPaymentDay = profile?.organization?.contract_default_payment_day ?? 1;
   const defaultDepositMonths = profile?.organization?.contract_default_deposit_months ?? 1;
 
+  const queryClient = useQueryClient();
   const createContract = useCreateContract();
 
   const [step, setStep] = useState(1);
@@ -84,7 +87,7 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
   const endDate = useMemo(() => {
     if (!startDate) return '';
     if (durationMonths === null) return customEndDate;
-    return format(addMonths(new Date(startDate + 'T12:00:00'), durationMonths), 'yyyy-MM-dd');
+    return addMonthsDateOnly(startDate, durationMonths);
   }, [startDate, durationMonths, customEndDate]);
 
   const { data: roomTypes = [] } = useAvailableRoomTypesForContract(
@@ -111,6 +114,38 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
   const [cleaningDays, setCleaningDays] = useState(7);
   const [notes, setNotes] = useState('');
 
+  // Inline price setter
+  const [inlinePriceTypeId, setInlinePriceTypeId] = useState<string | null>(null);
+  const [inlinePrice, setInlinePrice] = useState(0);
+  const [saveAsDefault, setSaveAsDefault] = useState(true);
+  const [isSavingPrice, setIsSavingPrice] = useState(false);
+
+  // Save inline price for a room type
+  async function handleSaveInlinePrice() {
+    if (!inlinePriceTypeId || !inlinePrice) return;
+    setIsSavingPrice(true);
+    try {
+      const supabase = createClient();
+      if (saveAsDefault) {
+        await supabase.rpc('set_room_type_monthly_rate', {
+          p_room_type_id: inlinePriceTypeId,
+          p_monthly_rate: inlinePrice,
+        });
+      }
+      // Set the price locally and select the type
+      setMonthlyRate(inlinePrice);
+      setDepositAmount(inlinePrice * defaultDepositMonths);
+      setInlinePriceTypeId(null);
+      // Refetch room types to update the list
+      queryClient.invalidateQueries({ queryKey: ['available_room_types_contract'] });
+      toast.success('Precio guardado');
+    } catch {
+      toast.error('Error al guardar el precio');
+    } finally {
+      setIsSavingPrice(false);
+    }
+  }
+
   // Auto-fill rate from selected room type
   function onRoomTypeChange(id: string | null) {
     setRoomTypeId(id);
@@ -132,9 +167,7 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
   // Summary calculations
   const totalDays = useMemo(() => {
     if (!startDate || !endDate) return 0;
-    return Math.round(
-      (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000,
-    );
+    return diffNights(startDate, endDate);
   }, [startDate, endDate]);
 
   const totalMonths = useMemo(() => {
@@ -201,6 +234,9 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
     setIncludedServices([]);
     setCleaningDays(7);
     setNotes('');
+    setInlinePriceTypeId(null);
+    setInlinePrice(0);
+    setSaveAsDefault(true);
   }
 
   function toggleService(service: string) {
@@ -258,6 +294,7 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
       onOpenChange={onOpenChange}
       title="Nuevo contrato de larga estadía"
       footer={footer}
+      size="lg"
     >
       {/* Stepper */}
       <div className="flex items-center justify-center gap-1 pb-4 sm:gap-2">
@@ -421,7 +458,7 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
             )}
             {startDate && endDate && (
               <p className="text-muted-foreground text-xs">
-                {formatDate(startDate)} — {formatDate(endDate)} · {totalDays} noches
+                {formatDateOnly(startDate)} — {formatDateOnly(endDate)} · {totalDays} noches
               </p>
             )}
           </div>
@@ -430,22 +467,103 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
             <>
               <div className="space-y-2">
                 <Label className="text-xs">Tipo de habitación *</Label>
-                <EntitySelect
-                  options={roomTypes
-                    .filter((rt) => rt.available_count > 0)
-                    .map((rt) => ({
-                      value: rt.id,
-                      label: `${rt.name} — ${formatCurrency(rt.monthly_rate, currency, locale)}/mes`,
-                      description: `${rt.available_count} disponible(s)`,
-                    }))}
-                  value={roomTypeId}
-                  onChange={onRoomTypeChange}
-                  placeholder="Seleccionar tipo"
-                  emptyMessage="No hay habitaciones con precio de larga estadía disponibles para todo el período"
-                />
+                {roomTypes.length === 0 ? (
+                  <p className="text-muted-foreground text-xs rounded-lg border border-dashed p-3">
+                    No hay tipos de habitación configurados.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {roomTypes.map((rt) => {
+                      const isSelected = roomTypeId === rt.id;
+                      const hasPrice = rt.monthly_rate != null;
+                      const hasAvailability = rt.available_count > 0;
+                      const suggestedPrice = Math.round(rt.base_rate * 30 * 0.7);
+
+                      return (
+                        <button
+                          key={rt.id}
+                          type="button"
+                          className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                            isSelected
+                              ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                              : 'hover:bg-muted/50'
+                          } ${!hasAvailability && hasPrice ? 'opacity-60' : ''}`}
+                          onClick={() => {
+                            if (hasPrice && hasAvailability) {
+                              onRoomTypeChange(rt.id);
+                            } else if (!hasPrice) {
+                              // Select but need to set price first
+                              setRoomTypeId(rt.id);
+                              setRoomId(null);
+                              setInlinePriceTypeId(rt.id);
+                              setInlinePrice(suggestedPrice);
+                            }
+                          }}
+                          disabled={hasPrice && !hasAvailability}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">{rt.name}</span>
+                            {hasPrice ? (
+                              <span className="text-sm font-medium tabular-nums">
+                                {formatCurrency(rt.monthly_rate!, currency, locale)}/mes
+                              </span>
+                            ) : (
+                              <span className="text-xs text-amber-600">Sin precio de larga estadía</span>
+                            )}
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                            {hasAvailability ? (
+                              <span className="text-emerald-600">{rt.available_count} disponible(s)</span>
+                            ) : rt.first_available_date ? (
+                              <span className="text-amber-600">
+                                Sin disponibilidad · Primera libre desde {formatDateOnly(rt.first_available_date)}
+                              </span>
+                            ) : (
+                              <span>Sin habitaciones de este tipo</span>
+                            )}
+                            <span>· {formatCurrency(rt.base_rate, currency, locale)}/noche</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Inline price setter for types without monthly_rate */}
+                {inlinePriceTypeId && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/30 space-y-2">
+                    <p className="text-xs font-medium">Definir precio de larga estadía</p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={inlinePrice || ''}
+                        onChange={(e) => setInlinePrice(Number(e.target.value))}
+                        min={0}
+                        className="w-40"
+                        placeholder="Precio mensual"
+                      />
+                      <span className="text-xs text-muted-foreground">/mes</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={!inlinePrice || inlinePrice <= 0 || isSavingPrice}
+                        onClick={handleSaveInlinePrice}
+                      >
+                        {isSavingPrice ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Guardar'}
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Sugerido: {formatCurrency(Math.round((roomTypes.find((r) => r.id === inlinePriceTypeId)?.base_rate ?? 0) * 30 * 0.7), currency, locale)} (30% menos que 30 noches a tarifa normal)
+                    </p>
+                    <label className="flex items-center gap-1.5 text-xs">
+                      <Checkbox checked={saveAsDefault} onCheckedChange={(v) => setSaveAsDefault(!!v)} />
+                      Guardar como precio de larga estadía de este tipo
+                    </label>
+                  </div>
+                )}
               </div>
 
-              {roomTypeId && (
+              {roomTypeId && roomTypes.find((r) => r.id === roomTypeId)?.monthly_rate != null && roomTypes.find((r) => r.id === roomTypeId)!.available_count > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Checkbox
@@ -491,7 +609,7 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
                 onChange={(e) => setMonthlyRate(Number(e.target.value))}
                 min={0}
               />
-              {selectedType && monthlyRate !== selectedType.monthly_rate && (
+              {selectedType && selectedType.monthly_rate != null && monthlyRate !== selectedType.monthly_rate && (
                 <p className="text-xs text-amber-600">
                   Precio negociado (antes {formatCurrency(selectedType.monthly_rate, currency, locale)})
                 </p>
@@ -652,7 +770,7 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
               <span className="text-muted-foreground">Período</span>
               <span>
                 {startDate && endDate
-                  ? `${formatDate(startDate)} — ${formatDate(endDate)} (${totalDays} noches)`
+                  ? `${formatDateOnly(startDate)} — ${formatDateOnly(endDate)} (${totalDays} noches)`
                   : '—'}
               </span>
 

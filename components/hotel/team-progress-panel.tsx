@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dates';
 import { Clock, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -93,7 +94,7 @@ export function TeamProgressPanel({ tasks }: TeamProgressPanelProps) {
               {stats.nextTask.due_date && (
                 <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  {format(new Date(stats.nextTask.due_date), "d MMM · HH:mm", { locale: es })}
+                  {format(parseDateOnly(stats.nextTask.due_date), "d MMM", { locale: es })}
                 </span>
               )}
             </div>
@@ -121,7 +122,7 @@ export function TeamProgressPanel({ tasks }: TeamProgressPanelProps) {
               {phaseTasks.map((task) => {
                 const isDone = task.status_type === 'done';
                 const isOverdue =
-                  !isDone && task.due_date && new Date(task.due_date) < new Date();
+                  !isDone && task.due_date && parseDateOnly(task.due_date) < new Date();
 
                 return (
                   <div

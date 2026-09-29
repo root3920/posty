@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
+import { parseDateOnly } from '@/lib/dates';
 import type { Tables, Enums } from '@/types/database';
 
 // -------------------------------------------------------
@@ -298,8 +299,8 @@ async function fetchFinanceKPIs(period: FinancePeriod): Promise<FinanceKPIs> {
     roomNightsAvailable = snapshots.reduce((sum, s) => sum + s.available_rooms, 0);
   } else {
     // Approximate: count days in period * total rooms
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
+    const fromDate = parseDateOnly(from);
+    const toDate = parseDateOnly(to);
     const days = Math.max(
       1,
       Math.round((toDate.getTime() - fromDate.getTime()) / 86400000) + 1,

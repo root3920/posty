@@ -86,9 +86,9 @@ export function getStayBadges(stay: StayBadgeInput, today: string): StayBadges {
   const isCheckOutToday = check_out_date === today;
   const isCheckOutPast = check_out_date < today;
 
-  // Days until check-in
+  // Days until check-in (anchored at noon to avoid TZ shift)
   const daysUntilCheckIn = isCheckInFuture
-    ? Math.ceil((new Date(check_in_date).getTime() - new Date(today).getTime()) / 86400000)
+    ? Math.ceil((new Date(check_in_date + 'T12:00:00').getTime() - new Date(today + 'T12:00:00').getTime()) / 86400000)
     : 0;
 
   // ---- ARRIVAL BADGE ----

@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dates';
 import { Plus, Trash2, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -300,7 +301,7 @@ function IngresosContent() {
                 revenues.map((rev) => (
                   <tr key={rev.id} className="border-t hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 text-muted-foreground">
-                      {format(new Date(rev.revenue_date), 'd MMM yyyy', { locale: es })}
+                      {format(parseDateOnly(rev.revenue_date), 'd MMM yyyy', { locale: es })}
                     </td>
                     <td className="px-4 py-3">
                       <span className="rounded-full bg-status-occupancy/10 px-2 py-0.5 text-xs font-medium text-status-occupancy">

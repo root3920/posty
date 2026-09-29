@@ -110,12 +110,14 @@ export interface AvailableRoomType {
   id: string;
   name: string;
   base_rate: number;
-  monthly_rate: number;
+  monthly_rate: number | null;
   weekly_rate: number | null;
   biweekly_rate: number | null;
   max_adults: number;
   max_children: number;
   available_count: number;
+  total_rooms: number;
+  first_available_date: string | null;
 }
 
 export interface AvailableRoom {

@@ -239,6 +239,7 @@ export function RoomTypeWizard({ open, onOpenChange }: RoomTypeWizardProps) {
       open={open}
       onOpenChange={onOpenChange}
       title="Agregar tipo de habitación"
+      size="lg"
       footer={footer}
     >
       {/* Stepper */}

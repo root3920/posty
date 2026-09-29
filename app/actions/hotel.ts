@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { parseDateOnly } from '@/lib/dates';
 import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import {
   checkInSchema,
@@ -358,7 +359,7 @@ export async function extendStayAction(stayId: string, formData: ExtendStayInput
     // Calculate additional nights charge
     const oldNights = stay.nights;
     const newNights =
-      (new Date(newCheckOutDate).getTime() - new Date(stay.check_out_date).getTime()) /
+      (parseDateOnly(newCheckOutDate).getTime() - parseDateOnly(stay.check_out_date).getTime()) /
       (1000 * 60 * 60 * 24);
 
     if (newNights > 0) {

@@ -3,6 +3,7 @@
 import { useState, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, startOfYear } from 'date-fns';
+import { parseDateOnly } from '@/lib/dates';
 import { es } from 'date-fns/locale';
 import {
   TrendingUp,
@@ -76,8 +77,8 @@ function buildPresets(): PeriodPreset[] {
 }
 
 function getPreviousPeriod(from: string, to: string): FinancePeriod {
-  const fromDate = new Date(from);
-  const toDate = new Date(to);
+  const fromDate = parseDateOnly(from);
+  const toDate = parseDateOnly(to);
   const days = Math.round((toDate.getTime() - fromDate.getTime()) / 86400000) + 1;
   return {
     from: format(subDays(fromDate, days), 'yyyy-MM-dd'),

@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dates';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -105,7 +106,7 @@ export default function GuestDetailPage() {
             <InfoField icon={<User className="h-4 w-4" />} label="Nombre completo" value={`${guest.first_name} ${guest.last_name}`} />
             <InfoField icon={<FileText className="h-4 w-4" />} label="Documento" value={docType ? `${docType.code} ${guest.document_number ?? ''}` : guest.document_number ?? '—'} />
             <InfoField icon={<Globe className="h-4 w-4" />} label="Nacionalidad" value={guest.nationality ?? '—'} />
-            <InfoField icon={<Calendar className="h-4 w-4" />} label="Fecha de nacimiento" value={guest.birth_date ? format(new Date(guest.birth_date), 'd MMM yyyy', { locale: es }) : '—'} />
+            <InfoField icon={<Calendar className="h-4 w-4" />} label="Fecha de nacimiento" value={guest.birth_date ? format(parseDateOnly(guest.birth_date), 'd MMM yyyy', { locale: es }) : '—'} />
             <div className="space-y-0.5">
               <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Phone className="h-4 w-4" /> Teléfono
@@ -159,9 +160,9 @@ export default function GuestDetailPage() {
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-medium">
-                        {format(new Date(stay.check_in_date), 'd MMM', { locale: es })}
+                        {format(parseDateOnly(stay.check_in_date), 'd MMM', { locale: es })}
                         {' → '}
-                        {format(new Date(stay.check_out_date), 'd MMM yyyy', { locale: es })}
+                        {format(parseDateOnly(stay.check_out_date), 'd MMM yyyy', { locale: es })}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {stay.nights} noche{stay.nights !== 1 ? 's' : ''} · {formatCurrency(stay.rate_per_night * stay.nights, currency, locale)}

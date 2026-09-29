@@ -5,6 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, differenceInCalendarDays } from 'date-fns';
+import { parseDateOnly } from '@/lib/dates';
 import { Search, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -112,7 +113,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
   // Calculate nights and total
   const nights = useMemo(() => {
     if (!watchCheckIn || !watchCheckOut) return 0;
-    const d = differenceInCalendarDays(new Date(watchCheckOut), new Date(watchCheckIn));
+    const d = differenceInCalendarDays(parseDateOnly(watchCheckOut), parseDateOnly(watchCheckIn));
     return d > 0 ? d : 0;
   }, [watchCheckIn, watchCheckOut]);
 
@@ -312,6 +313,7 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
       onOpenChange={onOpenChange}
       title={title}
       footer={formFooter}
+      size="lg"
     >
         <form id="check-in-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {/* ============================= */}

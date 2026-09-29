@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ChevronLeft, Phone, Mail, CalendarDays, Briefcase } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dates';
 
 import { createClient } from '@/lib/supabase/client';
 import { useOrganization } from '@/hooks/use-organization';
@@ -316,7 +317,7 @@ export default function EmployeeDetailPage({
             {employee.hire_date && (
               <span className="flex items-center gap-1">
                 <Briefcase className="h-3.5 w-3.5" />
-                Desde {format(new Date(employee.hire_date), "d 'de' MMM yyyy", { locale: es })}
+                Desde {format(parseDateOnly(employee.hire_date), "d 'de' MMM yyyy", { locale: es })}
               </span>
             )}
           </div>
@@ -426,9 +427,9 @@ export default function EmployeeDetailPage({
                     <div>
                       <p className="font-medium">{TIME_OFF_LABELS[t.type]}</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(t.start_date), "d 'de' MMM yyyy", { locale: es })}
+                        {format(parseDateOnly(t.start_date), "d 'de' MMM yyyy", { locale: es })}
                         {t.start_date !== t.end_date &&
-                          ` — ${format(new Date(t.end_date), "d 'de' MMM yyyy", { locale: es })}`}
+                          ` — ${format(parseDateOnly(t.end_date), "d 'de' MMM yyyy", { locale: es })}`}
                       </p>
                       {t.note && (
                         <p className="mt-1 text-xs text-muted-foreground">{t.note}</p>
@@ -504,7 +505,7 @@ export default function EmployeeDetailPage({
                         {task.due_date && (
                           <span className={isOverdue ? 'text-danger font-medium' : ''}>
                             Vence:{' '}
-                            {format(new Date(task.due_date), "d MMM yyyy", { locale: es })}
+                            {format(parseDateOnly(task.due_date), "d MMM yyyy", { locale: es })}
                             {isOverdue && ' ⚠'}
                           </span>
                         )}

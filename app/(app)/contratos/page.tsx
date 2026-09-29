@@ -26,8 +26,8 @@ import {
   type ContractViewRow,
 } from '@/hooks/use-contracts';
 import { useOrganization } from '@/hooks/use-organization';
-import { formatCurrency, formatDate, formatDateRange } from '@/lib/format';
-import { formatPercent } from '@/lib/format';
+import { formatCurrency } from '@/lib/format';
+import { formatDateOnly, formatDateRangeOnly } from '@/lib/dates';
 
 // -------------------------------------------------------
 // Filter chips
@@ -128,7 +128,7 @@ function getColumns(currency: string, locale: string): Column<ContractViewRow>[]
       priority: 2,
       render: (row) => (
         <span className="text-xs">
-          {formatDateRange(row.start_date, row.end_date)}
+          {formatDateRangeOnly(row.start_date, row.end_date)}
         </span>
       ),
     },
@@ -145,7 +145,7 @@ function getColumns(currency: string, locale: string): Column<ContractViewRow>[]
       render: (row) =>
         row.next_due_date ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs">{formatDate(row.next_due_date)}</span>
+            <span className="text-xs">{formatDateOnly(row.next_due_date)}</span>
             {row.next_due_status && (
               <InstallmentStatusBadge status={row.next_due_status} />
             )}
@@ -308,7 +308,7 @@ function ContratosPageInner() {
                 Hab. {row.room_number} · {row.room_type_name}
               </p>
               <p className="text-muted-foreground text-xs">
-                {formatDateRange(row.start_date, row.end_date)}
+                {formatDateRangeOnly(row.start_date, row.end_date)}
               </p>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium tabular-nums">

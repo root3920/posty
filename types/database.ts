@@ -3856,11 +3856,13 @@ export type Database = {
           available_count: number
           base_rate: number
           biweekly_rate: number
+          first_available_date: string
           id: string
           max_adults: number
           max_children: number
           monthly_rate: number
           name: string
+          total_rooms: number
           weekly_rate: number
         }[]
       }
@@ -4098,6 +4100,10 @@ export type Database = {
       }
       seed_same_day_templates: {
         Args: { p_org_id: string }
+        Returns: undefined
+      }
+      set_room_type_monthly_rate: {
+        Args: { p_monthly_rate: number; p_room_type_id: string }
         Returns: undefined
       }
       skip_cleaning: {

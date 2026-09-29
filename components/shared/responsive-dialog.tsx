@@ -27,7 +27,14 @@ interface ResponsiveDialogProps {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
+  /** Dialog width on desktop. Default 'md' (max-w-lg). Use 'lg' for wizards. */
+  size?: 'md' | 'lg';
 }
+
+const SIZE_CLASSES = {
+  md: 'max-w-lg',
+  lg: 'w-[calc(100vw-2rem)] max-w-2xl',
+} as const;
 
 export function ResponsiveDialog({
   open,
@@ -36,6 +43,7 @@ export function ResponsiveDialog({
   description,
   children,
   footer,
+  size = 'md',
 }: ResponsiveDialogProps) {
   const isMobile = useIsMobile();
 
@@ -70,7 +78,7 @@ export function ResponsiveDialog({
           </SheetHeader>
 
           {/* Scrollable body */}
-          <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4">
             {children}
           </div>
 
@@ -90,13 +98,13 @@ export function ResponsiveDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton className="max-w-lg">
+      <DialogContent showCloseButton className={SIZE_CLASSES[size]}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
-        <div>{children}</div>
+        <div className="min-w-0 overflow-x-hidden">{children}</div>
 
         {footer && (
           <div className="-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end">

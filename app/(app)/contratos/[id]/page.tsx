@@ -30,7 +30,8 @@ import {
 import { RegisterPaymentDialog } from '@/components/contracts/register-payment-dialog';
 import { useContractDetail, type ContractInstallment } from '@/hooks/use-contracts';
 import { useOrganization } from '@/hooks/use-organization';
-import { formatCurrency, formatDate, formatDateRange } from '@/lib/format';
+import { formatCurrency, formatDate } from '@/lib/format';
+import { diffNights, parseDateOnly, formatDateRangeOnly, formatDateOnly } from '@/lib/dates';
 
 // -------------------------------------------------------
 // Page
@@ -77,12 +78,10 @@ export default function ContractDetailPage() {
 
   const { contract: c, installments, payments } = data;
 
-  const totalDays = Math.round(
-    (new Date(c.end_date).getTime() - new Date(c.start_date).getTime()) / 86400000,
-  );
+  const totalDays = diffNights(c.start_date, c.end_date);
   const today = new Date();
-  const startD = new Date(c.start_date);
-  const endD = new Date(c.end_date);
+  const startD = parseDateOnly(c.start_date);
+  const endD = parseDateOnly(c.end_date);
   const elapsedDays = Math.max(0, Math.round((today.getTime() - startD.getTime()) / 86400000));
   const remainingDays = Math.max(0, Math.round((endD.getTime() - today.getTime()) / 86400000));
   const progressPct = totalDays > 0 ? Math.min(100, Math.round((elapsedDays / totalDays) * 100)) : 0;
@@ -146,7 +145,7 @@ export default function ContractDetailPage() {
           icon={<Calendar className="h-4 w-4" />}
           label="Período"
           value={totalDays}
-          formatValue={() => formatDateRange(c.start_date, c.end_date)}
+          formatValue={() => formatDateRangeOnly(c.start_date, c.end_date)}
           subLabel={`${remainingDays} días restantes`}
         />
         <KpiCard
@@ -236,7 +235,7 @@ export default function ContractDetailPage() {
                         mode: 'installment',
                         targetId: inst.id,
                         amount: inst.total - inst.paid_amount,
-                        label: `Cuota ${inst.number} — ${formatDateRange(inst.period_start, inst.period_end)}`,
+                        label: `Cuota ${inst.number} — ${formatDateRangeOnly(inst.period_start, inst.period_end)}`,
                       })
                     }
                   />
@@ -318,8 +317,8 @@ export default function ContractDetailPage() {
               label="Contrato"
               icon={<Calendar className="h-4 w-4" />}
               items={[
-                { label: 'Inicio', value: formatDate(c.start_date) },
-                { label: 'Fin', value: formatDate(c.end_date) },
+                { label: 'Inicio', value: formatDateOnly(c.start_date) },
+                { label: 'Fin', value: formatDateOnly(c.end_date) },
                 { label: 'Noches', value: `${totalDays}` },
                 { label: 'Cobro', value: `${BILLING_CYCLE_LABELS[c.billing_cycle]} · día ${c.payment_day}` },
                 { label: 'Impuesto', value: c.tax_rate > 0 ? `${c.tax_rate}%` : 'Sin impuesto' },
@@ -424,10 +423,10 @@ function InstallmentRow({
         )}
       </td>
       <td className="px-3 py-2 text-xs">
-        {formatDateRange(inst.period_start, inst.period_end)}
+        {formatDateRangeOnly(inst.period_start, inst.period_end)}
       </td>
       <td className="hidden px-3 py-2 text-xs md:table-cell">
-        {formatDate(inst.due_date)}
+        {formatDateOnly(inst.due_date)}
       </td>
       <td className="px-3 py-2 text-right text-xs tabular-nums">
         {formatCurrency(inst.total, currency, locale)}

@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseDateOnly } from './dates';
 
 /**
  * Format a number as currency.
@@ -41,7 +42,7 @@ export function formatPercent(value: number, decimals: number = 1, locale: strin
  * Format a date for display: "27 sep 2026".
  */
 export function formatDate(date: Date | string, pattern: string = 'd MMM yyyy'): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = typeof date === 'string' ? parseDateOnly(date) : date;
   return format(d, pattern, { locale: es });
 }
 
@@ -49,8 +50,8 @@ export function formatDate(date: Date | string, pattern: string = 'd MMM yyyy'):
  * Format a date range: "1 – 30 sep 2026" or "28 sep – 5 oct 2026".
  */
 export function formatDateRange(from: Date | string, to: Date | string): string {
-  const f = typeof from === 'string' ? new Date(from) : from;
-  const t = typeof to === 'string' ? new Date(to) : to;
+  const f = typeof from === 'string' ? parseDateOnly(from) : from;
+  const t = typeof to === 'string' ? parseDateOnly(to) : to;
 
   const sameMonth = f.getMonth() === t.getMonth() && f.getFullYear() === t.getFullYear();
 

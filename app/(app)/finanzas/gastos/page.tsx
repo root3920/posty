@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { parseDateOnly } from '@/lib/dates';
 import { Plus, Trash2, Pencil, SlidersHorizontal, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
@@ -412,7 +413,7 @@ function GastosContent() {
               priority: 1,
               render: (exp) => (
                 <span className="text-muted-foreground whitespace-nowrap">
-                  {format(new Date(exp.expense_date), 'd MMM yyyy', { locale: es })}
+                  {format(parseDateOnly(exp.expense_date), 'd MMM yyyy', { locale: es })}
                 </span>
               ),
             },
@@ -519,7 +520,7 @@ function GastosContent() {
                       <div>
                         <p className="font-bold tabular-nums">{formatCurrency(exp.amount)}</p>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(exp.expense_date), 'd MMM yyyy', { locale: es })}
+                          {format(parseDateOnly(exp.expense_date), 'd MMM yyyy', { locale: es })}
                         </p>
                       </div>
                       <div className="flex gap-1">
