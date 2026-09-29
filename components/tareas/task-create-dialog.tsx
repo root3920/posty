@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
@@ -21,11 +21,23 @@ import {
 } from '@/components/ui/select';
 import { EntitySelect } from '@/components/shared/entity-select';
 
+import { Repeat } from 'lucide-react';
 import { z } from 'zod';
 import { createTaskSchema, type CreateTaskInput } from '@/lib/validations/tasks';
 import { createTaskAction } from '@/app/actions/tasks';
+import { createRecurringTaskAction } from '@/app/actions/recurring-tasks';
 import { useTasks } from '@/hooks/use-tasks';
 import { PRIORITY_CONFIG } from './task-shared';
+
+const REPEAT_OPTIONS = [
+  { value: 'none', label: 'No se repite' },
+  { value: 'daily', label: 'Diario' },
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'monthly', label: 'Mensual' },
+] as const;
+
+const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'] as const;
+const DAY_ISO = [1, 2, 3, 4, 5, 6, 7] as const;
 
 // The "input" shape (before Zod defaults are applied) — used as form values type
 type CreateTaskFormValues = z.input<typeof createTaskSchema>;
@@ -62,6 +74,10 @@ export function TaskCreateDialog({ open, onOpenChange, defaultStatusId }: TaskCr
   const { statuses, labels, teamMembers } = useTasks();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [repeatType, setRepeatType] = useState<string>('none');
+  const [repeatDays, setRepeatDays] = useState<number[]>([]);
+  const [repeatTime, setRepeatTime] = useState('08:00');
+  const [repeatDayOfMonth, setRepeatDayOfMonth] = useState(1);
 
   const defaultStatus = defaultStatusId ?? statuses[0]?.id ?? '';
 
@@ -108,17 +124,41 @@ export function TaskCreateDialog({ open, onOpenChange, defaultStatusId }: TaskCr
     }
   }
 
+  const repeatConfig = useMemo(() => {
+    if (repeatType === 'none') return null;
+    if (repeatType === 'daily') return { frequency_type: 'daily', frequency_config: {} };
+    if (repeatType === 'weekly') return { frequency_type: 'weekly', frequency_config: { days_of_week: repeatDays.length > 0 ? repeatDays : [1, 2, 3, 4, 5] } };
+    if (repeatType === 'monthly') return { frequency_type: 'monthly_day', frequency_config: { day_of_month: repeatDayOfMonth } };
+    return null;
+  }, [repeatType, repeatDays, repeatDayOfMonth]);
+
   async function onSubmit(data: CreateTaskFormValues) {
     setServerError(null);
     setIsSubmitting(true);
     try {
+      // Create the task
       const result = await createTaskAction(data as CreateTaskInput);
       if (result.error) {
         setServerError(result.error);
         return;
       }
+
+      // Also create a recurring task if repeat is set
+      if (repeatConfig) {
+        await createRecurringTaskAction({
+          title: data.title,
+          description: data.description || undefined,
+          ...repeatConfig,
+          at_time: repeatTime,
+          priority: data.priority || 'normal',
+        });
+        await queryClient.invalidateQueries({ queryKey: ['recurring_tasks'] });
+      }
+
       await queryClient.invalidateQueries({ queryKey: ['tasks'] });
       reset();
+      setRepeatType('none');
+      setRepeatDays([]);
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
@@ -236,6 +276,84 @@ export function TaskCreateDialog({ open, onOpenChange, defaultStatusId }: TaskCr
                 {...register('dueDate')}
               />
             </div>
+          </div>
+
+          {/* Repetir */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Repeat className="h-3.5 w-3.5" />
+              Repetir
+            </Label>
+            <div className="flex flex-wrap gap-1.5">
+              {REPEAT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setRepeatType(opt.value)}
+                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                    repeatType === opt.value
+                      ? 'border-primary bg-primary/10 text-primary font-medium'
+                      : 'border-border text-muted-foreground hover:border-primary/50'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {repeatType === 'weekly' && (
+              <div className="flex gap-1">
+                {DAY_LABELS.map((label, i) => {
+                  const iso = DAY_ISO[i];
+                  const selected = repeatDays.includes(iso);
+                  return (
+                    <button
+                      key={iso}
+                      type="button"
+                      onClick={() =>
+                        setRepeatDays((prev) =>
+                          selected ? prev.filter((d) => d !== iso) : [...prev, iso],
+                        )
+                      }
+                      className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-colors ${
+                        selected
+                          ? 'bg-primary text-primary-foreground'
+                          : 'border border-border text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {repeatType === 'monthly' && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">El día</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={repeatDayOfMonth}
+                  onChange={(e) => setRepeatDayOfMonth(parseInt(e.target.value) || 1)}
+                  className="w-16 tabular-nums"
+                />
+                <span className="text-muted-foreground">de cada mes</span>
+              </div>
+            )}
+
+            {repeatType !== 'none' && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">A las</span>
+                <Input
+                  type="time"
+                  value={repeatTime}
+                  onChange={(e) => setRepeatTime(e.target.value)}
+                  className="w-28 tabular-nums"
+                />
+              </div>
+            )}
           </div>
 
           {/* Assignees */}

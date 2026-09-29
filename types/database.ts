@@ -12,284 +12,33 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      automation_events: {
-        Row: {
-          depth: number
-          entity_id: string
-          entity_type: string
-          event_type: string
-          id: string
-          occurred_at: string
-          organization_id: string
-          payload: Json
-          processed_at: string | null
-        }
-        Insert: {
-          depth?: number
-          entity_id: string
-          entity_type: string
-          event_type: string
-          id?: string
-          occurred_at?: string
-          organization_id: string
-          payload?: Json
-          processed_at?: string | null
-        }
-        Update: {
-          depth?: number
-          entity_id?: string
-          entity_type?: string
-          event_type?: string
-          id?: string
-          occurred_at?: string
-          organization_id?: string
-          payload?: Json
-          processed_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automation_events_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      automation_run_steps: {
-        Row: {
-          attempts: number
-          created_at: string
-          error: string | null
-          id: string
-          input: Json | null
-          output: Json | null
-          run_at: string | null
-          run_id: string
-          status: string
-          step_id: string
-        }
-        Insert: {
-          attempts?: number
-          created_at?: string
-          error?: string | null
-          id?: string
-          input?: Json | null
-          output?: Json | null
-          run_at?: string | null
-          run_id: string
-          status?: string
-          step_id: string
-        }
-        Update: {
-          attempts?: number
-          created_at?: string
-          error?: string | null
-          id?: string
-          input?: Json | null
-          output?: Json | null
-          run_at?: string | null
-          run_id?: string
-          status?: string
-          step_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automation_run_steps_run_id_fkey"
-            columns: ["run_id"]
-            isOneToOne: false
-            referencedRelation: "automation_runs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_run_steps_step_id_fkey"
-            columns: ["step_id"]
-            isOneToOne: false
-            referencedRelation: "automation_steps"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      automation_runs: {
-        Row: {
-          automation_id: string
-          created_at: string
-          error: string | null
-          event_id: string | null
-          finished_at: string | null
-          id: string
-          is_test: boolean
-          started_at: string
-          status: string
-        }
-        Insert: {
-          automation_id: string
-          created_at?: string
-          error?: string | null
-          event_id?: string | null
-          finished_at?: string | null
-          id?: string
-          is_test?: boolean
-          started_at?: string
-          status?: string
-        }
-        Update: {
-          automation_id?: string
-          created_at?: string
-          error?: string | null
-          event_id?: string | null
-          finished_at?: string | null
-          id?: string
-          is_test?: boolean
-          started_at?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automation_runs_automation_id_fkey"
-            columns: ["automation_id"]
-            isOneToOne: false
-            referencedRelation: "automations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_runs_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "automation_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      automation_steps: {
-        Row: {
-          action_config: Json
-          action_type: string
-          automation_id: string
-          branch: string | null
-          created_at: string
-          id: string
-          parent_step_id: string | null
-          position: number
-        }
-        Insert: {
-          action_config?: Json
-          action_type: string
-          automation_id: string
-          branch?: string | null
-          created_at?: string
-          id?: string
-          parent_step_id?: string | null
-          position?: number
-        }
-        Update: {
-          action_config?: Json
-          action_type?: string
-          automation_id?: string
-          branch?: string | null
-          created_at?: string
-          id?: string
-          parent_step_id?: string | null
-          position?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automation_steps_automation_id_fkey"
-            columns: ["automation_id"]
-            isOneToOne: false
-            referencedRelation: "automations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automation_steps_parent_step_id_fkey"
-            columns: ["parent_step_id"]
-            isOneToOne: false
-            referencedRelation: "automation_steps"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      automations: {
-        Row: {
-          conditions: Json | null
-          created_at: string
-          created_by: string | null
-          description: string | null
-          folder: string | null
-          icon: string | null
-          id: string
-          is_active: boolean
-          is_system: boolean
-          name: string
-          organization_id: string
-          system_key: string | null
-          trigger_config: Json | null
-          trigger_type: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          conditions?: Json | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          folder?: string | null
-          icon?: string | null
-          id?: string
-          is_active?: boolean
-          is_system?: boolean
-          name: string
-          organization_id: string
-          system_key?: string | null
-          trigger_config?: Json | null
-          trigger_type: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          conditions?: Json | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          folder?: string | null
-          icon?: string | null
-          id?: string
-          is_active?: boolean
-          is_system?: boolean
-          name?: string
-          organization_id?: string
-          system_key?: string | null
-          trigger_config?: Json | null
-          trigger_type?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "automations_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automations_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "automations_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       booking_channels: {
         Row: {
           archived_at: string | null
@@ -526,6 +275,344 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_installments: {
+        Row: {
+          amount: number
+          contract_id: string
+          created_at: string
+          due_date: string
+          id: string
+          is_prorated: boolean
+          number: number
+          organization_id: string
+          paid_amount: number
+          paid_at: string | null
+          period_end: string
+          period_start: string
+          prorated_days: number | null
+          status: Database["public"]["Enums"]["installment_status"]
+          tax_amount: number
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          contract_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          is_prorated?: boolean
+          number: number
+          organization_id: string
+          paid_amount?: number
+          paid_at?: string | null
+          period_end: string
+          period_start: string
+          prorated_days?: number | null
+          status?: Database["public"]["Enums"]["installment_status"]
+          tax_amount?: number
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          is_prorated?: boolean
+          number?: number
+          organization_id?: string
+          paid_amount?: number
+          paid_at?: string | null
+          period_end?: string
+          period_start?: string
+          prorated_days?: number | null
+          status?: Database["public"]["Enums"]["installment_status"]
+          tax_amount?: number
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_installments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_installments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_installments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_payments: {
+        Row: {
+          amount: number
+          contract_id: string
+          created_at: string
+          id: string
+          installment_id: string | null
+          is_deposit: boolean
+          method_id: string
+          organization_id: string
+          paid_at: string
+          received_by: string | null
+          reference: string | null
+        }
+        Insert: {
+          amount: number
+          contract_id: string
+          created_at?: string
+          id?: string
+          installment_id?: string | null
+          is_deposit?: boolean
+          method_id: string
+          organization_id: string
+          paid_at?: string
+          received_by?: string | null
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          id?: string
+          installment_id?: string | null
+          is_deposit?: boolean
+          method_id?: string
+          organization_id?: string
+          paid_at?: string
+          received_by?: string | null
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_payments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_payments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "contract_installments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_payments_method_id_fkey"
+            columns: ["method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_payments_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          billing_cycle: Database["public"]["Enums"]["billing_cycle"]
+          cleaning_frequency_days: number
+          code: string
+          created_at: string
+          created_by: string | null
+          deposit_amount: number
+          deposit_paid_amount: number
+          deposit_status: string
+          end_date: string
+          guest_id: string
+          id: string
+          included_services: string[]
+          monthly_rate: number
+          notes: string | null
+          organization_id: string
+          original_rate: number
+          payer_business_name: string | null
+          payer_tax_id: string | null
+          payment_day: number
+          provisional_until: string | null
+          room_id: string
+          room_type_id: string
+          signed_at: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["contract_status"]
+          stay_id: string | null
+          tax_rate: number
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          cleaning_frequency_days?: number
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deposit_amount?: number
+          deposit_paid_amount?: number
+          deposit_status?: string
+          end_date: string
+          guest_id: string
+          id?: string
+          included_services?: string[]
+          monthly_rate: number
+          notes?: string | null
+          organization_id: string
+          original_rate: number
+          payer_business_name?: string | null
+          payer_tax_id?: string | null
+          payment_day?: number
+          provisional_until?: string | null
+          room_id: string
+          room_type_id: string
+          signed_at?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["contract_status"]
+          stay_id?: string | null
+          tax_rate?: number
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          cleaning_frequency_days?: number
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deposit_amount?: number
+          deposit_paid_amount?: number
+          deposit_status?: string
+          end_date?: string
+          guest_id?: string
+          id?: string
+          included_services?: string[]
+          monthly_rate?: number
+          notes?: string | null
+          organization_id?: string
+          original_rate?: number
+          payer_business_name?: string | null
+          payer_tax_id?: string | null
+          payment_day?: number
+          provisional_until?: string | null
+          room_id?: string
+          room_type_id?: string
+          signed_at?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["contract_status"]
+          stay_id?: string | null
+          tax_rate?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["room_id"]
+          },
+          {
+            foreignKeyName: "contracts_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
+          },
+          {
+            foreignKeyName: "contracts_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stay_balances"
+            referencedColumns: ["stay_id"]
+          },
+          {
+            foreignKeyName: "contracts_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
             referencedColumns: ["id"]
           },
         ]
@@ -882,6 +969,8 @@ export type Database = {
       }
       housekeeping_config: {
         Row: {
+          clean_after_checkout: boolean
+          clean_before_arrival: boolean
           created_at: string
           default_time: string
           frequency_days: number
@@ -892,6 +981,8 @@ export type Database = {
           vacant_refresh_days: number
         }
         Insert: {
+          clean_after_checkout?: boolean
+          clean_before_arrival?: boolean
           created_at?: string
           default_time?: string
           frequency_days?: number
@@ -902,6 +993,8 @@ export type Database = {
           vacant_refresh_days?: number
         }
         Update: {
+          clean_after_checkout?: boolean
+          clean_before_arrival?: boolean
           created_at?: string
           default_time?: string
           frequency_days?: number
@@ -985,6 +1078,10 @@ export type Database = {
       organizations: {
         Row: {
           brand_color: string | null
+          contract_default_deposit_months: number
+          contract_default_payment_day: number
+          contract_min_nights: number
+          contract_provisional_hours: number
           country_code: string
           created_at: string
           currency: string
@@ -1002,6 +1099,10 @@ export type Database = {
         }
         Insert: {
           brand_color?: string | null
+          contract_default_deposit_months?: number
+          contract_default_payment_day?: number
+          contract_min_nights?: number
+          contract_provisional_hours?: number
           country_code?: string
           created_at?: string
           currency?: string
@@ -1019,6 +1120,10 @@ export type Database = {
         }
         Update: {
           brand_color?: string | null
+          contract_default_deposit_months?: number
+          contract_default_payment_day?: number
+          contract_min_nights?: number
+          contract_provisional_hours?: number
           country_code?: string
           created_at?: string
           currency?: string
@@ -1313,6 +1418,119 @@ export type Database = {
             columns: ["role_id"]
             isOneToOne: false
             referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_tasks: {
+        Row: {
+          assigned_profile_id: string | null
+          assigned_role_id: string | null
+          at_time: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          frequency_config: Json
+          frequency_type: string
+          id: string
+          is_active: boolean
+          organization_id: string
+          priority: string
+          room_id: string | null
+          start_date: string | null
+          subtasks: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_profile_id?: string | null
+          assigned_role_id?: string | null
+          at_time?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          frequency_config?: Json
+          frequency_type: string
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          priority?: string
+          room_id?: string | null
+          start_date?: string | null
+          subtasks?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_profile_id?: string | null
+          assigned_role_id?: string | null
+          at_time?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          frequency_config?: Json
+          frequency_type?: string
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          priority?: string
+          room_id?: string | null
+          start_date?: string | null
+          subtasks?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_tasks_assigned_profile_id_fkey"
+            columns: ["assigned_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_tasks_assigned_role_id_fkey"
+            columns: ["assigned_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_tasks_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["room_id"]
+          },
+          {
+            foreignKeyName: "recurring_tasks_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_tasks_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_view"
             referencedColumns: ["id"]
           },
         ]
@@ -1739,45 +1957,54 @@ export type Database = {
           archived_at: string | null
           base_rate: number
           bed_config: Json | null
+          biweekly_rate: number | null
           code: string | null
           description: string | null
           id: string
           is_active: boolean
           max_adults: number
           max_children: number
+          monthly_rate: number | null
           name: string
           organization_id: string
           size_sqm: number | null
+          weekly_rate: number | null
         }
         Insert: {
           amenities?: string[] | null
           archived_at?: string | null
           base_rate?: number
           bed_config?: Json | null
+          biweekly_rate?: number | null
           code?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           max_adults?: number
           max_children?: number
+          monthly_rate?: number | null
           name: string
           organization_id: string
           size_sqm?: number | null
+          weekly_rate?: number | null
         }
         Update: {
           amenities?: string[] | null
           archived_at?: string | null
           base_rate?: number
           bed_config?: Json | null
+          biweekly_rate?: number | null
           code?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           max_adults?: number
           max_children?: number
+          monthly_rate?: number | null
           name?: string
           organization_id?: string
           size_sqm?: number | null
+          weekly_rate?: number | null
         }
         Relationships: [
           {
@@ -2047,6 +2274,7 @@ export type Database = {
           check_out_date: string
           children: number
           code: string
+          contract_id: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -2058,6 +2286,7 @@ export type Database = {
           rate_per_night: number
           room_id: string
           status: Database["public"]["Enums"]["stay_status"]
+          stay_type: Database["public"]["Enums"]["stay_type"]
           travel_reason_id: string | null
           updated_at: string
         }
@@ -2070,6 +2299,7 @@ export type Database = {
           check_out_date: string
           children?: number
           code?: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -2081,6 +2311,7 @@ export type Database = {
           rate_per_night: number
           room_id: string
           status?: Database["public"]["Enums"]["stay_status"]
+          stay_type?: Database["public"]["Enums"]["stay_type"]
           travel_reason_id?: string | null
           updated_at?: string
         }
@@ -2093,6 +2324,7 @@ export type Database = {
           check_out_date?: string
           children?: number
           code?: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -2104,10 +2336,25 @@ export type Database = {
           rate_per_night?: number
           room_id?: string
           status?: Database["public"]["Enums"]["stay_status"]
+          stay_type?: Database["public"]["Enums"]["stay_type"]
           travel_reason_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_stays_contract"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stays_contract"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stays_channel_id_fkey"
             columns: ["channel_id"]
@@ -2513,11 +2760,13 @@ export type Database = {
           due_date: string | null
           estimated_minutes: number | null
           id: string
+          occurrence_date: string | null
           organization_id: string
           parent_task_id: string | null
           phase: number | null
           priority: Database["public"]["Enums"]["task_priority"]
           recurrence_rule: string | null
+          recurring_task_id: string | null
           room_id: string | null
           sort_order: number
           source: string
@@ -2540,11 +2789,13 @@ export type Database = {
           due_date?: string | null
           estimated_minutes?: number | null
           id?: string
+          occurrence_date?: string | null
           organization_id: string
           parent_task_id?: string | null
           phase?: number | null
           priority?: Database["public"]["Enums"]["task_priority"]
           recurrence_rule?: string | null
+          recurring_task_id?: string | null
           room_id?: string | null
           sort_order?: number
           source?: string
@@ -2567,11 +2818,13 @@ export type Database = {
           due_date?: string | null
           estimated_minutes?: number | null
           id?: string
+          occurrence_date?: string | null
           organization_id?: string
           parent_task_id?: string | null
           phase?: number | null
           priority?: Database["public"]["Enums"]["task_priority"]
           recurrence_rule?: string | null
+          recurring_task_id?: string | null
           room_id?: string | null
           sort_order?: number
           source?: string
@@ -2644,6 +2897,13 @@ export type Database = {
             columns: ["parent_task_id"]
             isOneToOne: false
             referencedRelation: "tasks_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_recurring_task_id_fkey"
+            columns: ["recurring_task_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_tasks"
             referencedColumns: ["id"]
           },
           {
@@ -2793,6 +3053,135 @@ export type Database = {
       }
     }
     Views: {
+      contracts_view: {
+        Row: {
+          billing_cycle: Database["public"]["Enums"]["billing_cycle"] | null
+          cleaning_frequency_days: number | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          deposit_amount: number | null
+          deposit_paid_amount: number | null
+          deposit_status: string | null
+          end_date: string | null
+          guest_document_number: string | null
+          guest_document_type_code: string | null
+          guest_email: string | null
+          guest_first_name: string | null
+          guest_full_name: string | null
+          guest_id: string | null
+          guest_last_name: string | null
+          guest_phone: string | null
+          id: string | null
+          included_services: string[] | null
+          monthly_rate: number | null
+          next_due_amount: number | null
+          next_due_date: string | null
+          next_due_status: string | null
+          notes: string | null
+          organization_id: string | null
+          original_rate: number | null
+          overdue_installments: number | null
+          paid_installments: number | null
+          payer_business_name: string | null
+          payer_tax_id: string | null
+          payment_day: number | null
+          provisional_until: string | null
+          room_floor: string | null
+          room_id: string | null
+          room_number: string | null
+          room_type_id: string | null
+          room_type_name: string | null
+          signed_at: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["contract_status"] | null
+          stay_id: string | null
+          tax_rate: number | null
+          total_billed: number | null
+          total_installments: number | null
+          total_paid: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["room_id"]
+          },
+          {
+            foreignKeyName: "contracts_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
+          },
+          {
+            foreignKeyName: "contracts_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stay_balances"
+            referencedColumns: ["stay_id"]
+          },
+          {
+            foreignKeyName: "contracts_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses_view: {
         Row: {
           amount: number | null
@@ -3034,6 +3423,7 @@ export type Database = {
           check_out_date: string | null
           children: number | null
           code: string | null
+          contract_id: string | null
           created_at: string | null
           created_by: string | null
           currency: string | null
@@ -3057,6 +3447,7 @@ export type Database = {
           room_type_name: string | null
           room_type_rate: number | null
           status: Database["public"]["Enums"]["stay_status"] | null
+          stay_type: Database["public"]["Enums"]["stay_type"] | null
           total_charges: number | null
           total_payments: number | null
           travel_reason_id: string | null
@@ -3064,6 +3455,20 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_stays_contract"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stays_contract"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stays_channel_id_fkey"
             columns: ["channel_id"]
@@ -3139,11 +3544,13 @@ export type Database = {
           due_date: string | null
           estimated_minutes: number | null
           id: string | null
+          occurrence_date: string | null
           organization_id: string | null
           parent_task_id: string | null
           phase: number | null
           priority: Database["public"]["Enums"]["task_priority"] | null
           recurrence_rule: string | null
+          recurring_task_id: string | null
           room_floor: string | null
           room_id: string | null
           room_number: string | null
@@ -3224,6 +3631,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_recurring_task_id_fkey"
+            columns: ["recurring_task_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_tasks"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_status_id_fkey"
             columns: ["status_id"]
             isOneToOne: false
@@ -3277,6 +3691,33 @@ export type Database = {
           name: string
         }[]
       }
+      available_rooms_for_contract: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          available_count: number
+          base_rate: number
+          biweekly_rate: number
+          id: string
+          max_adults: number
+          max_children: number
+          monthly_rate: number
+          name: string
+          weekly_rate: number
+        }[]
+      }
+      available_rooms_of_type_for_period: {
+        Args: {
+          p_end_date: string
+          p_room_type_id: string
+          p_start_date: string
+        }
+        Returns: {
+          floor: string
+          id: string
+          number: string
+          rate_override: number
+        }[]
+      }
       backfill_housekeeping_cleanings: { Args: never; Returns: Json }
       cancel_cleaning: {
         Args: { p_cleaning_id: string; p_reason?: string }
@@ -3298,6 +3739,27 @@ export type Database = {
           p_document_verified?: boolean
           p_payment_confirmed?: boolean
           p_stay_id: string
+        }
+        Returns: Json
+      }
+      create_contract_with_stay: {
+        Args: {
+          p_additional_guests?: string[]
+          p_billing_cycle?: string
+          p_cleaning_frequency_days?: number
+          p_deposit_amount?: number
+          p_end_date?: string
+          p_guest_id: string
+          p_included_services?: string[]
+          p_monthly_rate?: number
+          p_notes?: string
+          p_payer_business_name?: string
+          p_payer_tax_id?: string
+          p_payment_day?: number
+          p_room_id?: string
+          p_room_type_id?: string
+          p_start_date?: string
+          p_tax_rate?: number
         }
         Returns: Json
       }
@@ -3370,21 +3832,13 @@ export type Database = {
         }
         Returns: boolean
       }
-      execute_automation_create_task: {
-        Args: {
-          p_config: Json
-          p_entity_id: string
-          p_org_id: string
-          p_payload: Json
-        }
-        Returns: undefined
-      }
-      execute_automation_notify: {
-        Args: { p_config: Json; p_org_id: string; p_payload: Json }
-        Returns: undefined
-      }
       generate_arrived_tasks: { Args: { p_stay_id: string }; Returns: number }
+      generate_contract_installments: {
+        Args: { p_contract_id: string }
+        Returns: undefined
+      }
       generate_stay_tasks: { Args: { p_stay_id: string }; Returns: number }
+      get_contract_kpis: { Args: never; Returns: Json }
       get_cron_jobs: { Args: never; Returns: Json }
       get_cron_run_details: { Args: never; Returns: Json }
       get_my_permissions: { Args: never; Returns: string[] }
@@ -3394,10 +3848,28 @@ export type Database = {
         Args: { p_approved: boolean; p_cleaning_id: string; p_notes?: string }
         Returns: Json
       }
-      process_automation_queue: { Args: never; Returns: number }
+      process_recurring_tasks: { Args: never; Returns: number }
       reassign_workflow_tasks_for_role: {
         Args: { p_org_id: string; p_role_id: string }
         Returns: undefined
+      }
+      register_contract_payment: {
+        Args: {
+          p_amount: number
+          p_installment_id: string
+          p_method_id: string
+          p_reference?: string
+        }
+        Returns: Json
+      }
+      register_deposit_payment: {
+        Args: {
+          p_amount: number
+          p_contract_id: string
+          p_method_id: string
+          p_reference?: string
+        }
+        Returns: Json
       }
       register_past_cleaning: {
         Args: {
@@ -3473,6 +3945,7 @@ export type Database = {
     }
     Enums: {
       availability_status: "available" | "busy" | "resting"
+      billing_cycle: "monthly" | "biweekly" | "weekly"
       cleaning_origin:
         | "auto_weekly"
         | "pre_arrival"
@@ -3485,6 +3958,16 @@ export type Database = {
         | "completed"
         | "skipped"
         | "cancelled"
+      contract_status:
+        | "draft"
+        | "sent_for_signature"
+        | "signed"
+        | "active"
+        | "expiring_soon"
+        | "finished"
+        | "terminated_early"
+        | "renewed"
+        | "cancelled"
       expense_category_group:
         | "departmental"
         | "undistributed"
@@ -3492,6 +3975,7 @@ export type Database = {
         | "payroll"
       housekeeping_status: "clean" | "dirty" | "inspected" | "cleaning"
       inspection_status: "not_required" | "pending" | "approved" | "rejected"
+      installment_status: "pending" | "paid" | "partial" | "overdue" | "voided"
       payment_status: "paid" | "pending"
       stay_status:
         | "reserved"
@@ -3499,6 +3983,7 @@ export type Database = {
         | "checked_out"
         | "cancelled"
         | "no_show"
+      stay_type: "short_stay" | "long_stay"
       task_priority: "urgent" | "high" | "normal" | "low"
       task_status_type: "open" | "in_progress" | "done" | "cancelled"
       template_anchor:
@@ -3651,9 +4136,13 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       availability_status: ["available", "busy", "resting"],
+      billing_cycle: ["monthly", "biweekly", "weekly"],
       cleaning_origin: [
         "auto_weekly",
         "pre_arrival",
@@ -3668,6 +4157,17 @@ export const Constants = {
         "skipped",
         "cancelled",
       ],
+      contract_status: [
+        "draft",
+        "sent_for_signature",
+        "signed",
+        "active",
+        "expiring_soon",
+        "finished",
+        "terminated_early",
+        "renewed",
+        "cancelled",
+      ],
       expense_category_group: [
         "departmental",
         "undistributed",
@@ -3676,6 +4176,7 @@ export const Constants = {
       ],
       housekeeping_status: ["clean", "dirty", "inspected", "cleaning"],
       inspection_status: ["not_required", "pending", "approved", "rejected"],
+      installment_status: ["pending", "paid", "partial", "overdue", "voided"],
       payment_status: ["paid", "pending"],
       stay_status: [
         "reserved",
@@ -3684,6 +4185,7 @@ export const Constants = {
         "cancelled",
         "no_show",
       ],
+      stay_type: ["short_stay", "long_stay"],
       task_priority: ["urgent", "high", "normal", "low"],
       task_status_type: ["open", "in_progress", "done", "cancelled"],
       template_anchor: [

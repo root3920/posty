@@ -15,7 +15,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Zap,
   Sparkles,
   Building,
   Shield,
@@ -24,6 +23,8 @@ import {
   Palette,
   Clock,
   ServerCog,
+  CalendarClock,
+  FileText,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -57,6 +58,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { href: '/limpieza', label: 'Limpieza', icon: Sparkles, module: 'housekeeping' },
   { href: '/finanzas', label: 'Finanzas', icon: DollarSign, module: 'finance' },
+  { href: '/contratos', label: 'Contratos', icon: FileText, module: 'contracts' },
   {
     href: '/configuracion',
     label: 'Configuración',
@@ -69,7 +71,8 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/configuracion/catalogos', label: 'Catálogos', icon: List },
       { href: '/configuracion/horarios', label: 'Horarios', icon: Clock },
       { href: '/configuracion/marca', label: 'Marca', icon: Palette },
-      { href: '/configuracion/automatizaciones', label: 'Automatizaciones', icon: Zap },
+      { href: '/configuracion/tareas-automaticas', label: 'Tareas automáticas', icon: CalendarClock },
+      { href: '/configuracion/contratos', label: 'Contratos', icon: FileText },
       { href: '/configuracion/sistema', label: 'Sistema', icon: ServerCog },
     ],
   },

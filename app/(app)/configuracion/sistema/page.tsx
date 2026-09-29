@@ -79,8 +79,8 @@ function describeSchedule(cron: string): string {
 function describeCommand(cmd: string): { name: string; description: string } {
   if (cmd.includes('backfill_housekeeping_cleanings'))
     return { name: 'Limpieza: programación automática', description: 'Programa limpiezas para reservas nuevas, estancias activas y habitaciones sucias' };
-  if (cmd.includes('process_automation_queue'))
-    return { name: 'Cola de automatizaciones', description: 'Procesa eventos pendientes del motor de automatizaciones' };
+  if (cmd.includes('process_recurring_tasks'))
+    return { name: 'Tareas recurrentes', description: 'Crea tareas programadas según las reglas de repetición configuradas' };
   return { name: cmd.slice(0, 60), description: '' };
 }
 
@@ -193,7 +193,7 @@ export default function SistemaPage() {
             <tbody>
               <ProcessRow name="Programación de limpiezas" freq="Cada 5 min" logic="backfill_housekeeping_cleanings" status="activo" />
               <ProcessRow name="Repaso de habitaciones vacías" freq="Diario 06:00" logic="Pendiente" status="pendiente" />
-              <ProcessRow name="Cola de automatizaciones" freq="Cada minuto" logic="process_automation_queue" status="pendiente" />
+              <ProcessRow name="Tareas recurrentes" freq="Cada minuto" logic="process_recurring_tasks" status="activo" />
               <ProcessRow name="Alertas de limpieza vencida" freq="Cada hora" logic="Pendiente" status="pendiente" />
               <ProcessRow name="Pre-check-in automático" freq="Cada hora" logic="Pendiente (Fase 3)" status="pendiente" />
               <ProcessRow name="Auditoría nocturna" freq="Diario 23:55" logic="Pendiente (Fase 2)" status="pendiente" />

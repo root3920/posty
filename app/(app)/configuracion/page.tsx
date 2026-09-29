@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, Shield, Users, Clock, List, Palette, Zap } from 'lucide-react';
+import { Building2, Shield, Users, Clock, List, Palette, CalendarClock, FileText } from 'lucide-react';
 
 const SETTINGS_SECTIONS = [
   {
@@ -41,10 +41,16 @@ const SETTINGS_SECTIONS = [
     icon: Palette,
   },
   {
-    href: '/configuracion/automatizaciones',
-    label: 'Automatizaciones',
-    description: 'Plantillas de tareas por estancia',
-    icon: Zap,
+    href: '/configuracion/tareas-automaticas',
+    label: 'Tareas automáticas',
+    description: 'Recorrido del huésped, tareas recurrentes y limpieza',
+    icon: CalendarClock,
+  },
+  {
+    href: '/configuracion/contratos',
+    label: 'Contratos',
+    description: 'Larga estadía: plazos, pagos, depósitos',
+    icon: FileText,
   },
 ];
 

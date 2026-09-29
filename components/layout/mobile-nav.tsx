@@ -13,7 +13,7 @@ import {
   UserRound,
   DollarSign,
   Settings,
-  Zap,
+  CalendarClock,
   ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
@@ -56,7 +56,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: Settings,
     module: 'settings',
     children: [
-      { href: '/configuracion/automatizaciones', label: 'Automatizaciones', icon: Zap },
+      { href: '/configuracion/tareas-automaticas', label: 'Tareas automáticas', icon: CalendarClock },
     ],
   },
 ];
