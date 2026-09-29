@@ -16,6 +16,7 @@ export interface StayBadgeInput {
   check_out_date: string;  // YYYY-MM-DD
   actual_check_in_at?: string | null;   // ISO timestamp
   actual_check_out_at?: string | null;  // ISO timestamp
+  stay_type?: string | null;   // 'short_stay' | 'long_stay'
 }
 
 export type BadgeVariant = 'info' | 'success' | 'warning' | 'danger' | 'muted' | 'neutral';
@@ -195,7 +196,7 @@ function formatDateTime(isoString: string): string {
 // Quick filter chips
 // -------------------------------------------------------
 
-export type StayFilterKey = 'all' | 'arriving_today' | 'checked_in' | 'departing_today' | 'arrival_pending' | 'departure_pending';
+export type StayFilterKey = 'all' | 'arriving_today' | 'checked_in' | 'departing_today' | 'arrival_pending' | 'departure_pending' | 'long_stay';
 
 export interface StayFilterChip {
   key: StayFilterKey;
@@ -209,6 +210,7 @@ export const STAY_FILTER_CHIPS: StayFilterChip[] = [
   { key: 'departing_today', label: 'Salen hoy' },
   { key: 'arrival_pending', label: 'Llegadas pendientes' },
   { key: 'departure_pending', label: 'Salidas pendientes' },
+  { key: 'long_stay', label: 'Larga estadía' },
 ];
 
 export function filterStaysByChip(
@@ -231,6 +233,8 @@ export function filterStaysByChip(
         return stay.status === 'reserved' && stay.check_in_date < today;
       case 'departure_pending':
         return stay.status === 'checked_in' && stay.check_out_date < today;
+      case 'long_stay':
+        return stay.stay_type === 'long_stay';
       default:
         return true;
     }

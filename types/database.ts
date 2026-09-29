@@ -39,6 +39,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          organization_id: string
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          organization_id: string
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          organization_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_channels: {
         Row: {
           archived_at: string | null
@@ -458,11 +512,13 @@ export type Database = {
           deposit_status: string
           end_date: string
           guest_id: string
+          guest_snapshot: Json | null
           id: string
           included_services: string[]
           monthly_rate: number
           notes: string | null
           organization_id: string
+          origin_stay_id: string | null
           original_rate: number
           payer_business_name: string | null
           payer_tax_id: string | null
@@ -488,11 +544,13 @@ export type Database = {
           deposit_status?: string
           end_date: string
           guest_id: string
+          guest_snapshot?: Json | null
           id?: string
           included_services?: string[]
           monthly_rate: number
           notes?: string | null
           organization_id: string
+          origin_stay_id?: string | null
           original_rate: number
           payer_business_name?: string | null
           payer_tax_id?: string | null
@@ -518,11 +576,13 @@ export type Database = {
           deposit_status?: string
           end_date?: string
           guest_id?: string
+          guest_snapshot?: Json | null
           id?: string
           included_services?: string[]
           monthly_rate?: number
           notes?: string | null
           organization_id?: string
+          origin_stay_id?: string | null
           original_rate?: number
           payer_business_name?: string | null
           payer_tax_id?: string | null
@@ -557,6 +617,34 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_origin_stay_id_fkey"
+            columns: ["origin_stay_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
+          },
+          {
+            foreignKeyName: "contracts_origin_stay_id_fkey"
+            columns: ["origin_stay_id"]
+            isOneToOne: false
+            referencedRelation: "stay_balances"
+            referencedColumns: ["stay_id"]
+          },
+          {
+            foreignKeyName: "contracts_origin_stay_id_fkey"
+            columns: ["origin_stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_origin_stay_id_fkey"
+            columns: ["origin_stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
             referencedColumns: ["id"]
           },
           {
@@ -895,6 +983,7 @@ export type Database = {
       guests: {
         Row: {
           address: string | null
+          archived_at: string | null
           birth_date: string | null
           city_of_origin: string | null
           country_of_origin: string | null
@@ -914,6 +1003,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          archived_at?: string | null
           birth_date?: string | null
           city_of_origin?: string | null
           country_of_origin?: string | null
@@ -933,6 +1023,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          archived_at?: string | null
           birth_date?: string | null
           city_of_origin?: string | null
           country_of_origin?: string | null
@@ -2275,9 +2366,11 @@ export type Database = {
           children: number
           code: string
           contract_id: string | null
+          converted_from_stay_id: string | null
           created_at: string
           created_by: string | null
           currency: string
+          guest_snapshot: Json | null
           id: string
           nights: number | null
           notes: string | null
@@ -2289,6 +2382,7 @@ export type Database = {
           stay_type: Database["public"]["Enums"]["stay_type"]
           travel_reason_id: string | null
           updated_at: string
+          visit_id: string | null
         }
         Insert: {
           actual_check_in_at?: string | null
@@ -2300,9 +2394,11 @@ export type Database = {
           children?: number
           code?: string
           contract_id?: string | null
+          converted_from_stay_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
+          guest_snapshot?: Json | null
           id?: string
           nights?: number | null
           notes?: string | null
@@ -2314,6 +2410,7 @@ export type Database = {
           stay_type?: Database["public"]["Enums"]["stay_type"]
           travel_reason_id?: string | null
           updated_at?: string
+          visit_id?: string | null
         }
         Update: {
           actual_check_in_at?: string | null
@@ -2325,9 +2422,11 @@ export type Database = {
           children?: number
           code?: string
           contract_id?: string | null
+          converted_from_stay_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
+          guest_snapshot?: Json | null
           id?: string
           nights?: number | null
           notes?: string | null
@@ -2339,6 +2438,7 @@ export type Database = {
           stay_type?: Database["public"]["Enums"]["stay_type"]
           travel_reason_id?: string | null
           updated_at?: string
+          visit_id?: string | null
         }
         Relationships: [
           {
@@ -2360,6 +2460,34 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "booking_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_converted_from_stay_id_fkey"
+            columns: ["converted_from_stay_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
+          },
+          {
+            foreignKeyName: "stays_converted_from_stay_id_fkey"
+            columns: ["converted_from_stay_id"]
+            isOneToOne: false
+            referencedRelation: "stay_balances"
+            referencedColumns: ["stay_id"]
+          },
+          {
+            foreignKeyName: "stays_converted_from_stay_id_fkey"
+            columns: ["converted_from_stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_converted_from_stay_id_fkey"
+            columns: ["converted_from_stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
             referencedColumns: ["id"]
           },
           {
@@ -3424,6 +3552,7 @@ export type Database = {
           children: number | null
           code: string | null
           contract_id: string | null
+          converted_from_stay_id: string | null
           created_at: string | null
           created_by: string | null
           currency: string | null
@@ -3435,6 +3564,7 @@ export type Database = {
           guest_last_name: string | null
           guest_nationality: string | null
           guest_phone: string | null
+          guest_snapshot: Json | null
           id: string | null
           nights: number | null
           notes: string | null
@@ -3453,6 +3583,7 @@ export type Database = {
           travel_reason_id: string | null
           travel_reason_name: string | null
           updated_at: string | null
+          visit_id: string | null
         }
         Relationships: [
           {
@@ -3474,6 +3605,34 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "booking_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_converted_from_stay_id_fkey"
+            columns: ["converted_from_stay_id"]
+            isOneToOne: false
+            referencedRelation: "room_cleaning_status_view"
+            referencedColumns: ["current_stay_id"]
+          },
+          {
+            foreignKeyName: "stays_converted_from_stay_id_fkey"
+            columns: ["converted_from_stay_id"]
+            isOneToOne: false
+            referencedRelation: "stay_balances"
+            referencedColumns: ["stay_id"]
+          },
+          {
+            foreignKeyName: "stays_converted_from_stay_id_fkey"
+            columns: ["converted_from_stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stays_converted_from_stay_id_fkey"
+            columns: ["converted_from_stay_id"]
+            isOneToOne: false
+            referencedRelation: "stays_view"
             referencedColumns: ["id"]
           },
           {
@@ -3723,6 +3882,14 @@ export type Database = {
         Args: { p_cleaning_id: string; p_reason?: string }
         Returns: Json
       }
+      cancel_stay: {
+        Args: { p_reason?: string; p_stay_id: string }
+        Returns: Json
+      }
+      change_stay_room: {
+        Args: { p_new_room_id: string; p_reason?: string; p_stay_id: string }
+        Returns: Json
+      }
       complete_cleaning: {
         Args: {
           p_checklist?: Json
@@ -3832,12 +3999,28 @@ export type Database = {
         }
         Returns: boolean
       }
+      extend_shorten_stay: {
+        Args: { p_new_check_out: string; p_reason?: string; p_stay_id: string }
+        Returns: Json
+      }
       generate_arrived_tasks: { Args: { p_stay_id: string }; Returns: number }
       generate_contract_installments: {
         Args: { p_contract_id: string }
         Returns: undefined
       }
       generate_stay_tasks: { Args: { p_stay_id: string }; Returns: number }
+      get_audit_log: {
+        Args: { p_entity_id: string; p_entity_type: string }
+        Returns: {
+          action: string
+          actor_name: string
+          after: Json
+          before: Json
+          created_at: string
+          id: string
+          reason: string
+        }[]
+      }
       get_contract_kpis: { Args: never; Returns: Json }
       get_cron_jobs: { Args: never; Returns: Json }
       get_cron_run_details: { Args: never; Returns: Json }
@@ -3921,6 +4104,7 @@ export type Database = {
         Args: { p_cleaning_id: string; p_note?: string; p_reason: string }
         Returns: Json
       }
+      snapshot_guest_data: { Args: { p_guest_id: string }; Returns: Json }
       start_cleaning: { Args: { p_cleaning_id: string }; Returns: Json }
       team_task_stats: {
         Args: { p_from: string; p_to: string }
@@ -3939,6 +4123,21 @@ export type Database = {
           p_cleaning_type_id?: string
           p_notes?: string
           p_scheduled_for?: string
+        }
+        Returns: Json
+      }
+      update_stay: {
+        Args: {
+          p_adults?: number
+          p_channel_id?: string
+          p_check_in_date?: string
+          p_check_out_date?: string
+          p_children?: number
+          p_notes?: string
+          p_rate_per_night?: number
+          p_reason?: string
+          p_stay_id: string
+          p_travel_reason_id?: string
         }
         Returns: Json
       }

@@ -31,14 +31,22 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useContractKpis } from '@/hooks/use-contracts';
 import { useSidebarStore } from './sidebar-store';
+
+interface NavChild {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  badgeKey?: string;
+}
 
 interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
   module: string;
-  children?: { href: string; label: string; icon: LucideIcon }[];
+  children?: NavChild[];
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -53,12 +61,12 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { href: '/hotel/habitaciones', label: 'Habitaciones', icon: BedDouble },
       { href: '/hotel/reservas', label: 'Reservas', icon: CalendarCheck },
+      { href: '/contratos', label: 'Larga estadía', icon: FileText, badgeKey: 'contracts_alert' },
       { href: '/hotel/huespedes', label: 'Huéspedes', icon: UserRound },
     ],
   },
   { href: '/limpieza', label: 'Limpieza', icon: Sparkles, module: 'housekeeping' },
   { href: '/finanzas', label: 'Finanzas', icon: DollarSign, module: 'finance' },
-  { href: '/contratos', label: 'Contratos', icon: FileText, module: 'contracts' },
   {
     href: '/configuracion',
     label: 'Configuración',
@@ -82,6 +90,11 @@ export function Sidebar() {
   const pathname = usePathname();
   const { collapsed, toggle } = useSidebarStore();
   const { canViewModule, isLoading } = usePermissions();
+  const { data: contractKpis } = useContractKpis();
+
+  const badgeCounts: Record<string, number> = {
+    contracts_alert: (contractKpis?.overdue_installments_count ?? 0) + (contractKpis?.expiring_soon ?? 0),
+  };
 
   const visibleItems = isLoading
     ? NAV_ITEMS
@@ -132,7 +145,8 @@ export function Sidebar() {
               <Skeleton key={i} className="h-10 w-full rounded-[10px] bg-white/10" />
             ))
           : visibleItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+                || (item.children?.some((c) => pathname === c.href || pathname.startsWith(`${c.href}/`)) ?? false);
               const Icon = item.icon;
 
               // Rail mode: tablet md-lg always shows icons only
@@ -194,8 +208,9 @@ export function Sidebar() {
                   {item.children && isActive && !isIconOnly && (
                     <div className="ml-4 mt-0.5 hidden space-y-0.5 border-l border-white/15 pl-3 lg:block">
                       {item.children.map((child) => {
-                        const childActive = pathname === child.href;
+                        const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
                         const ChildIcon = child.icon;
+                        const badgeCount = child.badgeKey ? badgeCounts[child.badgeKey] ?? 0 : 0;
                         return (
                           <Link
                             key={child.href}
@@ -209,6 +224,11 @@ export function Sidebar() {
                           >
                             <ChildIcon className="h-3.5 w-3.5 shrink-0" />
                             {child.label}
+                            {badgeCount > 0 && (
+                              <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                                {badgeCount}
+                              </span>
+                            )}
                           </Link>
                         );
                       })}

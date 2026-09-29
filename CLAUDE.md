@@ -136,6 +136,9 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [x] Fase 6: Módulo Finanzas — ingresos, gastos, P&G, presupuesto
 - [x] Fase 7: Dashboard principal, configuración completa, seed demo
 - [x] Contratos E1: Precios LE, wizard 4 pasos, cuotas con prorrateo, pagos, depósito, sección /contratos, detalle, config
+- [x] Hotel E1: Sidebar LE bajo Hotel con badge, acciones en TODAS las filas, columna Modalidad, audit_log, editar/cambiar/extender/cancelar reserva
+- [ ] Hotel E2: Conversión de modalidad (corta ↔ larga), guest_snapshot, visits
+- [ ] Hotel E3: Fusionar huéspedes, historial visible, reportes
 - [ ] Contratos E2: Plantilla PDF, firma electrónica, otrosí, renovación, terminación, tareas automáticas, Finanzas
 
 ## Módulo Contratos de Larga Estadía
@@ -149,6 +152,15 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - **Cuotas**: Se generan con prorrateo del primer y último período. El pago soporta parciales y excedentes que se aplican a la siguiente cuota
 - **Depósito**: Se registra como pasivo (no ingreso). Estado: pending/paid/partial/returned/applied
 - **Estancia bloqueada**: Cada contrato crea una estancia `stay_type='long_stay'` que bloquea la habitación por el anti-double-booking constraint
+
+## audit_log y Acciones de Reservas
+
+- **audit_log**: Tabla genérica con triggers automáticos en stays, guests, contracts. Columnas: entity_type, entity_id, action, before/after jsonb, actor_id, reason
+- **Columnas nuevas**: `stays.visit_id`, `stays.guest_snapshot`, `stays.converted_from_stay_id`, `contracts.guest_snapshot`, `contracts.origin_stay_id`, `guests.archived_at`
+- **Funciones de edición**: `update_stay`, `cancel_stay`, `change_stay_room`, `extend_shorten_stay`, `snapshot_guest_data`, `get_audit_log`
+- **Sidebar**: "Larga estadía" es child de Hotel con badge rojo (cuotas vencidas + contratos por vencer)
+- **Reservas**: columna "Modalidad" (Corta/Larga estadía), chip de filtro "Larga estadía", menú "⋯" en TODAS las filas con acciones según estado
+- **Componentes de acción**: StayActionsMenu, EditStayDialog, ChangeRoomDialog, ExtendStayDialog, CancelStayDialog
 
 ## Sistema de diseño
 

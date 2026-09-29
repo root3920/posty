@@ -5,7 +5,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Plus, CalendarDays, MoreHorizontal, LogIn } from 'lucide-react';
+import { Plus, CalendarDays, MoreHorizontal, LogIn, FileText, Clock } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,11 @@ import {
 
 import { CheckInForm } from '@/components/hotel/check-in-form';
 import { ConfirmArrivalModal } from '@/components/hotel/confirm-arrival-modal';
+import { StayActionsMenu } from '@/components/hotel/stay-actions-menu';
+import { EditStayDialog } from '@/components/hotel/edit-stay-dialog';
+import { ChangeRoomDialog } from '@/components/hotel/change-room-dialog';
+import { ExtendStayDialog } from '@/components/hotel/extend-stay-dialog';
+import { CancelStayDialog } from '@/components/hotel/cancel-stay-dialog';
 import { RoomBadge } from '@/components/shared/room-badge';
 import { GuestName } from '@/components/shared/guest-name';
 import { StayBadge } from '@/components/shared/stay-badge';
@@ -71,6 +76,10 @@ type StayViewRow = Record<string, any> & {
   guest_last_name: string;
   guest_document_number: string | null;
   channel_name: string | null;
+  stay_type: string | null;
+  contract_id: string | null;
+  primary_guest_id: string;
+  room_id: string;
 };
 
 // -------------------------------------------------------
@@ -130,6 +139,16 @@ function ReservasContent() {
   const [arrivalModalOpen, setArrivalModalOpen] = useState(false);
   const [selectedStayId, setSelectedStayId] = useState<string | null>(null);
   const [activeChip, setActiveChip] = useState<StayFilterKey>('all');
+
+  // Action dialog states
+  const [editStayOpen, setEditStayOpen] = useState(false);
+  const [editStayId, setEditStayId] = useState<string | null>(null);
+  const [changeRoomOpen, setChangeRoomOpen] = useState(false);
+  const [changeRoomStayId, setChangeRoomStayId] = useState<string | null>(null);
+  const [extendStayOpen, setExtendStayOpen] = useState(false);
+  const [extendStayId, setExtendStayId] = useState<string | null>(null);
+  const [cancelStayOpen, setCancelStayOpen] = useState(false);
+  const [cancelStayId, setCancelStayId] = useState<string | null>(null);
 
   const { data: reservations = [], isLoading } = useQuery({
     queryKey: ['stays_view'],
@@ -209,6 +228,19 @@ function ReservasContent() {
       ),
     },
     {
+      key: 'modality',
+      header: 'Modalidad',
+      priority: 2,
+      render: (stay) => {
+        const isLong = stay.stay_type === 'long_stay';
+        return (
+          <Badge variant="outline" className={`text-[10px] ${isLong ? 'border-violet-500 text-violet-600' : 'border-slate-300 text-slate-500'}`}>
+            {isLong ? 'Larga estadía' : 'Corta'}
+          </Badge>
+        );
+      },
+    },
+    {
       key: 'check_in',
       header: 'Entrada',
       priority: 2,
@@ -267,67 +299,49 @@ function ReservasContent() {
     },
     {
       key: 'action',
-      header: 'Acción',
-      priority: 2,
-      render: (stay) => {
-        const badges = getStayBadges(stay, today);
-        if (stay.status !== 'reserved') return null;
-
-        const isConfirmAction = badges.arrival?.action === 'confirm_arrival';
-        const isFuture = !isConfirmAction && stay.check_in_date > today;
-
-        if (isConfirmAction) {
-          const isPast = stay.check_in_date < today;
-          return (
-            <div className="flex items-center justify-end gap-1">
-              <Button
-                size="sm"
-                variant={isPast ? 'outline' : 'default'}
-                className="h-7 gap-1.5 text-xs"
-                onClick={() => openArrivalModal(stay.id)}
-              >
-                <LogIn className="h-3.5 w-3.5" />
-                Confirmar llegada
-              </Button>
-            </div>
-          );
-        }
-
-        if (isFuture) {
-          return (
-            <div className="flex items-center justify-end gap-1">
-              <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-input bg-background text-sm hover:bg-muted focus:outline-none">
-                  <MoreHorizontal className="h-4 w-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => openArrivalModal(stay.id)}>
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Llegada anticipada
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          );
-        }
-
-        return null;
-      },
+      header: '',
+      priority: 1,
+      render: (stay) => (
+        <StayActionsMenu
+          stay={stay}
+          today={today}
+          onConfirmArrival={() => openArrivalModal(stay.id)}
+          onEditStay={() => { setEditStayId(stay.id); setEditStayOpen(true); }}
+          onChangeRoom={() => { setChangeRoomStayId(stay.id); setChangeRoomOpen(true); }}
+          onExtendStay={() => { setExtendStayId(stay.id); setExtendStayOpen(true); }}
+          onCancelStay={() => { setCancelStayId(stay.id); setCancelStayOpen(true); }}
+        />
+      ),
     },
   ];
 
   function renderCard(stay: StayViewRow) {
     const badges = getStayBadges(stay, today);
     const isConfirmAction = badges.arrival?.action === 'confirm_arrival';
+    const isLong = stay.stay_type === 'long_stay';
     return (
       <div className={`rounded-xl border bg-card p-4 space-y-3 ${badges.status.dimmed ? 'opacity-50' : ''}`}>
         <div className="flex items-center justify-between gap-2">
           <Link href={`/hotel/reservas/${stay.id}`} className="font-mono text-xs text-muted-foreground hover:underline">
             {stay.code}
           </Link>
-          <Badge variant="outline" className={`text-[11px] ${BADGE_STYLES[badges.status.variant]}`}>
-            {badges.status.label}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            {isLong && (
+              <Badge variant="outline" className="text-[10px] border-violet-500 text-violet-600">LE</Badge>
+            )}
+            <Badge variant="outline" className={`text-[11px] ${BADGE_STYLES[badges.status.variant]}`}>
+              {badges.status.label}
+            </Badge>
+            <StayActionsMenu
+              stay={stay}
+              today={today}
+              onConfirmArrival={() => openArrivalModal(stay.id)}
+              onEditStay={() => { setEditStayId(stay.id); setEditStayOpen(true); }}
+              onChangeRoom={() => { setChangeRoomStayId(stay.id); setChangeRoomOpen(true); }}
+              onExtendStay={() => { setExtendStayId(stay.id); setExtendStayOpen(true); }}
+              onCancelStay={() => { setCancelStayId(stay.id); setCancelStayOpen(true); }}
+            />
+          </div>
         </div>
         <div>
           <GuestName firstName={stay.guest_first_name} lastName={stay.guest_last_name} documentNumber={stay.guest_document_number} />
@@ -470,6 +484,32 @@ function ReservasContent() {
         onOpenChange={setArrivalModalOpen}
         stayId={selectedStayId}
         onConfirmed={handleConfirmed}
+      />
+
+      {/* Action dialogs */}
+      <EditStayDialog
+        open={editStayOpen}
+        onOpenChange={setEditStayOpen}
+        stayId={editStayId}
+        onSaved={handleConfirmed}
+      />
+      <ChangeRoomDialog
+        open={changeRoomOpen}
+        onOpenChange={setChangeRoomOpen}
+        stayId={changeRoomStayId}
+        onSaved={handleConfirmed}
+      />
+      <ExtendStayDialog
+        open={extendStayOpen}
+        onOpenChange={setExtendStayOpen}
+        stayId={extendStayId}
+        onSaved={handleConfirmed}
+      />
+      <CancelStayDialog
+        open={cancelStayOpen}
+        onOpenChange={setCancelStayOpen}
+        stayId={cancelStayId}
+        onSaved={handleConfirmed}
       />
     </div>
   );
