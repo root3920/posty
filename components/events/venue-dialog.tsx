@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2 } from 'lucide-react';
@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { TimeSelect } from '@/components/shared/time-select';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -66,6 +67,7 @@ export function VenueDialog({ open, onOpenChange, venue, onSaved }: VenueDialogP
     setValue,
     watch,
     reset,
+    control,
     formState: { errors },
   } = useForm<VenueFormValues>({
     resolver: zodResolver(venueSchema),
@@ -260,26 +262,38 @@ export function VenueDialog({ open, onOpenChange, venue, onSaved }: VenueDialogP
         {/* Open/Close times */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="min-w-0 space-y-1.5">
-            <Label htmlFor="venue-open-time">
+            <Label>
               Hora apertura <span className="text-danger">*</span>
             </Label>
-            <Input
-              id="venue-open-time"
-              type="time"
-              {...register('open_time')}
+            <Controller
+              name="open_time"
+              control={control}
+              render={({ field }) => (
+                <TimeSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Apertura"
+                />
+              )}
             />
             {errors.open_time && (
               <p className="text-xs text-danger">{errors.open_time.message}</p>
             )}
           </div>
           <div className="min-w-0 space-y-1.5">
-            <Label htmlFor="venue-close-time">
+            <Label>
               Hora cierre <span className="text-danger">*</span>
             </Label>
-            <Input
-              id="venue-close-time"
-              type="time"
-              {...register('close_time')}
+            <Controller
+              name="close_time"
+              control={control}
+              render={({ field }) => (
+                <TimeSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Cierre"
+                />
+              )}
             />
             {errors.close_time && (
               <p className="text-xs text-danger">{errors.close_time.message}</p>

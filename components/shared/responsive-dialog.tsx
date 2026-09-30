@@ -98,16 +98,16 @@ export function ResponsiveDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton className={SIZE_CLASSES[size]}>
-        <DialogHeader>
+      <DialogContent showCloseButton className={`${SIZE_CLASSES[size]} flex max-h-[calc(100dvh-4rem)] flex-col`}>
+        <DialogHeader className="shrink-0">
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
-        <div className="min-w-0 overflow-x-hidden">{children}</div>
+        <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">{children}</div>
 
         {footer && (
-          <div className="-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end">
+          <div className="-mx-4 -mb-4 shrink-0 rounded-b-xl border-t bg-muted/50 p-4">
             {footer}
           </div>
         )}

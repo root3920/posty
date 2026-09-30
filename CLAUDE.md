@@ -25,6 +25,7 @@
 - **Montos**: `numeric(14,2)` en DB, nunca `float`. Formatear con `Intl.NumberFormat`
 - **Fechas**: `timestamptz` en UTC. "Hoy" se calcula con la zona horaria de la organización (default `America/Bogota`)
 - **IDs**: uuid. Las personas se referencian siempre por id, nunca por nombre
+- **Formularios**: Antes de crear cualquier formulario nuevo, usar `ResponsiveDialog` (nunca Dialog/Sheet directo), `PhoneInput` (nunca `type="tel"`), `TimeSelect` (nunca `type="time"`), `EntitySelect` y `lib/format.ts`. Las reglas de ESLint lo verifican
 - **Dropdowns**: Todo dropdown que use IDs usa `EntitySelect` (`components/shared/entity-select.tsx`). Nunca mostrar UUIDs al usuario. `<SelectValue>` de Base UI muestra el valor crudo si las opciones no han cargado — por eso EntitySelect renderiza la etiqueta manualmente. Solo usar `<Select>` directo para enums hardcoded (prioridad, moneda, estado de limpieza)
 - **Visualización de datos**: Nunca mostrar IDs (ni completos ni cortados) al usuario. Las listas leen de vistas `*_view` (`stays_view`, `tasks_view`, `expenses_view`, `rooms_view`, `other_revenue_view`) con nombres legibles. Usar los componentes `RoomBadge`, `GuestName`, `ProfileChip` y `CatalogBadge` de `components/shared/`
 - **Borrado**: Soft delete (`archived_at`) en catálogos
