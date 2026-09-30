@@ -2,9 +2,25 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getWhatsAppProvider } from '@/lib/whatsapp/provider';
 
-function phoneFromJid(jid: string): string {
-  const digits = jid.replace(/@.*/, '').replace(/\D/g, '');
-  return `+${digits}`;
+function phoneFromJid(jid: string): string | null {
+  // Classic format: 573001234567@s.whatsapp.net → +573001234567
+  if (jid.includes('@s.whatsapp.net')) {
+    const digits = jid.replace(/@.*/, '').replace(/\D/g, '');
+    return digits.length >= 10 ? `+${digits}` : null;
+  }
+  // LID format: 268938084675807@lid → not a phone number
+  // Use the raw JID as identifier
+  return null;
+}
+
+function contactIdFromJid(jid: string): string {
+  // For @s.whatsapp.net: use E.164 phone
+  if (jid.includes('@s.whatsapp.net')) {
+    const digits = jid.replace(/@.*/, '').replace(/\D/g, '');
+    return `+${digits}`;
+  }
+  // For @lid: use the JID itself as identifier
+  return jid.replace(/@.*/, '');
 }
 
 function extractMessageBody(msg: Record<string, unknown> | undefined): string | null {
@@ -81,21 +97,25 @@ export async function POST() {
 
     for (const chat of chats) {
       const phone = phoneFromJid(chat.remoteJid);
+      const contactId = contactIdFromJid(chat.remoteJid);
+
+      // Use phone if available, otherwise use the contactId (for @lid JIDs)
+      const contactKey = phone ?? contactId;
 
       // Determine if hidden (personal account + unknown contact)
-      const isKnown = knownPhones.has(phone);
+      const isKnown = phone ? knownPhones.has(phone) : false;
       const isPersonal = conn.account_type === 'personal';
       const isHidden = isPersonal && !isKnown;
 
       // Upsert conversation
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: convo } = await (admin as any)
+      const { data: convo, error: convoErr } = await (admin as any)
         .from('chat_conversations')
         .upsert(
           {
             organization_id: orgId,
             connection_id: conn.id,
-            contact_phone_e164: phone,
+            contact_phone_e164: contactKey,
             contact_name: chat.pushName ?? null,
             contact_pic_url: chat.profilePicUrl ?? null,
             is_hidden: isHidden,
@@ -106,17 +126,21 @@ export async function POST() {
         .select('id')
         .single();
 
-      if (!convo) { skipped++; continue; }
+      if (!convo) {
+        if (convoErr) console.error('[Import] Upsert conversation failed:', convoErr.message, 'for', contactKey);
+        skipped++;
+        continue;
+      }
 
-      // Auto-link to guest
+      // Auto-link to guest by phone (only for real phone numbers)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: matchedGuest } = await (admin as any)
+      const { data: matchedGuest } = phone ? await (admin as any)
         .from('guests')
         .select('id')
         .eq('organization_id', orgId)
         .eq('phone', phone)
         .limit(1)
-        .maybeSingle();
+        .maybeSingle() : { data: null };
 
       if (matchedGuest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

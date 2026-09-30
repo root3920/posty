@@ -271,11 +271,13 @@ export class EvolutionProvider implements WhatsAppProvider {
 
         return arr
           .filter((c: Record<string, string>) => {
-            const jid = c.id ?? c.remoteJid ?? c.jid ?? '';
-            return jid.endsWith('@s.whatsapp.net');
+            const jid = c.remoteJid ?? c.id ?? c.jid ?? '';
+            // Accept 1:1 chats: @s.whatsapp.net (classic) and @lid (new WhatsApp format)
+            // Exclude groups (@g.us), newsletters (@newsletter), broadcasts (@broadcast), status (@status)
+            return !jid.includes('@g.us') && !jid.includes('@newsletter') && !jid.includes('@broadcast') && !jid.includes('status@');
           })
           .map((c: Record<string, string>) => ({
-            remoteJid: c.id ?? c.remoteJid ?? c.jid,
+            remoteJid: c.remoteJid ?? c.id ?? c.jid,
             pushName: c.name ?? c.pushName ?? c.contact,
             profilePicUrl: c.profilePicUrl ?? c.imgUrl,
           }));

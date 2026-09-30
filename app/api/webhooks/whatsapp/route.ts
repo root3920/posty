@@ -36,9 +36,14 @@ function extractBodyText(data: Record<string, unknown>): string | null {
   return null;
 }
 
-function phoneFromJid(jid: string): string {
-  const number = jid.replace('@s.whatsapp.net', '').replace(/[^0-9]/g, '');
-  return `+${number}`;
+function contactFromJid(jid: string): string {
+  // Classic: 573001234567@s.whatsapp.net → +573001234567
+  if (jid.includes('@s.whatsapp.net')) {
+    const digits = jid.replace(/@.*/, '').replace(/\D/g, '');
+    return `+${digits}`;
+  }
+  // LID format: 268938084675807@lid → use as-is (not a phone number)
+  return jid.replace(/@.*/, '');
 }
 
 // ─── Event handlers ─────────────────────────────────────────────────────────
@@ -59,7 +64,8 @@ async function handleMessageUpsert(
     if (!remoteJid) continue;
 
     // Skip group messages
-    if (remoteJid.endsWith('@g.us')) continue;
+    // Skip groups, newsletters, broadcasts, status
+    if (remoteJid.includes('@g.us') || remoteJid.includes('@newsletter') || remoteJid.includes('@broadcast') || remoteJid.includes('status@')) continue;
 
     const fromMe = key.fromMe as boolean | undefined;
     const messageId = key.id as string | undefined;
@@ -69,7 +75,7 @@ async function handleMessageUpsert(
     const messageType = msg.messageType as string | undefined;
     const bodyText = extractBodyText(msg);
     const msgType = extractMessageType(messageType);
-    const phone = phoneFromJid(remoteJid);
+    const phone = contactFromJid(remoteJid);
 
     // Find or create conversation
     const { data: existingConv } = await db
