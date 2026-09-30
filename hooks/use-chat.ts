@@ -2,31 +2,28 @@
 import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 
-// Connection
+// Connection — calls the status API which runs sync (queries Evolution + updates DB)
 export function useWhatsAppConnection() {
   return useQuery({
     queryKey: ['whatsapp_connection'],
     queryFn: async () => {
-      const supabase = createClient();
-      const { data, error } = await (supabase as any)
-        .from('whatsapp_connections')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
+      const res = await fetch('/api/whatsapp/status');
+      if (res.status === 404 || res.status === 503) return null;
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data.connectionId) return null;
       return data as {
-        id: string;
+        connectionId: string;
         status: string;
-        instance_name: string;
-        phone_e164: string | null;
-        display_name: string | null;
-        profile_pic_url: string | null;
-        account_type: string;
-      } | null;
+        connected: boolean;
+        phone: string | null;
+        displayName: string | null;
+        profilePic: string | null;
+        connectedAt: string | null;
+      };
     },
     staleTime: 10_000,
-    refetchInterval: 5_000,
+    refetchInterval: 10_000,
   });
 }
 

@@ -12,6 +12,12 @@ export interface WhatsAppProvider {
 
   getStatus(instanceName: string): Promise<{ state: ConnectionStatus }>;
 
+  fetchInstanceInfo(instanceName: string): Promise<InstanceInfo | null>;
+
+  getWebhook(instanceName: string): Promise<WebhookConfig | null>;
+
+  setWebhook(instanceName: string, config: WebhookConfig): Promise<void>;
+
   sendText(
     instanceName: string,
     number: string,
@@ -28,6 +34,22 @@ export interface WhatsAppProvider {
   disconnect(instanceName: string): Promise<void>;
 
   deleteInstance(instanceName: string): Promise<void>;
+}
+
+export interface InstanceInfo {
+  instanceName: string;
+  state: ConnectionStatus;
+  ownerJid?: string;
+  profileName?: string;
+  profilePicUrl?: string;
+  token?: string;
+}
+
+export interface WebhookConfig {
+  enabled: boolean;
+  url: string;
+  events: string[];
+  headers: Record<string, string>;
 }
 
 export interface EvolutionWebhookPayload {

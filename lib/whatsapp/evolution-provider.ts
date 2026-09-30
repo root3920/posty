@@ -1,4 +1,4 @@
-import type { ConnectionStatus, WhatsAppProvider } from './types';
+import type { ConnectionStatus, InstanceInfo, WebhookConfig, WhatsAppProvider } from './types';
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -138,6 +138,81 @@ export class EvolutionProvider implements WhatsAppProvider {
     });
 
     await handleResponse<unknown>(response);
+  }
+
+  async fetchInstanceInfo(instanceName: string): Promise<InstanceInfo | null> {
+    const response = await fetch(`${this.baseUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
+      method: 'GET',
+      headers: this.headers(),
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = await handleResponse<any>(response);
+    // fetchInstances returns an array or a single object
+    const instances = Array.isArray(data) ? data : [data];
+    const inst = instances.find((i: { name?: string; instance?: { instanceName?: string } }) =>
+      (i.instance?.instanceName ?? i.name) === instanceName
+    );
+    if (!inst) return null;
+
+    // Extract owner JID → phone
+    const ownerJid = inst.instance?.ownerJid ?? inst.ownerJid;
+    const state = inst.instance?.state ?? inst.state ?? 'close';
+    const profileName = inst.instance?.profileName ?? inst.profileName;
+    const profilePicUrl = inst.instance?.profilePictureUrl ?? inst.profilePicUrl;
+    const token = inst.instance?.token ?? inst.hash?.apikey;
+
+    console.log('[Evolution] fetchInstanceInfo:', instanceName, 'state:', state, 'owner:', ownerJid);
+
+    return {
+      instanceName,
+      state: state as ConnectionStatus,
+      ownerJid,
+      profileName,
+      profilePicUrl,
+      token,
+    };
+  }
+
+  async getWebhook(instanceName: string): Promise<WebhookConfig | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/webhook/find/${instanceName}`, {
+        method: 'GET',
+        headers: this.headers(),
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await handleResponse<any>(response);
+      if (!data || (!data.url && !data.webhook?.url)) return null;
+
+      const wh = data.webhook ?? data;
+      return {
+        enabled: wh.enabled ?? false,
+        url: wh.url ?? '',
+        events: wh.events ?? [],
+        headers: wh.headers ?? {},
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async setWebhook(instanceName: string, config: WebhookConfig): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/webhook/set/${instanceName}`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify({
+        webhook: {
+          enabled: config.enabled,
+          url: config.url,
+          byEvents: false,
+          base64: true,
+          events: config.events,
+          headers: config.headers,
+        },
+      }),
+    });
+    await handleResponse<unknown>(response);
+    console.log('[Evolution] setWebhook for', instanceName, '→', config.url);
   }
 
   async disconnect(instanceName: string): Promise<void> {

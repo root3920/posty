@@ -432,7 +432,7 @@ function MessagesColumn({
 // -------------------------------------------------------
 
 interface ConnectedChatProps {
-  connection: { status: string; display_name: string | null; phone_e164: string | null };
+  connection: { status: string; connected: boolean; displayName: string | null; phone: string | null };
 }
 
 function ConnectedChat({ connection }: ConnectedChatProps) {
@@ -455,7 +455,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
     setIsMobileMessageView(false);
   }, []);
 
-  const isConnected = connection.status === 'connected';
+  const isConnected = connection.connected === true;
 
   return (
     <div className="flex h-full flex-col">
@@ -475,7 +475,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
         )}
         <span>
           {isConnected
-            ? `Conectado${connection.display_name ? ` · ${connection.display_name}` : ''}${connection.phone_e164 ? ` · ${connection.phone_e164}` : ''}`
+            ? `Conectado${connection.displayName ? ` · ${connection.displayName}` : ''}${connection.phone ? ` · ${connection.phone}` : ''}`
             : 'Sin conexión — reconectando…'}
         </span>
       </div>
@@ -536,7 +536,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
 export default function ChatPage() {
   const { data: connection, isLoading } = useWhatsAppConnection();
 
-  const isConnected = connection?.status === 'connected';
+  const isConnected = connection?.connected === true;
 
   if (isLoading) {
     return (

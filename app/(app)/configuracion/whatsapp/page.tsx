@@ -353,22 +353,22 @@ function Step3({ onDisconnect }: Step3Props) {
 
       {connection && (
         <div className="flex w-full max-w-xs flex-col items-center gap-3 rounded-xl border bg-muted/30 p-4">
-          {connection.profile_pic_url && (
+          {connection.profilePic && (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              src={connection.profile_pic_url}
+              src={connection.profilePic}
               alt="Foto de perfil"
               className="h-14 w-14 rounded-full border object-cover"
             />
           )}
-          {connection.display_name && (
-            <p className="font-medium">{connection.display_name}</p>
+          {connection.displayName && (
+            <p className="font-medium">{connection.displayName}</p>
           )}
-          {connection.phone_e164 && (
-            <p className="text-sm text-muted-foreground">{connection.phone_e164}</p>
+          {connection.phone && (
+            <p className="text-sm text-muted-foreground">{connection.phone}</p>
           )}
           <span className="rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
-            {connection.account_type === 'business' ? 'WhatsApp Business' : 'WhatsApp Personal'}
+            WhatsApp conectado
           </span>
         </div>
       )}
@@ -400,7 +400,7 @@ export default function WhatsAppConfigPage() {
 
   // If already connected, jump to step 3
   useEffect(() => {
-    if (existingConnection?.status === 'connected') {
+    if (existingConnection?.connected) {
       setStep(3);
     }
   }, [existingConnection]);
