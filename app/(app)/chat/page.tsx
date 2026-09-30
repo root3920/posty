@@ -56,7 +56,13 @@ import { formatPhoneNumberIntl } from 'react-phone-number-input';
 // Utilities
 // -------------------------------------------------------
 
+function isLidContact(phone: string): boolean {
+  return phone.startsWith('lid:');
+}
+
 function formatPhone(phone: string): string {
+  // LID contacts — not a real phone number
+  if (isLidContact(phone)) return '';
   try {
     return formatPhoneNumberIntl(phone as `+${string}`) || phone;
   } catch {
@@ -390,8 +396,9 @@ function ConversationItem({
   selected: boolean;
   onClick: () => void;
 }) {
-  const displayName = conv.contact_name || formatPhone(conv.contact_phone_e164);
-  const initials = displayName.charAt(0).toUpperCase() || '#';
+  const isLid = isLidContact(conv.contact_phone_e164);
+  const displayName = conv.contact_name || (isLid ? 'Contacto de WhatsApp' : formatPhone(conv.contact_phone_e164));
+  const initials = (conv.contact_name ?? '').charAt(0).toUpperCase() || (isLid ? '?' : '#');
   const timeLabel = conv.last_message_at ? formatMessageTime(conv.last_message_at) : '';
 
   return (
@@ -672,10 +679,11 @@ function MessagesColumn({
   const setStatus = useSetConversationStatus();
 
   const selectedConversation = conversations.find((c) => c.id === conversationId);
+  const isSelectedLid = selectedConversation ? isLidContact(selectedConversation.contact_phone_e164) : false;
   const displayName = selectedConversation
-    ? selectedConversation.contact_name || formatPhone(selectedConversation.contact_phone_e164)
+    ? selectedConversation.contact_name || (isSelectedLid ? 'Contacto de WhatsApp' : formatPhone(selectedConversation.contact_phone_e164))
     : null;
-  const displayPhone = selectedConversation
+  const displayPhone = selectedConversation && !isSelectedLid
     ? formatPhone(selectedConversation.contact_phone_e164)
     : null;
 
@@ -1026,7 +1034,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
   const isConnected = connection.connected === true;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="-mx-4 -my-6 flex flex-col overflow-hidden sm:-mx-6 md:-mx-8" style={{ height: 'calc(100dvh - 64px)' }}>
       {/* Status bar */}
       <div
         className={cn(
@@ -1076,7 +1084,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
           )
         ) : (
           <>
-            <div className="w-80 shrink-0">
+            <div className="flex w-80 shrink-0 flex-col overflow-hidden">
               <ConversationsColumn
                 conversations={filteredConversations}
                 allConversations={allConversations}

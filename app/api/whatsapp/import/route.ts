@@ -2,12 +2,23 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getWhatsAppProvider } from '@/lib/whatsapp/provider';
 
-function contactFromJid(jid: string): string {
+function phoneFromJid(jid: string): string | null {
   if (jid.includes('@s.whatsapp.net')) {
     const digits = jid.replace(/@.*/, '').replace(/\D/g, '');
-    return `+${digits}`;
+    if (digits.length >= 10) return `+${digits}`;
   }
-  return jid.replace(/@.*/, '');
+  return null;
+}
+
+function lidFromJid(jid: string): string | null {
+  if (jid.includes('@lid')) return jid.replace(/@.*/, '');
+  return null;
+}
+
+function isValidContact(jid: string): boolean {
+  return !jid.includes('@g.us') && !jid.includes('@newsletter') &&
+    !jid.includes('@broadcast') && !jid.includes('status@') &&
+    !jid.startsWith('0@');
 }
 
 export async function POST() {
@@ -49,11 +60,17 @@ export async function POST() {
     let namesUpdated = 0;
 
     for (const chat of chats) {
-      const contactKey = contactFromJid(chat.remoteJid);
+      if (!isValidContact(chat.remoteJid)) continue;
+
+      const phone = phoneFromJid(chat.remoteJid);
+      const lid = lidFromJid(chat.remoteJid);
+      const contactKey = phone ?? `lid:${lid}`;
       const name = chat.pushName || null;
       const pic = chat.profilePicUrl || null;
 
-      // Try insert first
+      // Skip contacts without name AND without real phone (unknown LID contacts)
+      if (!name && !phone) continue;
+
       const { data: inserted } = await db
         .from('chat_conversations')
         .upsert(
@@ -61,6 +78,7 @@ export async function POST() {
             organization_id: orgId,
             connection_id: conn.id,
             contact_phone_e164: contactKey,
+            contact_lid: lid,
             contact_name: name,
             contact_pic_url: pic,
             is_hidden: false,

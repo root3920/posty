@@ -173,6 +173,7 @@ export type Database = {
         Row: {
           assigned_to: string | null
           connection_id: string
+          contact_lid: string | null
           contact_name: string | null
           contact_phone_e164: string
           contact_pic_url: string | null
@@ -192,6 +193,7 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           connection_id: string
+          contact_lid?: string | null
           contact_name?: string | null
           contact_phone_e164: string
           contact_pic_url?: string | null
@@ -211,6 +213,7 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           connection_id?: string
+          contact_lid?: string | null
           contact_name?: string | null
           contact_phone_e164?: string
           contact_pic_url?: string | null
@@ -4707,6 +4710,10 @@ export type Database = {
       }
     }
     Functions: {
+      apply_personal_account_privacy: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       assign_conversation: {
         Args: { p_conversation_id: string; p_profile_id?: string }
         Returns: undefined
@@ -4772,6 +4779,10 @@ export type Database = {
         Args: { p_new_room_id: string; p_reason?: string; p_stay_id: string }
         Returns: Json
       }
+      change_stay_titular: {
+        Args: { p_new_guest_id: string; p_reason?: string; p_stay_id: string }
+        Returns: Json
+      }
       complete_cleaning: {
         Args: {
           p_checklist?: Json
@@ -4788,6 +4799,29 @@ export type Database = {
           p_document_verified?: boolean
           p_payment_confirmed?: boolean
           p_stay_id: string
+        }
+        Returns: Json
+      }
+      convert_long_to_short_stay: {
+        Args: {
+          p_contract_id: string
+          p_new_check_out: string
+          p_rate_per_night: number
+        }
+        Returns: Json
+      }
+      convert_short_to_long_stay: {
+        Args: {
+          p_apply_retroactive?: boolean
+          p_billing_cycle?: string
+          p_cleaning_frequency_days?: number
+          p_deposit_amount?: number
+          p_end_date: string
+          p_included_services?: string[]
+          p_monthly_rate: number
+          p_payment_day?: number
+          p_stay_id: string
+          p_tax_rate?: number
         }
         Returns: Json
       }
@@ -4897,6 +4931,10 @@ export type Database = {
         Returns: Json
       }
       current_org_id: { Args: never; Returns: string }
+      delete_imported_non_guest_chats: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       ensure_workflow_roles: { Args: { p_org_id: string }; Returns: undefined }
       evaluate_condition: {
         Args: {
@@ -4914,6 +4952,16 @@ export type Database = {
         Returns: Json
       }
       finalize_event_booking: { Args: { p_booking_id: string }; Returns: Json }
+      find_duplicate_guests: {
+        Args: never
+        Returns: {
+          guest_a_id: string
+          guest_a_name: string
+          guest_b_id: string
+          guest_b_name: string
+          match_type: string
+        }[]
+      }
       generate_arrived_tasks: { Args: { p_stay_id: string }; Returns: number }
       generate_contract_installments: {
         Args: { p_contract_id: string }
@@ -4937,6 +4985,7 @@ export type Database = {
       get_cron_jobs: { Args: never; Returns: Json }
       get_cron_run_details: { Args: never; Returns: Json }
       get_event_kpis: { Args: never; Returns: Json }
+      get_guest_stats: { Args: { p_guest_id: string }; Returns: Json }
       get_my_permissions: { Args: never; Returns: string[] }
       get_my_profile: { Args: never; Returns: Json }
       get_venue_bookings_for_date: {
@@ -4960,6 +5009,10 @@ export type Database = {
         Returns: undefined
       }
       mark_event_rental_paid: { Args: { p_booking_id: string }; Returns: Json }
+      merge_guests: {
+        Args: { p_keep_id: string; p_merge_id: string; p_reason?: string }
+        Returns: Json
+      }
       process_recurring_tasks: { Args: never; Returns: number }
       reassign_workflow_tasks_for_role: {
         Args: { p_org_id: string; p_role_id: string }

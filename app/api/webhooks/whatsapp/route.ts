@@ -36,14 +36,23 @@ function extractBodyText(data: Record<string, unknown>): string | null {
   return null;
 }
 
-function contactFromJid(jid: string): string {
-  // Classic: 573001234567@s.whatsapp.net → +573001234567
+function phoneFromJid(jid: string): string | null {
   if (jid.includes('@s.whatsapp.net')) {
     const digits = jid.replace(/@.*/, '').replace(/\D/g, '');
-    return `+${digits}`;
+    if (digits.length >= 10) return `+${digits}`;
   }
-  // LID format: 268938084675807@lid → use as-is (not a phone number)
-  return jid.replace(/@.*/, '');
+  return null; // LID or invalid — not a phone
+}
+
+function lidFromJid(jid: string): string | null {
+  if (jid.includes('@lid')) return jid.replace(/@.*/, '');
+  return null;
+}
+
+function isValidContact(jid: string): boolean {
+  return !jid.includes('@g.us') && !jid.includes('@newsletter') &&
+    !jid.includes('@broadcast') && !jid.includes('status@') &&
+    !jid.startsWith('0@');
 }
 
 // ─── Event handlers ─────────────────────────────────────────────────────────
@@ -61,23 +70,33 @@ async function handleMessageUpsert(
     if (!key) continue;
 
     const remoteJid = key.remoteJid as string | undefined;
-    if (!remoteJid) continue;
-
-    // Skip group messages
-    // Skip groups, newsletters, broadcasts, status
-    if (remoteJid.includes('@g.us') || remoteJid.includes('@newsletter') || remoteJid.includes('@broadcast') || remoteJid.includes('status@')) continue;
+    if (!remoteJid || !isValidContact(remoteJid)) continue;
 
     const fromMe = key.fromMe as boolean | undefined;
     const messageId = key.id as string | undefined;
     if (!messageId) continue;
 
-    const pushName = msg.pushName as string | undefined;
+    // Skip protocol messages, reactions, and deleted messages
     const messageType = msg.messageType as string | undefined;
+    if (messageType === 'protocolMessage' || messageType === 'reactionMessage' || messageType === 'senderKeyDistributionMessage') continue;
 
-    console.log('[Webhook] Message:', { remoteJid, fromMe, messageId: messageId?.slice(0, 10), pushName, messageType });
+    const pushName = msg.pushName as string | undefined;
+
+    // Resolve phone: try participant field (real phone for LID contacts), then remoteJid
+    const participant = key.participant as string | undefined;
+    const senderPn = (msg as Record<string, unknown>).senderPn as string | undefined;
+    const phone = phoneFromJid(senderPn ?? participant ?? remoteJid ?? '') ?? phoneFromJid(remoteJid ?? '');
+    const lid = lidFromJid(remoteJid ?? '');
+
+    // Must have either a real phone or a LID
+    if (!phone && !lid) continue;
+
+    // Use phone as the conversation key, falling back to "lid:{lid}"
+    const contactKey = phone ?? `lid:${lid}`;
+
+    console.log('[Webhook] Message:', { remoteJid: remoteJid?.slice(0, 15), phone, lid: lid?.slice(0, 10), fromMe, messageType });
     const bodyText = extractBodyText(msg);
     const msgType = extractMessageType(messageType);
-    const phone = contactFromJid(remoteJid);
 
     // Find or create conversation
     const { data: existingConv } = await db
@@ -85,7 +104,7 @@ async function handleMessageUpsert(
       .select('id')
       .eq('organization_id', conn.organization_id)
       .eq('connection_id', conn.id)
-      .eq('contact_phone_e164', phone)
+      .eq('contact_phone_e164', contactKey)
       .limit(1)
       .maybeSingle();
 
@@ -93,33 +112,37 @@ async function handleMessageUpsert(
 
     if (existingConv) {
       conversationId = existingConv.id as string;
-      // Update name if we got a pushName from an INCOMING message (not fromMe)
-      // fromMe messages have OUR name as pushName, not the contact's
-      if (pushName && !fromMe) {
-        await db
-          .from('chat_conversations')
-          .update({ contact_name: pushName })
-          .eq('id', conversationId)
-          .is('contact_name', null);
+      // Update name from incoming messages only (fromMe has OUR name)
+      const updates: Record<string, unknown> = {};
+      if (pushName && !fromMe) updates.contact_name = pushName;
+      if (lid) updates.contact_lid = lid;
+      if (Object.keys(updates).length > 0) {
+        await db.from('chat_conversations').update(updates).eq('id', conversationId);
       }
     } else {
-      // Try to auto-link to guest by phone
-      const { data: guest } = await db
-        .from('guests')
-        .select('id')
-        .eq('organization_id', conn.organization_id)
-        .eq('phone_e164', phone)
-        .limit(1)
-        .maybeSingle();
+      // Auto-link to guest by phone
+      let guestId: string | null = null;
+      if (phone) {
+        const { data: guest } = await db
+          .from('guests')
+          .select('id')
+          .eq('organization_id', conn.organization_id)
+          .eq('phone', phone)
+          .limit(1)
+          .maybeSingle();
+        guestId = guest?.id ?? null;
+      }
 
       const { data: newConv, error: convError } = await db
         .from('chat_conversations')
         .insert({
           organization_id: conn.organization_id,
           connection_id: conn.id,
-          contact_phone_e164: phone,
+          contact_phone_e164: contactKey,
+          contact_lid: lid,
           contact_name: fromMe ? null : (pushName ?? null),
-          guest_id: guest?.id ?? null,
+          guest_id: guestId,
+          last_inbound_at: fromMe ? null : new Date().toISOString(),
         })
         .select('id')
         .single();
