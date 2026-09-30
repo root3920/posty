@@ -381,7 +381,7 @@ export function EventBookingDialog({
               placeholder="Selecciona un espacio..."
               isLoading={venuesLoading}
               emptyMessage="No hay espacios configurados"
-              emptyHref="/configuracion/espacios"
+              emptyHref="/eventos?tab=espacios"
             />
             {errors.venue_id && (
               <p className="text-xs text-danger">{errors.venue_id.message}</p>

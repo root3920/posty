@@ -26,6 +26,7 @@ import {
   CalendarClock,
   CalendarDays,
   FileText,
+  MapPin,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -83,6 +84,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/configuracion/marca', label: 'Marca', icon: Palette },
       { href: '/configuracion/tareas-automaticas', label: 'Tareas automáticas', icon: CalendarClock },
       { href: '/configuracion/contratos', label: 'Contratos', icon: FileText },
+      { href: '/configuracion/espacios', label: 'Espacios', icon: MapPin },
       { href: '/configuracion/sistema', label: 'Sistema', icon: ServerCog },
     ],
   },

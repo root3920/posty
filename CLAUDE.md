@@ -30,6 +30,7 @@
 - **Borrado**: Soft delete (`archived_at`) en catálogos
 - **Migraciones**: Solo vía `supabase/migrations/`. Nunca SQL Editor manual. NUNCA usar `supabase migration repair --status applied` sin antes confirmar con `npm run db:verify` que el SQL existe en la base
 - **Verificación de esquema**: Después de cada `db push`, correr `npm run db:verify` para detectar migraciones "registradas pero no ejecutadas"
+- **Links internos**: Todo href o Link debe apuntar a una ruta que exista (tiene page.tsx). Antes de cada entrega, verificar con grep que ningún link apunte a una ruta sin página. La app tiene not-found.tsx global y dentro de (app) para evitar la página blanca de Next.js
 - **Enum casts**: SIEMPRE usar casts explícitos al asignar texto a columnas enum en PL/pgSQL (e.g. `'clean'::housekeeping_status`, `'scheduled'::cleaning_status`). Nunca asignar texto crudo a un enum
 - **Errores de Supabase**: Nunca convertir un error en un estado vacío (`if (error) return []`). Las funciones de fetch deben lanzar el error (`if (error) throw error`); React Query lo captura en su estado `error` y los componentes lo muestran. Solo las funciones de auth (profile, permissions) pueden devolver null en caso de error
 - **Procesos programados**: Usar `pg_cron` (dentro de Postgres) en vez de crons de Vercel. Los jobs se registran en migraciones con `cron.schedule()`. Visible en Configuración → Sistema. Después de cada `db push`, verificar que los jobs siguen activos con `db:verify`
