@@ -180,6 +180,7 @@ export type Database = {
           guest_id: string | null
           id: string
           is_hidden: boolean
+          last_inbound_at: string | null
           last_message_at: string | null
           last_message_preview: string | null
           organization_id: string
@@ -198,6 +199,7 @@ export type Database = {
           guest_id?: string | null
           id?: string
           is_hidden?: boolean
+          last_inbound_at?: string | null
           last_message_at?: string | null
           last_message_preview?: string | null
           organization_id: string
@@ -216,6 +218,7 @@ export type Database = {
           guest_id?: string | null
           id?: string
           is_hidden?: boolean
+          last_inbound_at?: string | null
           last_message_at?: string | null
           last_message_preview?: string | null
           organization_id?: string
@@ -334,6 +337,99 @@ export type Database = {
             columns: ["sent_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_notes: {
+        Row: {
+          author_id: string
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_notes_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_quick_replies: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_active: boolean
+          organization_id: string
+          shortcut: string | null
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          shortcut?: string | null
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          shortcut?: string | null
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_quick_replies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -4418,6 +4514,10 @@ export type Database = {
       }
     }
     Functions: {
+      assign_conversation: {
+        Args: { p_conversation_id: string; p_profile_id?: string }
+        Returns: undefined
+      }
       assign_task_to_best_person: {
         Args: { p_due_at: string; p_role_id: string; p_task_id: string }
         Returns: string
@@ -4630,6 +4730,7 @@ export type Database = {
           reason: string
         }[]
       }
+      get_chat_unread_count: { Args: never; Returns: number }
       get_contract_kpis: { Args: never; Returns: Json }
       get_cron_jobs: { Args: never; Returns: Json }
       get_cron_run_details: { Args: never; Returns: Json }
@@ -4651,6 +4752,10 @@ export type Database = {
       inspect_cleaning: {
         Args: { p_approved: boolean; p_cleaning_id: string; p_notes?: string }
         Returns: Json
+      }
+      mark_conversation_read: {
+        Args: { p_conversation_id: string }
+        Returns: undefined
       }
       mark_event_rental_paid: { Args: { p_booking_id: string }; Returns: Json }
       process_recurring_tasks: { Args: never; Returns: number }
@@ -4729,6 +4834,10 @@ export type Database = {
       }
       seed_same_day_templates: {
         Args: { p_org_id: string }
+        Returns: undefined
+      }
+      set_conversation_status: {
+        Args: { p_conversation_id: string; p_status: string }
         Returns: undefined
       }
       set_room_type_monthly_rate: {

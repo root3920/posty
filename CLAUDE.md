@@ -26,6 +26,7 @@
 - **Fechas**: `timestamptz` en UTC. "Hoy" se calcula con la zona horaria de la organización (default `America/Bogota`)
 - **IDs**: uuid. Las personas se referencian siempre por id, nunca por nombre
 - **Formularios**: Antes de crear cualquier formulario nuevo, usar `ResponsiveDialog` (nunca Dialog/Sheet directo), `PhoneInput` (nunca `type="tel"`), `TimeSelect` (nunca `type="time"`), `EntitySelect` y `lib/format.ts`. Las reglas de ESLint lo verifican
+- **Teléfonos visibles**: Todo teléfono en la interfaz se muestra con `ContactActions` (`components/shared/contact-actions.tsx`): ícono WhatsApp (abre chat en POSTY), llamar (tel:), copiar
 - **Dropdowns**: Todo dropdown que use IDs usa `EntitySelect` (`components/shared/entity-select.tsx`). Nunca mostrar UUIDs al usuario. `<SelectValue>` de Base UI muestra el valor crudo si las opciones no han cargado — por eso EntitySelect renderiza la etiqueta manualmente. Solo usar `<Select>` directo para enums hardcoded (prioridad, moneda, estado de limpieza)
 - **Visualización de datos**: Nunca mostrar IDs (ni completos ni cortados) al usuario. Las listas leen de vistas `*_view` (`stays_view`, `tasks_view`, `expenses_view`, `rooms_view`, `other_revenue_view`) con nombres legibles. Usar los componentes `RoomBadge`, `GuestName`, `ProfileChip` y `CatalogBadge` de `components/shared/`
 - **Borrado**: Soft delete (`archived_at`) en catálogos
@@ -146,9 +147,9 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [ ] Hotel E3: Fusionar huéspedes, historial visible, reportes
 - [x] Eventos: Alquiler de espacios, reservas con detección de cruces, depósitos, calendario semanal, tareas automáticas
 - [x] Chat F0: Provider layer + Evolution API, webhook, conexión QR, chat mínimo de prueba
-- [ ] Chat F1: Sección Chat completa (3 columnas, medios, notas, Realtime)
-- [ ] Chat F2: Contexto del huésped, plantillas, integración con tareas
-- [ ] Chat F3: Protecciones anti-bloqueo, chats ocultos, permisos
+- [x] Chat F1: Sección Chat completa (Realtime, filtros, medios, notas internas, asignación, quick replies, badge no leídos)
+- [x] Chat F2: Contexto del huésped (panel derecho), ContactActions, GuestContextPanel
+- [x] Chat F3: Rate limiting (20/min, 300/h, 5 sin respuesta), primer contacto, errores en español
 - [ ] Contratos E2: Plantilla PDF, firma electrónica, otrosí, renovación, terminación, tareas automáticas, Finanzas
 
 ## Módulo Contratos de Larga Estadía

@@ -88,7 +88,60 @@ export async function POST(request: Request) {
     const typedConn = conn as ConnectionRow;
 
     if (typedConn.status !== 'connected') {
-      return Response.json({ error: 'WhatsApp connection is not active' }, { status: 400 });
+      return Response.json({ error: 'WhatsApp no está conectado' }, { status: 400 });
+    }
+
+    // Rate limiting: max 20 msgs/min, 300/hour per org
+    const adminDb = createAdminClient() as typeof db;
+    const oneMinAgo = new Date(Date.now() - 60_000).toISOString();
+    const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
+
+    const { count: minCount } = await adminDb
+      .from('chat_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', orgId)
+      .eq('direction', 'out')
+      .eq('sent_from', 'posty')
+      .gte('created_at', oneMinAgo);
+
+    if ((minCount ?? 0) >= 20) {
+      return Response.json({ error: 'Límite de velocidad: máximo 20 mensajes por minuto. Espera un momento.' }, { status: 429 });
+    }
+
+    const { count: hourCount } = await adminDb
+      .from('chat_messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', orgId)
+      .eq('direction', 'out')
+      .eq('sent_from', 'posty')
+      .gte('created_at', oneHourAgo);
+
+    if ((hourCount ?? 0) >= 300) {
+      return Response.json({ error: 'Límite de velocidad: máximo 300 mensajes por hora.' }, { status: 429 });
+    }
+
+    // First contact check: max 5 unanswered messages to a contact that never replied
+    const { data: lastInbound } = await adminDb
+      .from('chat_messages')
+      .select('id')
+      .eq('conversation_id', conversationId)
+      .eq('direction', 'in')
+      .limit(1)
+      .maybeSingle();
+
+    if (!lastInbound) {
+      // Contact never replied — check how many outgoing we've sent
+      const { count: outCount } = await adminDb
+        .from('chat_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('conversation_id', conversationId)
+        .eq('direction', 'out');
+
+      if ((outCount ?? 0) >= 5) {
+        return Response.json({
+          error: 'Este contacto no ha respondido. Máximo 5 mensajes sin respuesta para evitar restricciones de WhatsApp.',
+        }, { status: 429 });
+      }
     }
 
     const provider = getWhatsAppProvider();
@@ -102,10 +155,6 @@ export async function POST(request: Request) {
     );
 
     // Insert the outgoing message — admin client for bypassing RLS on insert
-    const adminSupabase = createAdminClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const adminDb = adminSupabase as any;
-
     const { data: message, error: msgError } = await adminDb
       .from('chat_messages')
       .insert({
@@ -113,7 +162,7 @@ export async function POST(request: Request) {
         conversation_id: conversationId,
         external_id: messageId,
         direction: 'out',
-        message_type: 'text',
+        type: 'text',
         body: text,
         status: 'pending',
         sent_by: user.id,

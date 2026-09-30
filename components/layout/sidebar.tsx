@@ -35,6 +35,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useContractKpis } from '@/hooks/use-contracts';
+import { useChatUnreadCount } from '@/hooks/use-chat';
 import { useSidebarStore } from './sidebar-store';
 
 interface NavChild {
@@ -49,6 +50,7 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   module: string;
+  badgeKey?: string;
   children?: NavChild[];
 }
 
@@ -56,7 +58,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, module: 'dashboard' },
   { href: '/equipo', label: 'Equipo', icon: Users, module: 'team' },
   { href: '/tareas', label: 'Tareas', icon: CheckSquare, module: 'tasks' },
-  { href: '/chat', label: 'Chat', icon: MessageCircle, module: 'chat' },
+  { href: '/chat', label: 'Chat', icon: MessageCircle, module: 'chat', badgeKey: 'chat_unread' },
   {
     href: '/hotel',
     label: 'Hotel',
@@ -97,9 +99,11 @@ export function Sidebar() {
   const { collapsed, toggle } = useSidebarStore();
   const { canViewModule, isLoading } = usePermissions();
   const { data: contractKpis } = useContractKpis();
+  const { data: chatUnread } = useChatUnreadCount();
 
   const badgeCounts: Record<string, number> = {
     contracts_alert: (contractKpis?.overdue_installments_count ?? 0) + (contractKpis?.expiring_soon ?? 0),
+    chat_unread: chatUnread ?? 0,
   };
 
   const visibleItems = isLoading
@@ -186,6 +190,15 @@ export function Sidebar() {
                   )}>
                     {item.label}
                   </span>
+                  {item.badgeKey && (badgeCounts[item.badgeKey] ?? 0) > 0 && (
+                    <span className={cn(
+                      'ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white',
+                      'hidden lg:flex',
+                      isIconOnly && 'lg:hidden',
+                    )}>
+                      {badgeCounts[item.badgeKey]}
+                    </span>
+                  )}
                 </Link>
               );
 
