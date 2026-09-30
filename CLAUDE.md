@@ -51,6 +51,7 @@ app/
   (app)/tareas                   ← Módulo Tareas
   (app)/hotel                    ← Módulo Hotel
   (app)/limpieza                 ← Módulo Limpieza (Housekeeping)
+  (app)/eventos                  ← Módulo Eventos (alquiler de espacios)
   (app)/finanzas                 ← Módulo Finanzas
   (app)/contratos                ← Módulo Contratos de Larga Estadía
   (app)/configuracion            ← Configuración (incluye tareas-automaticas con 3 tabs, contratos)
@@ -139,6 +140,7 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [x] Hotel E1: Sidebar LE bajo Hotel con badge, acciones en TODAS las filas, columna Modalidad, audit_log, editar/cambiar/extender/cancelar reserva
 - [ ] Hotel E2: Conversión de modalidad (corta ↔ larga), guest_snapshot, visits
 - [ ] Hotel E3: Fusionar huéspedes, historial visible, reportes
+- [x] Eventos: Alquiler de espacios, reservas con detección de cruces, depósitos, calendario semanal, tareas automáticas
 - [ ] Contratos E2: Plantilla PDF, firma electrónica, otrosí, renovación, terminación, tareas automáticas, Finanzas
 
 ## Módulo Contratos de Larga Estadía
@@ -161,6 +163,19 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - **Sidebar**: "Larga estadía" es child de Hotel con badge rojo (cuotas vencidas + contratos por vencer)
 - **Reservas**: columna "Modalidad" (Corta/Larga estadía), chip de filtro "Larga estadía", menú "⋯" en TODAS las filas con acciones según estado
 - **Componentes de acción**: StayActionsMenu, EditStayDialog, ChangeRoomDialog, ExtendStayDialog, CancelStayDialog
+
+## Módulo Eventos (Alquiler de Espacios)
+
+- **Tablas**: `event_venues`, `event_bookings`, `event_booking_history`
+- **Enums**: `venue_pricing_type` (per_hour/per_person/flat_rate), `event_booking_status` (pending_deposit/confirmed/finished/cancelled), `event_deposit_status` (pending/received/returned/retained)
+- **Vista**: `event_bookings_view` (join con venue + creator profile)
+- **Funciones**: `create_event_booking` (valida cruces con FOR UPDATE, calcula total, crea tareas de limpieza), `cancel_event_booking`, `register_event_deposit`, `mark_event_rental_paid`, `finalize_event_booking`, `return_event_deposit`, `retain_event_deposit`, `get_event_kpis`, `get_venue_bookings_for_date`
+- **Permisos**: `events.view`, `events.create`, `events.edit`, `events.delete`, `events.manage_deposits`
+- **Cruces horarios**: Validados en la función SQL con `FOR UPDATE` — error descriptivo con código y nombre del booking que choca
+- **Precio snapshot**: El precio y depósito se copian del espacio al crear la reserva; cambiar el espacio no afecta reservas existentes
+- **Tareas automáticas**: Al confirmar, crea "Preparar espacio" (1h antes) y "Limpiar después" (al terminar). Al cancelar, cancela las tareas vinculadas
+- **3 tabs**: Reservas (tabla + filtros), Calendario semanal (grid espacios × días), Espacios (tarjetas con switch activo/inactivo)
+- **WhatsApp**: Botón "Enviar por WhatsApp" con wa.me link y mensaje prellenado
 
 ## Sistema de diseño
 

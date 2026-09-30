@@ -14,6 +14,7 @@ import {
   DollarSign,
   Settings,
   CalendarClock,
+  CalendarDays,
   FileText,
   Sparkles,
   ChevronRight,
@@ -61,6 +62,7 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   { href: '/limpieza', label: 'Limpieza', icon: Sparkles, module: 'housekeeping' },
+  { href: '/eventos', label: 'Eventos', icon: CalendarDays, module: 'events' },
   { href: '/finanzas', label: 'Finanzas', icon: DollarSign, module: 'finance' },
   {
     href: '/configuracion',

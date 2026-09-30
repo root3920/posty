@@ -592,6 +592,18 @@ update public.room_types set monthly_rate = 3200000, weekly_rate = 900000, biwee
 update public.room_types set monthly_rate = 5500000, weekly_rate = 1500000, biweekly_rate = 2900000 where organization_id = v_org_id and name = 'Suite';
 
 -- =============================================================
+-- STEP: Event venues (demo spaces)
+-- =============================================================
+
+insert into public.event_venues (organization_id, name, description, pricing_type, price, deposit, max_capacity, open_time, close_time) values
+  (v_org_id, 'Pasadía',           'Acceso completo a zonas comunes por el día', 'per_person', 80000,  300000, 40, '08:00', '18:00'),
+  (v_org_id, 'Área de piscina',   'Piscina y zona húmeda',                     'per_hour',   150000, 200000, 30, '09:00', '21:00'),
+  (v_org_id, 'Terraza BBQ',       'Terraza con asador y zona social',           'per_hour',   120000, 200000, 25, '10:00', '22:00'),
+  (v_org_id, 'Terraza de juegos', 'Zona de juegos y entretenimiento',           'per_hour',   90000,  150000, 20, '10:00', '21:00'),
+  (v_org_id, 'Sala de juntas',    'Equipada con proyector y WiFi',              'per_hour',   70000,  100000, 12, '07:00', '20:00'),
+  (v_org_id, 'Gimnasio',          'Equipos de cardio y pesas',                  'per_hour',   50000,  50000,  10, '05:00', '22:00');
+
+-- =============================================================
 -- Done
 -- =============================================================
 

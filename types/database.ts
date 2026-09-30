@@ -784,6 +784,237 @@ export type Database = {
           },
         ]
       }
+      event_booking_history: {
+        Row: {
+          action: string
+          actor_id: string | null
+          booking_id: string
+          created_at: string
+          detail: Json | null
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          booking_id: string
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          booking_id?: string
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_booking_history_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_booking_history_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "event_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_booking_history_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "event_bookings_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_booking_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_bookings: {
+        Row: {
+          client_document: string | null
+          client_email: string | null
+          client_name: string
+          client_phone: string
+          code: string
+          created_at: string
+          created_by: string | null
+          deposit_method_id: string | null
+          deposit_received: number
+          deposit_required: number
+          deposit_retained_reason: string | null
+          deposit_status: Database["public"]["Enums"]["event_deposit_status"]
+          end_time: string
+          event_date: string
+          guest_count: number
+          id: string
+          is_hotel_guest: boolean
+          notes: string | null
+          organization_id: string
+          rental_paid: boolean
+          rental_total: number
+          room_number: string | null
+          start_time: string
+          status: Database["public"]["Enums"]["event_booking_status"]
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          client_document?: string | null
+          client_email?: string | null
+          client_name: string
+          client_phone: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deposit_method_id?: string | null
+          deposit_received?: number
+          deposit_required?: number
+          deposit_retained_reason?: string | null
+          deposit_status?: Database["public"]["Enums"]["event_deposit_status"]
+          end_time: string
+          event_date: string
+          guest_count: number
+          id?: string
+          is_hotel_guest?: boolean
+          notes?: string | null
+          organization_id: string
+          rental_paid?: boolean
+          rental_total: number
+          room_number?: string | null
+          start_time: string
+          status?: Database["public"]["Enums"]["event_booking_status"]
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          client_document?: string | null
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deposit_method_id?: string | null
+          deposit_received?: number
+          deposit_required?: number
+          deposit_retained_reason?: string | null
+          deposit_status?: Database["public"]["Enums"]["event_deposit_status"]
+          end_time?: string
+          event_date?: string
+          guest_count?: number
+          id?: string
+          is_hotel_guest?: boolean
+          notes?: string | null
+          organization_id?: string
+          rental_paid?: boolean
+          rental_total?: number
+          room_number?: string | null
+          start_time?: string
+          status?: Database["public"]["Enums"]["event_booking_status"]
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_bookings_deposit_method_id_fkey"
+            columns: ["deposit_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_bookings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_bookings_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "event_venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_venues: {
+        Row: {
+          close_time: string
+          created_at: string
+          deposit: number
+          description: string | null
+          id: string
+          is_active: boolean
+          max_capacity: number
+          name: string
+          open_time: string
+          organization_id: string
+          price: number
+          pricing_type: Database["public"]["Enums"]["venue_pricing_type"]
+          updated_at: string
+        }
+        Insert: {
+          close_time: string
+          created_at?: string
+          deposit?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_capacity: number
+          name: string
+          open_time: string
+          organization_id: string
+          price: number
+          pricing_type: Database["public"]["Enums"]["venue_pricing_type"]
+          updated_at?: string
+        }
+        Update: {
+          close_time?: string
+          created_at?: string
+          deposit?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_capacity?: number
+          name?: string
+          open_time?: string
+          organization_id?: string
+          price?: number
+          pricing_type?: Database["public"]["Enums"]["venue_pricing_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_venues_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_categories: {
         Row: {
           archived_at: string | null
@@ -3310,6 +3541,76 @@ export type Database = {
           },
         ]
       }
+      event_bookings_view: {
+        Row: {
+          client_document: string | null
+          client_email: string | null
+          client_name: string | null
+          client_phone: string | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          creator_name: string | null
+          deposit_method_id: string | null
+          deposit_received: number | null
+          deposit_required: number | null
+          deposit_retained_reason: string | null
+          deposit_status:
+            | Database["public"]["Enums"]["event_deposit_status"]
+            | null
+          end_time: string | null
+          event_date: string | null
+          guest_count: number | null
+          id: string | null
+          is_hotel_guest: boolean | null
+          notes: string | null
+          organization_id: string | null
+          rental_paid: boolean | null
+          rental_total: number | null
+          room_number: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["event_booking_status"] | null
+          updated_at: string | null
+          venue_deposit: number | null
+          venue_id: string | null
+          venue_max_capacity: number | null
+          venue_name: string | null
+          venue_price: number | null
+          venue_pricing_type:
+            | Database["public"]["Enums"]["venue_pricing_type"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_bookings_deposit_method_id_fkey"
+            columns: ["deposit_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_bookings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_bookings_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "event_venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses_view: {
         Row: {
           amount: number | null
@@ -3433,14 +3734,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "room_cleanings_cleaning_type_id_fkey"
-            columns: ["last_cleaning_type_id"]
+            columns: ["next_cleaning_type_id"]
             isOneToOne: false
             referencedRelation: "cleaning_types"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "room_cleanings_cleaning_type_id_fkey"
-            columns: ["next_cleaning_type_id"]
+            columns: ["last_cleaning_type_id"]
             isOneToOne: false
             referencedRelation: "cleaning_types"
             referencedColumns: ["id"]
@@ -3884,6 +4185,10 @@ export type Database = {
         Args: { p_cleaning_id: string; p_reason?: string }
         Returns: Json
       }
+      cancel_event_booking: {
+        Args: { p_booking_id: string; p_reason?: string }
+        Returns: Json
+      }
       cancel_stay: {
         Args: { p_reason?: string; p_stay_id: string }
         Returns: Json
@@ -3929,6 +4234,25 @@ export type Database = {
           p_room_type_id?: string
           p_start_date?: string
           p_tax_rate?: number
+        }
+        Returns: Json
+      }
+      create_event_booking: {
+        Args: {
+          p_client_document?: string
+          p_client_email?: string
+          p_client_name: string
+          p_client_phone: string
+          p_deposit_method_id?: string
+          p_deposit_received?: number
+          p_end_time: string
+          p_event_date: string
+          p_guest_count: number
+          p_is_hotel_guest?: boolean
+          p_notes?: string
+          p_room_number?: string
+          p_start_time: string
+          p_venue_id: string
         }
         Returns: Json
       }
@@ -4005,6 +4329,7 @@ export type Database = {
         Args: { p_new_check_out: string; p_reason?: string; p_stay_id: string }
         Returns: Json
       }
+      finalize_event_booking: { Args: { p_booking_id: string }; Returns: Json }
       generate_arrived_tasks: { Args: { p_stay_id: string }; Returns: number }
       generate_contract_installments: {
         Args: { p_contract_id: string }
@@ -4026,13 +4351,26 @@ export type Database = {
       get_contract_kpis: { Args: never; Returns: Json }
       get_cron_jobs: { Args: never; Returns: Json }
       get_cron_run_details: { Args: never; Returns: Json }
+      get_event_kpis: { Args: never; Returns: Json }
       get_my_permissions: { Args: never; Returns: string[] }
       get_my_profile: { Args: never; Returns: Json }
+      get_venue_bookings_for_date: {
+        Args: { p_date: string; p_venue_id: string }
+        Returns: {
+          client_name: string
+          code: string
+          end_time: string
+          id: string
+          start_time: string
+          status: string
+        }[]
+      }
       has_permission: { Args: { p_key: string }; Returns: boolean }
       inspect_cleaning: {
         Args: { p_approved: boolean; p_cleaning_id: string; p_notes?: string }
         Returns: Json
       }
+      mark_event_rental_paid: { Args: { p_booking_id: string }; Returns: Json }
       process_recurring_tasks: { Args: never; Returns: number }
       reassign_workflow_tasks_for_role: {
         Args: { p_org_id: string; p_role_id: string }
@@ -4056,6 +4394,10 @@ export type Database = {
         }
         Returns: Json
       }
+      register_event_deposit: {
+        Args: { p_amount: number; p_booking_id: string; p_method_id: string }
+        Returns: Json
+      }
       register_past_cleaning: {
         Args: {
           p_cleaning_type_id: string
@@ -4077,6 +4419,11 @@ export type Database = {
         }
         Returns: string
       }
+      retain_event_deposit: {
+        Args: { p_booking_id: string; p_reason: string }
+        Returns: Json
+      }
+      return_event_deposit: { Args: { p_booking_id: string }; Returns: Json }
       schedule_checkout_cleaning: {
         Args: { p_stay_id: string }
         Returns: undefined
@@ -4173,6 +4520,12 @@ export type Database = {
         | "terminated_early"
         | "renewed"
         | "cancelled"
+      event_booking_status:
+        | "pending_deposit"
+        | "confirmed"
+        | "finished"
+        | "cancelled"
+      event_deposit_status: "pending" | "received" | "returned" | "retained"
       expense_category_group:
         | "departmental"
         | "undistributed"
@@ -4198,6 +4551,7 @@ export type Database = {
         | "arrival_confirmed"
       template_scope: "per_stay" | "daily_digest"
       time_off_type: "vacation" | "sick_leave" | "personal" | "other"
+      venue_pricing_type: "per_hour" | "per_person" | "flat_rate"
       workflow_type:
         | "stay_created"
         | "guest_arrived"
@@ -4373,6 +4727,13 @@ export const Constants = {
         "renewed",
         "cancelled",
       ],
+      event_booking_status: [
+        "pending_deposit",
+        "confirmed",
+        "finished",
+        "cancelled",
+      ],
+      event_deposit_status: ["pending", "received", "returned", "retained"],
       expense_category_group: [
         "departmental",
         "undistributed",
@@ -4401,6 +4762,7 @@ export const Constants = {
       ],
       template_scope: ["per_stay", "daily_digest"],
       time_off_type: ["vacation", "sick_leave", "personal", "other"],
+      venue_pricing_type: ["per_hour", "per_person", "flat_rate"],
       workflow_type: [
         "stay_created",
         "guest_arrived",
