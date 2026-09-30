@@ -395,7 +395,7 @@ function ImportButton() {
       const res = await fetch('/api/whatsapp/import', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success(`${data.chats} chats importados · ${data.messagesImported} mensajes`);
+      toast.success(`${data.chats} chats importados${data.unhidden ? ` · ${data.unhidden} desocultos` : ''}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error al importar');
     } finally {

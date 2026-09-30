@@ -472,7 +472,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
       const res = await fetch('/api/whatsapp/import', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Error al importar');
-      toast.success(`${data.chats} chats importados · ${data.messagesImported} mensajes`);
+      toast.success(`${data.chats} chats importados${data.unhidden ? ` · ${data.unhidden} desocultos` : ''}`);
       queryClient.invalidateQueries({ queryKey: ['chat_conversations'] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error al importar chats');
