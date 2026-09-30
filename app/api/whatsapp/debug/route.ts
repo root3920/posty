@@ -77,11 +77,33 @@ export async function GET() {
       };
     } catch (e) { results.findChatsPost = { error: String(e) }; }
 
-    // 5. findChats — GET (fallback)
+    // 5. findMessages for first 1:1 chat
     try {
-      const r = await fetch(`${baseUrl}/chat/findChats/${conn.instance_name}`, { headers });
-      results.findChatsGet = { status: r.status, length: (await r.text()).length };
-    } catch (e) { results.findChatsGet = { error: String(e) }; }
+      const firstChat = (results.findChatsPost as Record<string, unknown>)?.sample;
+      const samples = Array.isArray(firstChat) ? firstChat : [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const first1to1 = samples.find((c: any) => c.remoteJid && !c.remoteJid.includes('@g.us'));
+      if (first1to1) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const jid = (first1to1 as any).remoteJid;
+        const r = await fetch(`${baseUrl}/chat/findMessages/${conn.instance_name}`, {
+          method: 'POST', headers,
+          body: JSON.stringify({ where: { key: { remoteJid: jid } }, limit: 3 }),
+        });
+        const raw = await r.text();
+        const parsed = raw ? JSON.parse(raw) : null;
+        const msgs = Array.isArray(parsed) ? parsed : parsed?.messages ?? [];
+        results.findMessages = {
+          status: r.status,
+          jid,
+          count: msgs.length,
+          firstKeys: msgs[0] ? Object.keys(msgs[0]) : [],
+          first: msgs[0] ? { key: msgs[0].key, messageType: msgs[0].messageType, hasMessage: !!msgs[0].message } : null,
+        };
+      } else {
+        results.findMessages = { note: 'no 1:1 chat in sample' };
+      }
+    } catch (e) { results.findMessages = { error: String(e) }; }
 
     // 6. DB counts
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,7 +113,12 @@ export async function GET() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { count: logCount } = await (supabase as any).from('whatsapp_webhook_logs').select('*', { count: 'exact', head: true });
 
-    results.db = { conversations: convCount, messages: msgCount, webhookLogs: logCount };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: hiddenCount } = await (supabase as any).from('chat_conversations').select('*', { count: 'exact', head: true }).eq('organization_id', profile.organization_id).eq('is_hidden', true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: visibleCount } = await (supabase as any).from('chat_conversations').select('*', { count: 'exact', head: true }).eq('organization_id', profile.organization_id).eq('is_hidden', false);
+
+    results.db = { conversations: convCount, visible: visibleCount, hidden: hiddenCount, messages: msgCount, webhookLogs: logCount };
 
     return Response.json(results, { status: 200 });
   } catch (error) {

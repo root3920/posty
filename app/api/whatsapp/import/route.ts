@@ -95,17 +95,19 @@ export async function POST() {
     let imported = 0;
     let skipped = 0;
 
-    for (const chat of chats) {
+    // Limit to first 50 chats to avoid timeout (Evolution API is slow per-chat)
+    const chatsToImport = chats.slice(0, 50);
+    console.log('[Import] Processing', chatsToImport.length, 'of', chats.length, 'chats');
+
+    for (const chat of chatsToImport) {
       const phone = phoneFromJid(chat.remoteJid);
       const contactId = contactIdFromJid(chat.remoteJid);
 
       // Use phone if available, otherwise use the contactId (for @lid JIDs)
       const contactKey = phone ?? contactId;
 
-      // Determine if hidden (personal account + unknown contact)
-      const isKnown = phone ? knownPhones.has(phone) : false;
-      const isPersonal = conn.account_type === 'personal';
-      const isHidden = isPersonal && !isKnown;
+      // For Phase 0: show all imported chats. Hidden logic will be refined in Phase 1.
+      const isHidden = false;
 
       // Upsert conversation
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -150,8 +152,14 @@ export async function POST() {
           .eq('id', convo.id);
       }
 
-      // 3. Fetch recent messages for this chat
-      const messages = await provider.findMessages(conn.instance_name, chat.remoteJid, 50);
+      // 3. Fetch recent messages for this chat (only first 5 chats to test)
+      if (imported + skipped > 5) {
+        // Skip message fetching for the rest — just create conversations
+        continue;
+      }
+      console.log('[Import] Fetching messages for', chat.remoteJid, 'name:', chat.pushName);
+      const messages = await provider.findMessages(conn.instance_name, chat.remoteJid, 20);
+      console.log('[Import] Got', messages.length, 'messages for', chat.pushName);
 
       let lastMsgAt: string | null = null;
       let lastPreview: string | null = null;
