@@ -27,7 +27,7 @@ export async function syncWhatsAppConnection(orgId: string): Promise<{
 
   // Find the org's connection
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: conn } = await (supabase as any)
+  const { data: conn, error: connErr } = await (supabase as any)
     .from('whatsapp_connections')
     .select('id, instance_name, status, instance_token')
     .eq('organization_id', orgId)
@@ -35,11 +35,15 @@ export async function syncWhatsAppConnection(orgId: string): Promise<{
     .limit(1)
     .maybeSingle();
 
+  console.log('[Sync] DB lookup for org', orgId, '→', conn ? conn.instance_name : 'NONE', 'err:', connErr?.message);
+
   if (!conn) return null;
 
   try {
     // 1. Fetch live instance info
+    console.log('[Sync] Fetching instance info for:', conn.instance_name);
     const info = await provider.fetchInstanceInfo(conn.instance_name);
+    console.log('[Sync] Instance info:', info ? { state: info.state, owner: info.ownerJid, name: info.profileName } : 'NULL');
     if (!info) {
       console.log('[Sync] Instance not found in Evolution:', conn.instance_name);
       return { status: conn.status };
@@ -72,10 +76,12 @@ export async function syncWhatsAppConnection(orgId: string): Promise<{
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any)
+    const { error: updateErr } = await (supabase as any)
       .from('whatsapp_connections')
       .update(updates)
       .eq('id', conn.id);
+
+    console.log('[Sync] DB update:', { newStatus, phone, updateErr: updateErr?.message });
 
     // 5. Ensure webhook is configured
     if (env) {

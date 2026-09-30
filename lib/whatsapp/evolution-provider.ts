@@ -141,32 +141,64 @@ export class EvolutionProvider implements WhatsAppProvider {
   }
 
   async fetchInstanceInfo(instanceName: string): Promise<InstanceInfo | null> {
-    const response = await fetch(`${this.baseUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
-      method: 'GET',
-      headers: this.headers(),
-    });
+    // Use connectionState for reliable state — fetchInstances can have stale data
+    let state: ConnectionStatus = 'close';
+    try {
+      const stateRes = await fetch(`${this.baseUrl}/instance/connectionState/${instanceName}`, {
+        method: 'GET',
+        headers: this.headers(),
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const stateData = await handleResponse<any>(stateRes);
+      state = (stateData?.instance?.state ?? stateData?.state ?? 'close') as ConnectionStatus;
+      console.log('[Evolution] connectionState:', instanceName, '→', state);
+    } catch (err) {
+      console.error('[Evolution] connectionState failed:', err);
+    }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = await handleResponse<any>(response);
-    // fetchInstances returns an array or a single object
-    const instances = Array.isArray(data) ? data : [data];
-    const inst = instances.find((i: { name?: string; instance?: { instanceName?: string } }) =>
-      (i.instance?.instanceName ?? i.name) === instanceName
-    );
-    if (!inst) return null;
+    // Fetch instance details for owner/profile info
+    let ownerJid: string | undefined;
+    let profileName: string | undefined;
+    let profilePicUrl: string | undefined;
+    let token: string | undefined;
 
-    // Extract owner JID → phone
-    const ownerJid = inst.instance?.ownerJid ?? inst.ownerJid;
-    const state = inst.instance?.state ?? inst.state ?? 'close';
-    const profileName = inst.instance?.profileName ?? inst.profileName;
-    const profilePicUrl = inst.instance?.profilePictureUrl ?? inst.profilePicUrl;
-    const token = inst.instance?.token ?? inst.hash?.apikey;
+    try {
+      const response = await fetch(`${this.baseUrl}/instance/fetchInstances?instanceName=${instanceName}`, {
+        method: 'GET',
+        headers: this.headers(),
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await handleResponse<any>(response);
+      console.log('[Evolution] fetchInstances raw type:', typeof data, 'isArray:', Array.isArray(data));
 
-    console.log('[Evolution] fetchInstanceInfo:', instanceName, 'state:', state, 'owner:', ownerJid);
+      // Parse the response — could be array, single object, or nested
+      const instances = Array.isArray(data) ? data : data ? [data] : [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inst = instances.find((i: any) =>
+        (i?.instance?.instanceName ?? i?.instanceName ?? i?.name) === instanceName
+      ) ?? instances[0]; // fallback to first if only one
+
+      if (inst) {
+        // Try multiple possible paths for each field
+        ownerJid = inst.instance?.ownerJid ?? inst.ownerJid;
+        profileName = inst.instance?.profileName ?? inst.profileName;
+        profilePicUrl = inst.instance?.profilePictureUrl ?? inst.instance?.profilePicUrl ?? inst.profilePicUrl;
+        token = inst.instance?.token ?? inst.hash?.apikey ?? inst.token;
+        // Some versions put state here too
+        if (state === 'close') {
+          const instState = inst.instance?.status ?? inst.instance?.state ?? inst.state;
+          if (instState === 'open' || instState === 'connecting') state = instState as ConnectionStatus;
+        }
+        console.log('[Evolution] fetchInstances parsed:', { ownerJid, profileName, state, hasToken: !!token });
+      }
+    } catch (err) {
+      console.error('[Evolution] fetchInstances failed:', err);
+      // Not fatal — we already have the connection state
+    }
 
     return {
       instanceName,
-      state: state as ConnectionStatus,
+      state,
       ownerJid,
       profileName,
       profilePicUrl,

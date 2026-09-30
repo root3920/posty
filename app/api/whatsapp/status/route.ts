@@ -23,16 +23,35 @@ export async function GET() {
 
     if (!profile) return Response.json({ error: 'No profile' }, { status: 400 });
 
-    // Run sync — this queries Evolution, updates DB, and ensures webhook
-    const syncResult = await syncWhatsAppConnection(profile.organization_id);
+    console.log('[Status] Org:', profile.organization_id);
 
-    if (!syncResult) {
+    // First check: does the org have a connection row at all?
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: connBefore, error: connErr } = await (supabase as any)
+      .from('whatsapp_connections')
+      .select('id, instance_name, status, phone_e164, display_name, profile_pic_url, connected_at, last_seen_at')
+      .eq('organization_id', profile.organization_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    console.log('[Status] DB connection:', connBefore ? { id: connBefore.id, status: connBefore.status, instance: connBefore.instance_name } : 'NONE', 'err:', connErr?.message);
+
+    if (!connBefore) {
       return Response.json({ error: 'No connection', connected: false }, { status: 404 });
     }
 
-    const connected = syncResult.status === 'connected';
+    // Run sync — queries Evolution, updates DB, ensures webhook
+    let syncResult;
+    try {
+      syncResult = await syncWhatsAppConnection(profile.organization_id);
+      console.log('[Status] Sync result:', syncResult);
+    } catch (syncErr) {
+      console.error('[Status] Sync failed:', syncErr);
+      // Fall back to DB data even if sync fails
+    }
 
-    // Re-read from DB to get the latest
+    // Re-read from DB after sync
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: conn } = await (supabase as any)
       .from('whatsapp_connections')
@@ -42,13 +61,18 @@ export async function GET() {
       .limit(1)
       .maybeSingle();
 
+    const finalStatus = conn?.status ?? syncResult?.status ?? connBefore.status;
+    const connected = finalStatus === 'connected';
+
+    console.log('[Status] Final:', { finalStatus, connected, phone: conn?.phone_e164 });
+
     return Response.json({
-      connectionId: conn?.id,
-      status: conn?.status ?? syncResult.status,
+      connectionId: conn?.id ?? connBefore.id,
+      status: finalStatus,
       connected,
-      phone: conn?.phone_e164 ?? syncResult.phone,
-      displayName: conn?.display_name ?? syncResult.displayName,
-      profilePic: conn?.profile_pic_url ?? syncResult.profilePic,
+      phone: conn?.phone_e164 ?? syncResult?.phone,
+      displayName: conn?.display_name ?? syncResult?.displayName,
+      profilePic: conn?.profile_pic_url ?? syncResult?.profilePic,
       connectedAt: conn?.connected_at,
       lastSeenAt: conn?.last_seen_at,
     });
