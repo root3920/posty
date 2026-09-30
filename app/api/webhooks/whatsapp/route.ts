@@ -281,13 +281,16 @@ export async function POST(request: Request) {
     console.log('[Webhook] Processing event:', event, 'data keys:', Object.keys(data));
 
     try {
-      if (event === 'MESSAGES_UPSERT') {
-        console.log('[Webhook] MESSAGES_UPSERT — key:', JSON.stringify((data as Record<string, unknown>).key));
+      const ev = event?.toLowerCase();
+      if (ev === 'messages.upsert' || ev === 'messages_upsert') {
+        console.log('[Webhook] Message upsert — key:', JSON.stringify((data as Record<string, unknown>).key));
         await handleMessageUpsert(db, typedConn, data);
-      } else if (event === 'MESSAGES_UPDATE') {
+      } else if (ev === 'messages.update' || ev === 'messages_update') {
         await handleMessageUpdate(db, typedConn, data);
-      } else if (event === 'CONNECTION_UPDATE') {
+      } else if (ev === 'connection.update' || ev === 'connection_update') {
         await handleConnectionUpdate(db, typedConn, data);
+      } else {
+        console.log('[Webhook] Unhandled event:', event);
       }
 
       // Mark the most recent log as processed
