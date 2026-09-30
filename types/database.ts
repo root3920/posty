@@ -169,6 +169,175 @@ export type Database = {
           },
         ]
       }
+      chat_conversations: {
+        Row: {
+          assigned_to: string | null
+          connection_id: string
+          contact_name: string | null
+          contact_phone_e164: string
+          contact_pic_url: string | null
+          created_at: string
+          guest_id: string | null
+          id: string
+          is_hidden: boolean
+          last_message_at: string | null
+          last_message_preview: string | null
+          organization_id: string
+          status: Database["public"]["Enums"]["chat_conversation_status"]
+          tags: string[]
+          unread_count: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          connection_id: string
+          contact_name?: string | null
+          contact_phone_e164: string
+          contact_pic_url?: string | null
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          is_hidden?: boolean
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          organization_id: string
+          status?: Database["public"]["Enums"]["chat_conversation_status"]
+          tags?: string[]
+          unread_count?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          connection_id?: string
+          contact_name?: string | null
+          contact_phone_e164?: string
+          contact_pic_url?: string | null
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          is_hidden?: boolean
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          organization_id?: string
+          status?: Database["public"]["Enums"]["chat_conversation_status"]
+          tags?: string[]
+          unread_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_conversations_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversations_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversations_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          body: string | null
+          conversation_id: string
+          created_at: string
+          direction: Database["public"]["Enums"]["chat_message_direction"]
+          error: string | null
+          external_id: string | null
+          id: string
+          media_mime: string | null
+          media_path: string | null
+          organization_id: string
+          reply_to_id: string | null
+          sent_by: string | null
+          sent_from: Database["public"]["Enums"]["chat_message_source"] | null
+          status: Database["public"]["Enums"]["chat_message_status"]
+          type: Database["public"]["Enums"]["chat_message_type"]
+        }
+        Insert: {
+          body?: string | null
+          conversation_id: string
+          created_at?: string
+          direction: Database["public"]["Enums"]["chat_message_direction"]
+          error?: string | null
+          external_id?: string | null
+          id?: string
+          media_mime?: string | null
+          media_path?: string | null
+          organization_id: string
+          reply_to_id?: string | null
+          sent_by?: string | null
+          sent_from?: Database["public"]["Enums"]["chat_message_source"] | null
+          status?: Database["public"]["Enums"]["chat_message_status"]
+          type?: Database["public"]["Enums"]["chat_message_type"]
+        }
+        Update: {
+          body?: string | null
+          conversation_id?: string
+          created_at?: string
+          direction?: Database["public"]["Enums"]["chat_message_direction"]
+          error?: string | null
+          external_id?: string | null
+          id?: string
+          media_mime?: string | null
+          media_path?: string | null
+          organization_id?: string
+          reply_to_id?: string | null
+          sent_by?: string | null
+          sent_from?: Database["public"]["Enums"]["chat_message_source"] | null
+          status?: Database["public"]["Enums"]["chat_message_status"]
+          type?: Database["public"]["Enums"]["chat_message_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cleaning_schedules: {
         Row: {
           assigned_role_id: string | null
@@ -3375,6 +3544,119 @@ export type Database = {
           },
         ]
       }
+      whatsapp_connections: {
+        Row: {
+          account_type: Database["public"]["Enums"]["wa_account_type"]
+          connected_at: string | null
+          connected_by: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          instance_name: string
+          instance_token: string | null
+          last_seen_at: string | null
+          organization_id: string
+          phone_e164: string | null
+          profile_pic_url: string | null
+          provider: Database["public"]["Enums"]["wa_provider_type"]
+          settings: Json
+          status: Database["public"]["Enums"]["wa_connection_status"]
+          updated_at: string
+        }
+        Insert: {
+          account_type?: Database["public"]["Enums"]["wa_account_type"]
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          instance_name: string
+          instance_token?: string | null
+          last_seen_at?: string | null
+          organization_id: string
+          phone_e164?: string | null
+          profile_pic_url?: string | null
+          provider?: Database["public"]["Enums"]["wa_provider_type"]
+          settings?: Json
+          status?: Database["public"]["Enums"]["wa_connection_status"]
+          updated_at?: string
+        }
+        Update: {
+          account_type?: Database["public"]["Enums"]["wa_account_type"]
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          instance_name?: string
+          instance_token?: string | null
+          last_seen_at?: string | null
+          organization_id?: string
+          phone_e164?: string | null
+          profile_pic_url?: string | null
+          provider?: Database["public"]["Enums"]["wa_provider_type"]
+          settings?: Json
+          status?: Database["public"]["Enums"]["wa_connection_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_connections_connected_by_fkey"
+            columns: ["connected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_webhook_logs: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          error_message: string | null
+          event_type: string | null
+          id: string
+          organization_id: string | null
+          payload: Json
+          status: Database["public"]["Enums"]["webhook_log_status"]
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          organization_id?: string | null
+          payload: Json
+          status?: Database["public"]["Enums"]["webhook_log_status"]
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          organization_id?: string | null
+          payload?: Json
+          status?: Database["public"]["Enums"]["webhook_log_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_webhook_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_schedules: {
         Row: {
           end_time: string
@@ -4498,6 +4780,20 @@ export type Database = {
     Enums: {
       availability_status: "available" | "busy" | "resting"
       billing_cycle: "monthly" | "biweekly" | "weekly"
+      chat_conversation_status: "open" | "pending" | "closed"
+      chat_message_direction: "in" | "out"
+      chat_message_source: "posty" | "phone"
+      chat_message_status: "pending" | "sent" | "delivered" | "read" | "failed"
+      chat_message_type:
+        | "text"
+        | "image"
+        | "audio"
+        | "video"
+        | "document"
+        | "sticker"
+        | "location"
+        | "contact"
+        | "unsupported"
       cleaning_origin:
         | "auto_weekly"
         | "pre_arrival"
@@ -4552,6 +4848,16 @@ export type Database = {
       template_scope: "per_stay" | "daily_digest"
       time_off_type: "vacation" | "sick_leave" | "personal" | "other"
       venue_pricing_type: "per_hour" | "per_person" | "flat_rate"
+      wa_account_type: "personal" | "business"
+      wa_connection_status:
+        | "pending_qr"
+        | "connecting"
+        | "connected"
+        | "disconnected"
+        | "banned"
+        | "error"
+      wa_provider_type: "evolution_qr" | "meta_cloud"
+      webhook_log_status: "pending" | "processed" | "error"
       workflow_type:
         | "stay_created"
         | "guest_arrived"
@@ -4702,6 +5008,21 @@ export const Constants = {
     Enums: {
       availability_status: ["available", "busy", "resting"],
       billing_cycle: ["monthly", "biweekly", "weekly"],
+      chat_conversation_status: ["open", "pending", "closed"],
+      chat_message_direction: ["in", "out"],
+      chat_message_source: ["posty", "phone"],
+      chat_message_status: ["pending", "sent", "delivered", "read", "failed"],
+      chat_message_type: [
+        "text",
+        "image",
+        "audio",
+        "video",
+        "document",
+        "sticker",
+        "location",
+        "contact",
+        "unsupported",
+      ],
       cleaning_origin: [
         "auto_weekly",
         "pre_arrival",
@@ -4763,6 +5084,17 @@ export const Constants = {
       template_scope: ["per_stay", "daily_digest"],
       time_off_type: ["vacation", "sick_leave", "personal", "other"],
       venue_pricing_type: ["per_hour", "per_person", "flat_rate"],
+      wa_account_type: ["personal", "business"],
+      wa_connection_status: [
+        "pending_qr",
+        "connecting",
+        "connected",
+        "disconnected",
+        "banned",
+        "error",
+      ],
+      wa_provider_type: ["evolution_qr", "meta_cloud"],
+      webhook_log_status: ["pending", "processed", "error"],
       workflow_type: [
         "stay_created",
         "guest_arrived",

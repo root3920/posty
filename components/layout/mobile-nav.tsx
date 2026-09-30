@@ -16,6 +16,7 @@ import {
   CalendarClock,
   CalendarDays,
   FileText,
+  MessageCircle,
   Sparkles,
   ChevronRight,
   type LucideIcon,
@@ -49,6 +50,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, module: 'dashboard' },
   { href: '/equipo', label: 'Equipo', icon: Users, module: 'team' },
   { href: '/tareas', label: 'Tareas', icon: CheckSquare, module: 'tasks' },
+  { href: '/chat', label: 'Chat', icon: MessageCircle, module: 'chat' },
   {
     href: '/hotel',
     label: 'Hotel',

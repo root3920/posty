@@ -27,6 +27,7 @@ import {
   CalendarDays,
   FileText,
   MapPin,
+  MessageCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, module: 'dashboard' },
   { href: '/equipo', label: 'Equipo', icon: Users, module: 'team' },
   { href: '/tareas', label: 'Tareas', icon: CheckSquare, module: 'tasks' },
+  { href: '/chat', label: 'Chat', icon: MessageCircle, module: 'chat' },
   {
     href: '/hotel',
     label: 'Hotel',

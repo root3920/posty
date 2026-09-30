@@ -52,12 +52,13 @@ app/
   (app)/dashboard                ← Dashboard principal
   (app)/equipo                   ← Módulo Equipo
   (app)/tareas                   ← Módulo Tareas
+  (app)/chat                     ← Módulo Chat (WhatsApp)
   (app)/hotel                    ← Módulo Hotel
   (app)/limpieza                 ← Módulo Limpieza (Housekeeping)
   (app)/eventos                  ← Módulo Eventos (alquiler de espacios)
   (app)/finanzas                 ← Módulo Finanzas
   (app)/contratos                ← Módulo Contratos de Larga Estadía
-  (app)/configuracion            ← Configuración (incluye tareas-automaticas con 3 tabs, contratos)
+  (app)/configuracion            ← Configuración (incluye tareas-automaticas, contratos, espacios, whatsapp)
 components/
   ui/                            ← Componentes shadcn/ui
   layout/                        ← Sidebar, Header, stores
@@ -144,6 +145,10 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [ ] Hotel E2: Conversión de modalidad (corta ↔ larga), guest_snapshot, visits
 - [ ] Hotel E3: Fusionar huéspedes, historial visible, reportes
 - [x] Eventos: Alquiler de espacios, reservas con detección de cruces, depósitos, calendario semanal, tareas automáticas
+- [x] Chat F0: Provider layer + Evolution API, webhook, conexión QR, chat mínimo de prueba
+- [ ] Chat F1: Sección Chat completa (3 columnas, medios, notas, Realtime)
+- [ ] Chat F2: Contexto del huésped, plantillas, integración con tareas
+- [ ] Chat F3: Protecciones anti-bloqueo, chats ocultos, permisos
 - [ ] Contratos E2: Plantilla PDF, firma electrónica, otrosí, renovación, terminación, tareas automáticas, Finanzas
 
 ## Módulo Contratos de Larga Estadía
@@ -179,6 +184,17 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - **Tareas automáticas**: Al confirmar, crea "Preparar espacio" (1h antes) y "Limpiar después" (al terminar). Al cancelar, cancela las tareas vinculadas
 - **3 tabs**: Reservas (tabla + filtros), Calendario semanal (grid espacios × días), Espacios (tarjetas con switch activo/inactivo)
 - **WhatsApp**: Botón "Enviar por WhatsApp" con wa.me link y mensaje prellenado
+
+## Módulo Chat (WhatsApp)
+
+- **Arquitectura**: Evolution API (Railway, Docker) → webhook → POSTY (Vercel) → Supabase. POSTY es fuente de verdad de los chats
+- **Provider layer**: `lib/whatsapp/types.ts` (interfaz), `lib/whatsapp/evolution-provider.ts` (implementación v2.3), `lib/whatsapp/provider.ts` (factory). La UI nunca llama a Evolution directo
+- **Tablas**: `whatsapp_connections`, `whatsapp_webhook_logs` (raw capture), `chat_conversations`, `chat_messages`
+- **API routes**: `/api/webhooks/whatsapp` (pública), `/api/whatsapp/{connect,qr,status,send,disconnect}` (autenticadas)
+- **Webhook**: raw capture ANTES de validar, idempotente por external_id, siempre 200
+- **Permisos**: `chat.view`, `chat.view_all`, `chat.send`, `chat.assign`, `chat.manage_connection`
+- **Variables de entorno**: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `WHATSAPP_WEBHOOK_SECRET`
+- **Conexión**: QR escaneado desde /configuracion/whatsapp. Estado visible en /chat
 
 ## Sistema de diseño
 
