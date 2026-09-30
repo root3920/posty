@@ -136,11 +136,12 @@ async function handleMessageUpsert(
       conversation_id: conversationId,
       external_id: messageId,
       direction: fromMe ? 'out' : 'in',
-      message_type: msgType,
+      type: msgType,
       body: bodyText,
-      status: fromMe ? 'sent' : null,
-      sent_from: fromMe ? 'whatsapp' : null,
+      status: fromMe ? 'sent' : 'delivered',
+      sent_from: fromMe ? 'phone' : null,
     });
+    console.log('[Webhook] Insert message result:', msgError ? msgError.message : 'OK', 'id:', messageId?.slice(0, 10));
 
     if (msgError && msgError.code !== '23505') {
       // 23505 = unique_violation (already exists, idempotent)
@@ -303,7 +304,8 @@ export async function POST(request: Request) {
         .order('created_at', { ascending: false })
         .limit(1);
     } catch (processingError) {
-      console.error('Webhook processing error:', processingError);
+      console.error('[Webhook] PROCESSING ERROR:', processingError instanceof Error ? processingError.message : processingError);
+      console.error('[Webhook] Stack:', processingError instanceof Error ? processingError.stack : '');
     }
 
     return Response.json({ ok: true });
