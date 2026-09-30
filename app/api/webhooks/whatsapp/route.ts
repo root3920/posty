@@ -91,6 +91,14 @@ async function handleMessageUpsert(
 
     if (existingConv) {
       conversationId = existingConv.id as string;
+      // Update name if we got a pushName and conversation doesn't have one
+      if (pushName) {
+        await db
+          .from('chat_conversations')
+          .update({ contact_name: pushName })
+          .eq('id', conversationId)
+          .is('contact_name', null);
+      }
     } else {
       // Try to auto-link to guest by phone
       const { data: guest } = await db

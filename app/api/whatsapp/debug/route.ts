@@ -73,11 +73,27 @@ export async function GET() {
         status: r.status,
         count: arr.length,
         first: arr[0] ? { keys: Object.keys(arr[0]), id: arr[0].id, remoteJid: arr[0].remoteJid } : null,
-        sample: arr.slice(0, 3).map((c: Record<string, string>) => ({ id: c.id, remoteJid: c.remoteJid, name: c.name, jid: c.jid })),
+        sample: arr.slice(0, 5).map((c: Record<string, unknown>) => ({ remoteJid: c.remoteJid, name: c.name, pushName: c.pushName, isSaved: c.isSaved, unreadCount: c.unreadCount, lastMessage: c.lastMessage ? Object.keys(c.lastMessage as object) : null })),
       };
     } catch (e) { results.findChatsPost = { error: String(e) }; }
 
-    // 5. findMessages for first 1:1 chat
+    // 5. findContacts
+    try {
+      const r = await fetch(`${baseUrl}/chat/findContacts/${conn.instance_name}`, {
+        method: 'POST', headers, body: '{}',
+      });
+      const raw = await r.text();
+      const parsed = raw ? JSON.parse(raw) : null;
+      const arr = Array.isArray(parsed) ? parsed : [];
+      results.findContacts = {
+        status: r.status,
+        count: arr.length,
+        firstKeys: arr[0] ? Object.keys(arr[0]) : [],
+        sample: arr.slice(0, 3).map((c: Record<string, unknown>) => ({ id: c.id, remoteJid: c.remoteJid, pushName: c.pushName, profilePicUrl: c.profilePicUrl })),
+      };
+    } catch (e) { results.findContacts = { error: String(e) }; }
+
+    // 6. findMessages for first 1:1 chat
     try {
       const firstChat = (results.findChatsPost as Record<string, unknown>)?.sample;
       const samples = Array.isArray(firstChat) ? firstChat : [];

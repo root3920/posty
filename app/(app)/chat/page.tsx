@@ -202,9 +202,22 @@ function ConversationsColumn({
       <div className="shrink-0 border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <span className="font-heading text-base font-semibold">Conversaciones</span>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            {conversations.length}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {onImport && (
+              <Button
+                variant="ghost"
+                size="xs"
+                className="text-[10px]"
+                onClick={onImport}
+                disabled={isImporting}
+              >
+                {isImporting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Importar'}
+              </Button>
+            )}
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              {conversations.length}
+            </span>
+          </div>
         </div>
         <div className="relative mt-2">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
