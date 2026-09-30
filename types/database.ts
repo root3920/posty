@@ -169,10 +169,65 @@ export type Database = {
           },
         ]
       }
+      chat_contacts: {
+        Row: {
+          created_at: string
+          custom_name: string | null
+          guest_id: string | null
+          id: string
+          lid: string | null
+          organization_id: string
+          phone_e164: string | null
+          profile_pic_url: string | null
+          updated_at: string
+          whatsapp_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          custom_name?: string | null
+          guest_id?: string | null
+          id?: string
+          lid?: string | null
+          organization_id: string
+          phone_e164?: string | null
+          profile_pic_url?: string | null
+          updated_at?: string
+          whatsapp_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          custom_name?: string | null
+          guest_id?: string | null
+          id?: string
+          lid?: string | null
+          organization_id?: string
+          phone_e164?: string | null
+          profile_pic_url?: string | null
+          updated_at?: string
+          whatsapp_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_contacts_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_contacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_conversations: {
         Row: {
           assigned_to: string | null
           connection_id: string
+          contact_id: string | null
           contact_lid: string | null
           contact_name: string | null
           contact_phone_e164: string
@@ -193,6 +248,7 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           connection_id: string
+          contact_id?: string | null
           contact_lid?: string | null
           contact_name?: string | null
           contact_phone_e164: string
@@ -213,6 +269,7 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           connection_id?: string
+          contact_id?: string | null
           contact_lid?: string | null
           contact_name?: string | null
           contact_phone_e164?: string
@@ -243,6 +300,13 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "chat_contacts"
             referencedColumns: ["id"]
           },
           {
@@ -5051,6 +5115,10 @@ export type Database = {
         }
         Returns: Json
       }
+      rename_chat_contact: {
+        Args: { p_contact_id: string; p_custom_name: string }
+        Returns: undefined
+      }
       renew_contract: {
         Args: {
           p_contract_id: string
@@ -5160,6 +5228,27 @@ export type Database = {
           p_travel_reason_id?: string
         }
         Returns: Json
+      }
+      upsert_chat_contact: {
+        Args: {
+          p_lid?: string
+          p_org_id: string
+          p_phone?: string
+          p_profile_pic?: string
+          p_whatsapp_name?: string
+        }
+        Returns: string
+      }
+      upsert_chat_conversation: {
+        Args: {
+          p_connection_id: string
+          p_contact_id: string
+          p_contact_name?: string
+          p_contact_phone?: string
+          p_is_inbound?: boolean
+          p_org_id: string
+        }
+        Returns: string
       }
     }
     Enums: {

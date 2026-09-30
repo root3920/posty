@@ -98,60 +98,32 @@ async function handleMessageUpsert(
     const bodyText = extractBodyText(msg);
     const msgType = extractMessageType(messageType);
 
-    // Find or create conversation
-    const { data: existingConv } = await db
-      .from('chat_conversations')
-      .select('id')
-      .eq('organization_id', conn.organization_id)
-      .eq('connection_id', conn.id)
-      .eq('contact_phone_e164', contactKey)
-      .limit(1)
-      .maybeSingle();
+    // Atomic: upsert contact then upsert conversation (no race conditions)
+    const { data: contactId } = await db.rpc('upsert_chat_contact', {
+      p_org_id: conn.organization_id,
+      p_phone: phone,
+      p_lid: lid,
+      p_whatsapp_name: fromMe ? null : (pushName ?? null),
+      p_profile_pic: null,
+    });
 
-    let conversationId: string;
+    if (!contactId) {
+      console.error('[Webhook] Failed to upsert contact for', phone ?? lid);
+      continue;
+    }
 
-    if (existingConv) {
-      conversationId = existingConv.id as string;
-      // Update name from incoming messages only (fromMe has OUR name)
-      const updates: Record<string, unknown> = {};
-      if (pushName && !fromMe) updates.contact_name = pushName;
-      if (lid) updates.contact_lid = lid;
-      if (Object.keys(updates).length > 0) {
-        await db.from('chat_conversations').update(updates).eq('id', conversationId);
-      }
-    } else {
-      // Auto-link to guest by phone
-      let guestId: string | null = null;
-      if (phone) {
-        const { data: guest } = await db
-          .from('guests')
-          .select('id')
-          .eq('organization_id', conn.organization_id)
-          .eq('phone', phone)
-          .limit(1)
-          .maybeSingle();
-        guestId = guest?.id ?? null;
-      }
+    const { data: conversationId } = await db.rpc('upsert_chat_conversation', {
+      p_org_id: conn.organization_id,
+      p_connection_id: conn.id,
+      p_contact_id: contactId,
+      p_contact_phone: phone ?? (lid ? `lid:${lid}` : null),
+      p_contact_name: fromMe ? null : (pushName ?? null),
+      p_is_inbound: !fromMe,
+    });
 
-      const { data: newConv, error: convError } = await db
-        .from('chat_conversations')
-        .insert({
-          organization_id: conn.organization_id,
-          connection_id: conn.id,
-          contact_phone_e164: contactKey,
-          contact_lid: lid,
-          contact_name: fromMe ? null : (pushName ?? null),
-          guest_id: guestId,
-          last_inbound_at: fromMe ? null : new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-
-      if (convError || !newConv) {
-        console.error('Failed to create conversation:', convError);
-        continue;
-      }
-      conversationId = newConv.id as string;
+    if (!conversationId) {
+      console.error('[Webhook] Failed to upsert conversation');
+      continue;
     }
 
     // Insert message — idempotent via unique constraint on (organization_id, external_id)

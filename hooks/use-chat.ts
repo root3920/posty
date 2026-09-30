@@ -23,9 +23,11 @@ export interface ChatConversation {
   id: string;
   organization_id: string;
   connection_id: string;
+  contact_id: string | null;
   contact_phone_e164: string;
   contact_name: string | null;
   contact_pic_url: string | null;
+  contact_lid: string | null;
   guest_id: string | null;
   assigned_to: string | null;
   status: string;
@@ -328,5 +330,25 @@ export function useChatQuickReplies() {
       return (data ?? []) as Array<{ id: string; title: string; body: string; shortcut: string | null }>;
     },
     staleTime: 60_000,
+  });
+}
+
+// -------------------------------------------------------
+// Rename contact
+// -------------------------------------------------------
+
+export function useRenameContact() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ contactId, customName }: { contactId: string; customName: string }) => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).rpc('rename_chat_contact', { p_contact_id: contactId, p_custom_name: customName });
+    },
+    onSuccess: () => {
+      toast.success('Nombre actualizado');
+      queryClient.invalidateQueries({ queryKey: ['chat_conversations'] });
+    },
+    onError: () => toast.error('Error al renombrar'),
   });
 }
