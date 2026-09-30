@@ -334,6 +334,24 @@ export function useChatQuickReplies() {
 }
 
 // -------------------------------------------------------
+// Visibility control
+// -------------------------------------------------------
+
+export function useSetContactVisibility() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ contactId, visibility }: { contactId: string; visibility: 'auto' | 'visible' | 'hidden' }) => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).rpc('set_contact_visibility', { p_contact_id: contactId, p_visibility: visibility });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chat_conversations'] });
+    },
+  });
+}
+
+// -------------------------------------------------------
 // Rename contact
 // -------------------------------------------------------
 

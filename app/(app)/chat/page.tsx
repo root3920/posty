@@ -104,7 +104,7 @@ function isSameDay(a: string, b: string): boolean {
 // Filter types
 // -------------------------------------------------------
 
-type FilterKey = 'all' | 'unread' | 'mine' | 'unassigned' | 'closed';
+type FilterKey = 'all' | 'unread' | 'mine' | 'unassigned' | 'closed' | 'hidden';
 
 interface FilterChip {
   key: FilterKey;
@@ -117,6 +117,7 @@ const FILTER_CHIPS: FilterChip[] = [
   { key: 'mine', label: 'Míos' },
   { key: 'unassigned', label: 'Sin asignar' },
   { key: 'closed', label: 'Cerrados' },
+  { key: 'hidden', label: 'Ocultos' },
 ];
 
 // -------------------------------------------------------
@@ -453,6 +454,7 @@ interface ConversationsColumnProps {
   activeFilter: FilterKey;
   onFilterChange: (f: FilterKey) => void;
   currentUserId: string | null;
+  hiddenCount?: number;
 }
 
 function ConversationsColumn({
@@ -467,6 +469,7 @@ function ConversationsColumn({
   activeFilter,
   onFilterChange,
   currentUserId,
+  hiddenCount = 0,
 }: ConversationsColumnProps) {
   const [showNewChat, setShowNewChat] = useState(false);
 
@@ -493,6 +496,7 @@ function ConversationsColumn({
     if (key === 'mine') return allConversations.filter((c) => c.assigned_to === currentUserId).length;
     if (key === 'unassigned') return allConversations.filter((c) => c.assigned_to === null).length;
     if (key === 'closed') return allConversations.filter((c) => c.status === 'closed').length;
+    if (key === 'hidden') return hiddenCount;
     return 0;
   }
 
@@ -984,20 +988,22 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
 
   const markRead = useMarkConversationRead();
 
-  // Get all conversations for counts (no filter for server-side, we do client-side for mine/unassigned)
+  // Get all conversations for counts
   const { data: allConversations = [] } = useChatConversations();
-  const { data: unreadConversations = [] } = useChatConversations({ unreadOnly: true });
-  const { data: closedConversations = [] } = useChatConversations({ status: 'closed' });
+  const { data: hiddenConversations = [] } = useChatConversations({ showHidden: true });
+  const hiddenOnly = hiddenConversations.filter((c) => c.is_hidden);
 
-  // Map activeFilter to useChatConversations params
-  function getFilterParams(key: FilterKey): Parameters<typeof useChatConversations>[0] {
-    if (key === 'unread') return { unreadOnly: true };
-    if (key === 'closed') return { status: 'closed' };
-    // 'mine' and 'unassigned' are filtered client-side from the 'all' result
-    return undefined;
-  }
-
-  const { data: filteredConversations = [] } = useChatConversations(getFilterParams(activeFilter));
+  // Compute filtered list based on active filter
+  const filteredConversations = (() => {
+    switch (activeFilter) {
+      case 'unread': return allConversations.filter((c) => c.unread_count > 0);
+      case 'mine': return allConversations.filter((c) => c.assigned_to === currentUserId);
+      case 'unassigned': return allConversations.filter((c) => !c.assigned_to);
+      case 'closed': return allConversations.filter((c) => c.status === 'closed');
+      case 'hidden': return hiddenOnly;
+      default: return allConversations;
+    }
+  })();
 
   const selectedConv = allConversations.find((c) => c.id === selectedId) ?? null;
 
@@ -1079,6 +1085,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
                 activeFilter={activeFilter}
                 onFilterChange={setActiveFilter}
                 currentUserId={currentUserId}
+                hiddenCount={hiddenOnly.length}
               />
             </div>
           )
@@ -1097,6 +1104,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
                 activeFilter={activeFilter}
                 onFilterChange={setActiveFilter}
                 currentUserId={currentUserId}
+                hiddenCount={hiddenOnly.length}
               />
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
