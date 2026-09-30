@@ -248,51 +248,85 @@ export class EvolutionProvider implements WhatsAppProvider {
   }
 
   async findChats(instanceName: string): Promise<ChatContact[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/chat/findChats/${instanceName}`, {
-        method: 'POST',
-        headers: this.headers(),
-        body: JSON.stringify({}),
-      });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await handleResponse<any[]>(response);
-      return (data ?? [])
-        .filter((c) => c.id?.endsWith('@s.whatsapp.net')) // Only 1:1 chats, no groups
-        .map((c) => ({
-          remoteJid: c.id,
-          pushName: c.name ?? c.pushName,
-          profilePicUrl: c.profilePicUrl,
-        }));
-    } catch (err) {
-      console.error('[Evolution] findChats failed:', err);
-      return [];
+    // Try POST /chat/findChats first, then GET as fallback
+    for (const method of ['POST', 'GET'] as const) {
+      try {
+        const url = `${this.baseUrl}/chat/findChats/${instanceName}`;
+        console.log(`[Evolution] findChats ${method} ${url}`);
+        const response = await fetch(url, {
+          method,
+          headers: this.headers(),
+          ...(method === 'POST' ? { body: JSON.stringify({}) } : {}),
+        });
+
+        const raw = await response.text();
+        console.log(`[Evolution] findChats response status=${response.status} length=${raw.length} first100=${raw.slice(0, 100)}`);
+
+        if (!response.ok) continue;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = JSON.parse(raw) as any;
+        const arr = Array.isArray(data) ? data : data?.chats ?? data?.data ?? [];
+        console.log(`[Evolution] findChats parsed ${arr.length} items, first keys:`, arr[0] ? Object.keys(arr[0]) : 'empty');
+
+        return arr
+          .filter((c: Record<string, string>) => {
+            const jid = c.id ?? c.remoteJid ?? c.jid ?? '';
+            return jid.endsWith('@s.whatsapp.net');
+          })
+          .map((c: Record<string, string>) => ({
+            remoteJid: c.id ?? c.remoteJid ?? c.jid,
+            pushName: c.name ?? c.pushName ?? c.contact,
+            profilePicUrl: c.profilePicUrl ?? c.imgUrl,
+          }));
+      } catch (err) {
+        console.error(`[Evolution] findChats ${method} failed:`, err);
+      }
     }
+    return [];
   }
 
   async findMessages(instanceName: string, remoteJid: string, limit: number = 50): Promise<ChatMessage[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/chat/findMessages/${instanceName}`, {
-        method: 'POST',
-        headers: this.headers(),
-        body: JSON.stringify({
-          where: { key: { remoteJid } },
-          limit,
-        }),
-      });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await handleResponse<any>(response);
-      const messages = Array.isArray(data) ? data : data?.messages ?? [];
-      return messages.map((m: ChatMessage) => ({
-        key: m.key,
-        pushName: m.pushName,
-        message: m.message,
-        messageType: m.messageType,
-        messageTimestamp: m.messageTimestamp,
-      }));
-    } catch (err) {
-      console.error('[Evolution] findMessages failed:', err);
-      return [];
+    // Try POST /chat/findMessages
+    for (const method of ['POST', 'GET'] as const) {
+      try {
+        const url = `${this.baseUrl}/chat/findMessages/${instanceName}`;
+        const body = method === 'POST'
+          ? JSON.stringify({ where: { key: { remoteJid } }, limit })
+          : undefined;
+        const fetchUrl = method === 'GET'
+          ? `${url}?remoteJid=${encodeURIComponent(remoteJid)}&limit=${limit}`
+          : url;
+
+        console.log(`[Evolution] findMessages ${method} ${fetchUrl}`);
+        const response = await fetch(fetchUrl, {
+          method,
+          headers: this.headers(),
+          ...(body ? { body } : {}),
+        });
+
+        const raw = await response.text();
+        console.log(`[Evolution] findMessages response status=${response.status} length=${raw.length}`);
+
+        if (!response.ok) continue;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = JSON.parse(raw) as any;
+        const messages = Array.isArray(data) ? data : data?.messages ?? data?.data ?? [];
+        console.log(`[Evolution] findMessages parsed ${messages.length} messages`);
+
+        return messages.map((m: ChatMessage) => ({
+          key: m.key,
+          pushName: m.pushName,
+          message: m.message,
+          messageType: m.messageType,
+          messageTimestamp: m.messageTimestamp,
+        }));
+      } catch (err) {
+        console.error(`[Evolution] findMessages ${method} failed:`, err);
+      }
     }
+    return [];
   }
 
   async disconnect(instanceName: string): Promise<void> {
