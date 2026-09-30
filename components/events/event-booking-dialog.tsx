@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
+import { DialogFooterBar } from '@/components/shared/dialog-footer-bar';
 import { EntitySelect } from '@/components/shared/entity-select';
 import { TimeSelect } from '@/components/shared/time-select';
 import { PhoneInput } from '@/components/shared/phone-input';
@@ -251,31 +252,42 @@ export function EventBookingDialog({
     setNotes('');
   }
 
-  // Footer with summary
+  // Status badge
+  const statusBadge = useMemo(() => {
+    if (depositRequired === 0 || depositReceived >= depositRequired) {
+      return <Badge variant="default" className="bg-emerald-600 text-[10px]">Confirmada</Badge>;
+    }
+    if (depositReceived > 0) {
+      return <Badge variant="outline" className="border-amber-500 text-amber-600 text-[10px]">Pendiente · faltan {formatCurrency(depositRequired - depositReceived, currency, locale)}</Badge>;
+    }
+    return <Badge variant="outline" className="border-amber-500 text-amber-600 text-[10px]">Pendiente depósito</Badge>;
+  }, [depositRequired, depositReceived, currency, locale]);
+
+  // Footer
   const footer = (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <div className="text-xs text-muted-foreground">
-        {rentalTotal > 0 && (
-          <span className="font-medium text-foreground">
-            Total {formatCurrency(rentalTotal + depositRequired, currency, locale)}
-          </span>
-        )}
-        {rentalTotal > 0 && (
-          <span className="ml-2">{statusPreview}</span>
-        )}
-      </div>
-      <div className="flex gap-2">
-        {step > 1 && (
-          <Button type="button" variant="ghost" onClick={() => setStep(step - 1)}>
+    <DialogFooterBar
+      summary={
+        rentalTotal > 0 ? (
+          <>
+            <span className="text-xs font-medium">
+              Total {formatCurrency(rentalTotal + depositRequired, currency, locale)}
+            </span>
+            {statusBadge}
+          </>
+        ) : undefined
+      }
+      secondary={
+        step > 1 ? (
+          <Button type="button" variant="ghost" size="sm" onClick={() => setStep(step - 1)}>
             Anterior
           </Button>
-        )}
-        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-          Cancelar
-        </Button>
-        {step < 3 ? (
+        ) : undefined
+      }
+      primary={
+        step < 3 ? (
           <Button
             type="button"
+            size="sm"
             disabled={(step === 1 && !step1Valid) || (step === 2 && !step2Valid)}
             onClick={() => setStep(step + 1)}
           >
@@ -284,14 +296,15 @@ export function EventBookingDialog({
         ) : (
           <Button
             type="button"
+            size="sm"
             disabled={!step1Valid || !step2Valid || createBooking.isPending}
             onClick={handleSubmit}
           >
             {createBooking.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar reserva'}
           </Button>
-        )}
-      </div>
-    </div>
+        )
+      }
+    />
   );
 
   return (
@@ -497,30 +510,56 @@ export function EventBookingDialog({
       {/* Step 3: Payment & Notes */}
       {step === 3 && (
         <div className="space-y-4">
-          {/* Live calculation */}
-          <div className="bg-muted/50 rounded-lg p-3 space-y-1">
-            {calcText && <p className="text-sm font-medium">{calcText}</p>}
+          {/* Summary card */}
+          <div className="rounded-lg border p-3 space-y-2">
+            <p className="text-sm">
+              {selectedVenue?.name} · {PRICING_TYPE_LABELS[selectedVenue?.pricing_type ?? 'flat_rate']}
+            </p>
+            {calcText && <p className="text-xs text-muted-foreground">{calcText}</p>}
             {depositRequired > 0 && (
               <p className="text-xs text-muted-foreground">
-                Depósito de garantía: {formatCurrency(depositRequired, currency, locale)}
+                Depósito de garantía {formatCurrency(depositRequired, currency, locale)}
               </p>
             )}
-            <p className="text-xs font-medium">
-              Total a recibir:{' '}
-              {formatCurrency(rentalTotal + depositRequired, currency, locale)}
-            </p>
+            <div className="border-t pt-2">
+              <p className="text-sm font-bold tabular-nums">
+                Total a recibir {formatCurrency(rentalTotal + depositRequired, currency, locale)}
+              </p>
+            </div>
           </div>
 
+          {/* Deposit */}
           {depositRequired > 0 && (
-            <>
-              <div className="space-y-1">
-                <Label className="text-xs">Depósito recibido</Label>
-                <Input
-                  type="number"
-                  value={depositReceived || ''}
-                  onChange={(e) => setDepositReceived(Number(e.target.value))}
-                  min={0}
-                />
+            <div className="space-y-2">
+              <Label className="text-xs">Depósito recibido</Label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={depositReceived ? formatCurrency(depositReceived, currency, locale) : ''}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9]/g, '');
+                  setDepositReceived(Number(raw));
+                }}
+                placeholder="$ 0"
+                className="tabular-nums"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() => setDepositReceived(depositRequired)}
+                >
+                  Completo ({formatCurrency(depositRequired, currency, locale)})
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={() => setDepositReceived(0)}
+                >
+                  Sin depósito ($ 0)
+                </Button>
               </div>
 
               {depositReceived > 0 && (
@@ -534,7 +573,7 @@ export function EventBookingDialog({
                   />
                 </div>
               )}
-            </>
+            </div>
           )}
 
           <div className="flex items-center gap-2">
@@ -544,11 +583,9 @@ export function EventBookingDialog({
               onCheckedChange={(v) => setRentalPaid(!!v)}
             />
             <Label htmlFor="rental-paid" className="text-xs">
-              El valor del alquiler ya fue pagado
+              El alquiler ya fue pagado
             </Label>
           </div>
-
-          <p className="text-xs text-muted-foreground italic">{statusPreview}</p>
 
           <div className="space-y-1">
             <Label className="text-xs">Notas</Label>

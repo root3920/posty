@@ -21,6 +21,7 @@ import {
   useCreateContract,
 } from '@/hooks/use-contracts';
 import { formatCurrency } from '@/lib/format';
+import { DialogFooterBar } from '@/components/shared/dialog-footer-bar';
 import { addMonthsDateOnly, diffNights, formatDateOnly, formatDateRangeOnly } from '@/lib/dates';
 import { INCLUDED_SERVICES_OPTIONS, BILLING_CYCLE_LABELS } from './contract-status-badge';
 
@@ -247,21 +248,19 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
 
   // Footer
   const footer = (
-    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-      <div>
-        {step > 1 && (
-          <Button type="button" variant="ghost" onClick={() => setStep(step - 1)}>
+    <DialogFooterBar
+      secondary={
+        step > 1 ? (
+          <Button type="button" variant="ghost" size="sm" onClick={() => setStep(step - 1)}>
             Anterior
           </Button>
-        )}
-      </div>
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-          Cancelar
-        </Button>
-        {step < 4 ? (
+        ) : undefined
+      }
+      primary={
+        step < 4 ? (
           <Button
             type="button"
+            size="sm"
             disabled={
               (step === 1 && !step1Valid) ||
               (step === 2 && !step2Valid) ||
@@ -274,6 +273,7 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
         ) : (
           <Button
             type="button"
+            size="sm"
             disabled={createContract.isPending}
             onClick={handleCreate}
           >
@@ -283,9 +283,9 @@ export function ContractWizard({ open, onOpenChange }: ContractWizardProps) {
               'Guardar como borrador'
             )}
           </Button>
-        )}
-      </div>
-    </div>
+        )
+      }
+    />
   );
 
   return (
