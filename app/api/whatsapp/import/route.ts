@@ -1,44 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getWhatsAppProvider } from '@/lib/whatsapp/provider';
-import { getWhatsAppEnv } from '@/lib/whatsapp/env';
-
-interface ContactInfo {
-  remoteJid: string;
-  pushName: string | null;
-  profilePicUrl?: string;
-}
-
-async function fetchContacts(instanceName: string): Promise<ContactInfo[]> {
-  try {
-    const { env } = getWhatsAppEnv();
-    if (!env) return [];
-    let baseUrl = env.EVOLUTION_API_URL.trim();
-    if (!baseUrl.startsWith('http')) baseUrl = `https://${baseUrl}`;
-    baseUrl = baseUrl.replace(/\/+$/, '');
-
-    const response = await fetch(`${baseUrl}/chat/findContacts/${instanceName}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: env.EVOLUTION_API_KEY },
-      body: JSON.stringify({}),
-    });
-    if (!response.ok) {
-      console.log('[Import] findContacts failed:', response.status);
-      return [];
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = await response.json() as any[];
-    console.log('[Import] findContacts returned', (data ?? []).length, 'contacts');
-    return (data ?? []).map((c) => ({
-      remoteJid: c.remoteJid ?? c.id ?? '',
-      pushName: c.pushName ?? c.name ?? null,
-      profilePicUrl: c.profilePicUrl,
-    }));
-  } catch (err) {
-    console.error('[Import] findContacts error:', err);
-    return [];
-  }
-}
 
 function contactFromJid(jid: string): string {
   if (jid.includes('@s.whatsapp.net')) {
@@ -65,7 +27,9 @@ export async function POST() {
     const admin = createAdminClient();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: conn } = await (admin as any)
+    const db = admin as any;
+
+    const { data: conn } = await db
       .from('whatsapp_connections')
       .select('id, instance_name, status')
       .eq('organization_id', orgId)
@@ -78,30 +42,19 @@ export async function POST() {
     }
 
     const provider = getWhatsAppProvider();
-
-    // Fetch chats and contacts in parallel
-    const [chats, contactsRaw] = await Promise.all([
-      provider.findChats(conn.instance_name),
-      fetchContacts(conn.instance_name),
-    ]);
-
-    // Build a lookup: remoteJid → name
-    const contactNames = new Map<string, { name: string; pic?: string }>();
-    for (const c of contactsRaw) {
-      if (c.pushName) contactNames.set(c.remoteJid, { name: c.pushName, pic: c.profilePicUrl });
-    }
+    const chats = await provider.findChats(conn.instance_name);
+    console.log('[Import] Got', chats.length, 'chats from Evolution');
 
     let created = 0;
+    let namesUpdated = 0;
 
     for (const chat of chats) {
       const contactKey = contactFromJid(chat.remoteJid);
-      // Name priority: chat.pushName > contacts lookup > null
-      const contact = contactNames.get(chat.remoteJid);
-      const name = chat.pushName || contact?.name || null;
-      const pic = chat.profilePicUrl || contact?.pic || null;
+      const name = chat.pushName || null;
+      const pic = chat.profilePicUrl || null;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: convo } = await (admin as any)
+      // Try insert first
+      const { data: inserted } = await db
         .from('chat_conversations')
         .upsert(
           {
@@ -118,18 +71,32 @@ export async function POST() {
         .select('id')
         .maybeSingle();
 
-      if (convo) created++;
+      if (inserted) created++;
+
+      // Always update name and pic if we have them (upsert may not update existing)
+      if (name || pic) {
+        const updates: Record<string, unknown> = { is_hidden: false };
+        if (name) updates.contact_name = name;
+        if (pic) updates.contact_pic_url = pic;
+
+        const { count } = await db
+          .from('chat_conversations')
+          .update(updates)
+          .eq('organization_id', orgId)
+          .eq('connection_id', conn.id)
+          .eq('contact_phone_e164', contactKey);
+
+        if (count && count > 0) namesUpdated++;
+      }
     }
 
-    // Also make any previously hidden conversations visible
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin as any)
-      .from('chat_conversations')
-      .update({ is_hidden: false })
-      .eq('organization_id', orgId)
-      .eq('is_hidden', true);
+    console.log('[Import] Created/updated:', created, 'names updated:', namesUpdated);
 
-    return Response.json({ success: true, chats: created, contacts: contactsRaw.length });
+    return Response.json({
+      success: true,
+      chats: chats.length,
+      namesUpdated,
+    });
   } catch (error) {
     console.error('[Import] Error:', error);
     return Response.json({ error: 'Error al importar chats.' }, { status: 500 });

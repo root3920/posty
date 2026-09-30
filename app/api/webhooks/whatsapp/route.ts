@@ -73,6 +73,8 @@ async function handleMessageUpsert(
 
     const pushName = msg.pushName as string | undefined;
     const messageType = msg.messageType as string | undefined;
+
+    console.log('[Webhook] Message:', { remoteJid, fromMe, messageId: messageId?.slice(0, 10), pushName, messageType });
     const bodyText = extractBodyText(msg);
     const msgType = extractMessageType(messageType);
     const phone = contactFromJid(remoteJid);
@@ -262,9 +264,12 @@ export async function POST(request: Request) {
 
     // Validate webhook secret
     const secret = request.headers.get('x-webhook-secret');
-    if (secret !== process.env.WHATSAPP_WEBHOOK_SECRET) {
-      // Still 200 — payload is captured
-      return Response.json({ error: 'Invalid secret' }, { status: 200 });
+    const expected = process.env.WHATSAPP_WEBHOOK_SECRET;
+    console.log('[Webhook] Event:', body.event, 'Instance:', instanceName, 'Secret match:', secret === expected, 'Has secret:', !!secret, 'Has expected:', !!expected);
+    if (!expected || (secret !== expected)) {
+      console.log('[Webhook] Secret mismatch — secret length:', secret?.length, 'expected length:', expected?.length);
+      // Still 200 — payload is captured. But skip processing.
+      return Response.json({ ok: true, note: 'secret_mismatch' });
     }
 
     if (!typedConn) return Response.json({ ok: true });
@@ -273,8 +278,11 @@ export async function POST(request: Request) {
     const event = body.event as string | undefined;
     const data = (body.data ?? {}) as Record<string, unknown>;
 
+    console.log('[Webhook] Processing event:', event, 'data keys:', Object.keys(data));
+
     try {
       if (event === 'MESSAGES_UPSERT') {
+        console.log('[Webhook] MESSAGES_UPSERT — key:', JSON.stringify((data as Record<string, unknown>).key));
         await handleMessageUpsert(db, typedConn, data);
       } else if (event === 'MESSAGES_UPDATE') {
         await handleMessageUpdate(db, typedConn, data);
