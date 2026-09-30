@@ -34,6 +34,7 @@
 - **Errores de Supabase**: Nunca convertir un error en un estado vacío (`if (error) return []`). Las funciones de fetch deben lanzar el error (`if (error) throw error`); React Query lo captura en su estado `error` y los componentes lo muestran. Solo las funciones de auth (profile, permissions) pueden devolver null en caso de error
 - **Procesos programados**: Usar `pg_cron` (dentro de Postgres) en vez de crons de Vercel. Los jobs se registran en migraciones con `cron.schedule()`. Visible en Configuración → Sistema. Después de cada `db push`, verificar que los jobs siguen activos con `db:verify`
 - **Tareas recurrentes**: `process_recurring_tasks()` (pg_cron cada minuto) crea tareas normales a partir de `recurring_tasks`. Idempotente por `(recurring_task_id, occurrence_date)`. Soporta: diario, semanal, mensual (día 31 → último día del mes), cada N días. Configuración en `/configuracion/tareas-automaticas`
+- **Permisos nuevos**: Toda migración que agregue permisos nuevos (`INSERT INTO permissions`) DEBE también asignarlos a los roles de las organizaciones EXISTENTES (Gestor=todos, Recepción=subset, demás=view). Usar `ON CONFLICT DO NOTHING` para idempotencia. No basta con agregarlos en `seed_organization_defaults` (que solo corre para orgs nuevas)
 - **Tipos**: Regenerar con `npm run db:types` después de cada migración
 - **RLS**: Toda tabla con `organization_id` tiene RLS activado + políticas
 - **Clientes Supabase**: Nunca instanciados a nivel de módulo en código server
