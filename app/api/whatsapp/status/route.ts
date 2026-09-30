@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { getWhatsAppProvider } from '@/lib/whatsapp/provider';
+import { getWhatsAppProvider, isWhatsAppConfigured } from '@/lib/whatsapp/provider';
 
 interface ConnectionRow {
   id: string;
@@ -11,6 +11,10 @@ interface ConnectionRow {
 
 export async function GET() {
   try {
+    if (!isWhatsAppConfigured()) {
+      return Response.json({ error: 'not_configured', message: 'WhatsApp no está configurado en el servidor. Revisa EVOLUTION_API_URL, EVOLUTION_API_KEY y WHATSAPP_WEBHOOK_SECRET.' }, { status: 503 });
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -58,7 +62,9 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Status route error:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json({
+      error: 'connection_error',
+      message: 'No se pudo conectar con el servicio de WhatsApp. Verifica que esté encendido en Railway.',
+    }, { status: 502 });
   }
 }

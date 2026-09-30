@@ -83,7 +83,7 @@ function Step1({
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Perfil de empresa, mensajes automatizados, etiquetas y más funciones para negocios.
+            Usa la app WhatsApp Business de tu número del hotel. Perfil de empresa, catálogo y etiquetas.
           </p>
         </button>
 
@@ -120,8 +120,9 @@ function Step1({
       {/* Warning for personal */}
       {accountType === 'personal' && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
-          <strong>Aviso:</strong> Al vincular una cuenta personal, tus conversaciones personales
-          también pueden aparecer en la bandeja de entrada del hotel.
+          <strong>Aviso:</strong> Todos los chats de este número (incluidos los personales) llegarán a POSTY.
+          Te recomendamos usar un número exclusivo del hotel. Por defecto, POSTY solo mostrará los chats
+          de huéspedes registrados y los contactos nuevos que escriban; los demás quedarán ocultos.
         </div>
       )}
 
@@ -135,8 +136,8 @@ function Step1({
             className="mt-0.5"
           />
           <Label htmlFor="understood" className="cursor-pointer text-sm leading-snug">
-            Entiendo que esta conexión usa WhatsApp Web y que el teléfono debe permanecer conectado
-            a Internet para recibir mensajes.
+            Entiendo que esta conexión usa WhatsApp Web y que WhatsApp puede restringir el número
+            si se usa para mensajes masivos o spam. POSTY no permite envíos masivos.
           </Label>
         </div>
       )}
@@ -378,6 +379,17 @@ export default function WhatsAppConfigPage() {
     }
   }, [existingConnection]);
 
+  // Check if WhatsApp is configured on the server
+  const [configError, setConfigError] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/whatsapp/status').then(async (res) => {
+      if (res.status === 503) {
+        const body = await res.json().catch(() => ({}));
+        setConfigError(body.message ?? 'WhatsApp no está configurado en el servidor.');
+      }
+    }).catch(() => {});
+  }, []);
+
   const handleContinue = useCallback(async () => {
     if (!accountType) return;
     setIsConnecting(true);
@@ -389,11 +401,11 @@ export default function WhatsAppConfigPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? 'No se pudo iniciar la conexión');
+        throw new Error(body?.error ?? 'No se pudo conectar con el servicio de WhatsApp. Verifica que esté encendido en Railway.');
       }
       setStep(2);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al iniciar conexión');
+      toast.error(err instanceof Error ? err.message : 'No se pudo conectar con el servicio de WhatsApp.');
     } finally {
       setIsConnecting(false);
     }
@@ -467,6 +479,13 @@ export default function WhatsAppConfigPage() {
           </div>
         ))}
       </div>
+
+      {/* Config error */}
+      {configError && (
+        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
+          {configError}
+        </div>
+      )}
 
       {/* Step content */}
       <div className="rounded-xl border bg-card p-6 shadow-xs">

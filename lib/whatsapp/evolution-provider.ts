@@ -19,8 +19,12 @@ export class EvolutionProvider implements WhatsAppProvider {
   private apiKey: string;
 
   constructor(baseUrl: string, apiKey: string) {
-    // Strip trailing slash
-    this.baseUrl = baseUrl.replace(/\/$/, '');
+    // Normalize URL: ensure https:// prefix, strip trailing slash
+    let url = baseUrl.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+    }
+    this.baseUrl = url.replace(/\/+$/, '');
     this.apiKey = apiKey;
   }
 
