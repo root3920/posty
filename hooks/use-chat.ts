@@ -17,6 +17,7 @@ export interface WhatsAppConnectionData {
   displayName: string | null;
   profilePic: string | null;
   connectedAt: string | null;
+  disconnectReason?: string | null;
 }
 
 export interface ChatConversation {

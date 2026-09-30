@@ -180,6 +180,7 @@ export type Database = {
           phone_e164: string | null
           profile_pic_url: string | null
           updated_at: string
+          visibility: string
           whatsapp_name: string | null
         }
         Insert: {
@@ -192,6 +193,7 @@ export type Database = {
           phone_e164?: string | null
           profile_pic_url?: string | null
           updated_at?: string
+          visibility?: string
           whatsapp_name?: string | null
         }
         Update: {
@@ -204,6 +206,7 @@ export type Database = {
           phone_e164?: string | null
           profile_pic_url?: string | null
           updated_at?: string
+          visibility?: string
           whatsapp_name?: string | null
         }
         Relationships: [
@@ -1732,6 +1735,70 @@ export type Database = {
             columns: ["stay_id"]
             isOneToOne: false
             referencedRelation: "stays_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_chat_archives: {
+        Row: {
+          archived_at: string
+          archived_by: string | null
+          connection_phone: string | null
+          guest_id: string
+          guest_name: string | null
+          id: string
+          messages: Json
+          organization_id: string
+          period_end: string | null
+          period_start: string | null
+          phone_e164: string | null
+        }
+        Insert: {
+          archived_at?: string
+          archived_by?: string | null
+          connection_phone?: string | null
+          guest_id: string
+          guest_name?: string | null
+          id?: string
+          messages?: Json
+          organization_id: string
+          period_end?: string | null
+          period_start?: string | null
+          phone_e164?: string | null
+        }
+        Update: {
+          archived_at?: string
+          archived_by?: string | null
+          connection_phone?: string | null
+          guest_id?: string
+          guest_name?: string | null
+          id?: string
+          messages?: Json
+          organization_id?: string
+          period_end?: string | null
+          period_start?: string | null
+          phone_e164?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_chat_archives_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_chat_archives_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_chat_archives_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -3906,6 +3973,8 @@ export type Database = {
           connected_at: string | null
           connected_by: string | null
           created_at: string
+          disconnect_reason: string | null
+          disconnected_at: string | null
           display_name: string | null
           id: string
           instance_name: string
@@ -3924,6 +3993,8 @@ export type Database = {
           connected_at?: string | null
           connected_by?: string | null
           created_at?: string
+          disconnect_reason?: string | null
+          disconnected_at?: string | null
           display_name?: string | null
           id?: string
           instance_name: string
@@ -3942,6 +4013,8 @@ export type Database = {
           connected_at?: string | null
           connected_by?: string | null
           created_at?: string
+          disconnect_reason?: string | null
+          disconnected_at?: string | null
           display_name?: string | null
           id?: string
           instance_name?: string
@@ -4847,6 +4920,14 @@ export type Database = {
         Args: { p_new_guest_id: string; p_reason?: string; p_stay_id: string }
         Returns: Json
       }
+      close_whatsapp_session: {
+        Args: {
+          p_archive_guests?: boolean
+          p_connection_id: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       complete_cleaning: {
         Args: {
           p_checklist?: Json
@@ -5171,6 +5252,10 @@ export type Database = {
         Args: { p_contract_id: string }
         Returns: Json
       }
+      set_contact_visibility: {
+        Args: { p_contact_id: string; p_visibility: string }
+        Returns: undefined
+      }
       set_conversation_status: {
         Args: { p_conversation_id: string; p_status: string }
         Returns: undefined
@@ -5330,6 +5415,8 @@ export type Database = {
         | "disconnected"
         | "banned"
         | "error"
+        | "disconnected_pending"
+        | "closed"
       wa_provider_type: "evolution_qr" | "meta_cloud"
       webhook_log_status: "pending" | "processed" | "error"
       workflow_type:
@@ -5566,6 +5653,8 @@ export const Constants = {
         "disconnected",
         "banned",
         "error",
+        "disconnected_pending",
+        "closed",
       ],
       wa_provider_type: ["evolution_qr", "meta_cloud"],
       webhook_log_status: ["pending", "processed", "error"],

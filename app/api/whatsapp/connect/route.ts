@@ -45,17 +45,26 @@ export async function POST(request: Request) {
     // Check if there is already an active connection for this org
     const { data: existing } = await adminDb
       .from('whatsapp_connections')
-      .select('id')
+      .select('id, status')
       .eq('organization_id', orgId)
-      .eq('status', 'connected')
+      .in('status', ['connected', 'disconnected_pending'])
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (existing) {
+    if (existing?.status === 'connected') {
       return Response.json({ error: 'Ya hay una conexión activa' }, { status: 400 });
     }
 
-    const instanceName = `posty-${orgId.slice(0, 8)}`;
+    if (existing?.status === 'disconnected_pending') {
+      return Response.json(
+        { error: 'disconnected_pending', connectionId: existing.id },
+        { status: 409 },
+      );
+    }
+
+    // Unique instance name per session so old sessions don't collide
+    const instanceName = `posty-${orgId.slice(0, 8)}-${Date.now()}`;
     const provider = getWhatsAppProvider();
     const webhookUrl = `https://app.postyassistant.com/api/webhooks/whatsapp`;
 
@@ -66,6 +75,8 @@ export async function POST(request: Request) {
         'x-webhook-secret': process.env.WHATSAPP_WEBHOOK_SECRET!,
       },
       events: ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
+      // @ts-expect-error — Evolution-specific extra fields
+      reject_call: true,
     });
 
     console.log('[Connect] Instance created:', result.instanceName, 'hasQR:', !!result.qrBase64);

@@ -12,7 +12,19 @@ import { createAdminClient } from '@/lib/supabase/admin';
 interface ConnectionRow {
   id: string;
   organization_id: string;
+  connected_at: string | null;
 }
+
+// History-sync events that arrive on initial connect — skip them entirely
+const HISTORY_SYNC_EVENTS = new Set([
+  'messages.set',
+  'chats.set',
+  'contacts.set',
+  'chats.upsert',
+  'chats.update',
+  'contacts.upsert',
+  'contacts.update',
+]);
 
 // ─── Message type helpers ───────────────────────────────────────────────────
 
@@ -65,6 +77,9 @@ async function handleMessageUpsert(
   // MESSAGES_UPSERT sends an array of messages
   const messages: Record<string, unknown>[] = Array.isArray(data) ? data : [data];
 
+  // connected_at as epoch ms for timestamp comparison
+  const connectedAtMs = conn.connected_at ? new Date(conn.connected_at).getTime() : null;
+
   for (const msg of messages) {
     const key = msg.key as Record<string, unknown> | undefined;
     if (!key) continue;
@@ -79,6 +94,16 @@ async function handleMessageUpsert(
     // Skip protocol messages, reactions, and deleted messages
     const messageType = msg.messageType as string | undefined;
     if (messageType === 'protocolMessage' || messageType === 'reactionMessage' || messageType === 'senderKeyDistributionMessage') continue;
+
+    // Skip messages that predate this session's connection (history sync residuals)
+    const msgTimestamp = msg.messageTimestamp as number | string | undefined;
+    if (msgTimestamp && connectedAtMs !== null) {
+      const msgMs = typeof msgTimestamp === 'string' ? parseInt(msgTimestamp, 10) * 1000 : msgTimestamp * 1000;
+      if (msgMs < connectedAtMs) {
+        console.log('[Webhook] Skipping pre-connection message ts:', msgTimestamp);
+        continue;
+      }
+    }
 
     const pushName = msg.pushName as string | undefined;
 
@@ -205,26 +230,46 @@ async function handleConnectionUpdate(
 ): Promise<void> {
   const state = data.state as string | undefined;
 
-  let mappedStatus: string | null = null;
-  if (state === 'open') mappedStatus = 'connected';
-  else if (state === 'close') mappedStatus = 'disconnected';
-  else if (state === 'connecting') mappedStatus = 'connecting';
-
-  if (!mappedStatus) return;
-
-  const updatePayload: Record<string, unknown> = {
-    status: mappedStatus,
-    last_seen_at: new Date().toISOString(),
-  };
-
   if (state === 'open') {
-    updatePayload.connected_at = new Date().toISOString();
+    await db
+      .from('whatsapp_connections')
+      .update({
+        status: 'connected',
+        connected_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
+        disconnect_reason: null,
+      })
+      .eq('id', conn.id);
+    return;
   }
 
-  await db
-    .from('whatsapp_connections')
-    .update(updatePayload)
-    .eq('id', conn.id);
+  if (state === 'connecting') {
+    await db
+      .from('whatsapp_connections')
+      .update({ status: 'connecting', last_seen_at: new Date().toISOString() })
+      .eq('id', conn.id);
+    return;
+  }
+
+  if (state === 'close') {
+    // Map Evolution statusReason codes to human-readable disconnect reasons
+    const statusReason = data.statusReason as number | string | undefined;
+    let disconnectReason = 'phone_logout';
+    if (statusReason === 401 || statusReason === '401') disconnectReason = 'phone_logout';
+    else if (statusReason === 408 || statusReason === '408') disconnectReason = 'inactivity';
+    else if (statusReason === 440 || statusReason === '440') disconnectReason = 'banned';
+
+    console.log('[Webhook] Connection closed — statusReason:', statusReason, '→ reason:', disconnectReason);
+
+    await db
+      .from('whatsapp_connections')
+      .update({
+        status: 'disconnected_pending',
+        disconnect_reason: disconnectReason,
+        last_seen_at: new Date().toISOString(),
+      })
+      .eq('id', conn.id);
+  }
 }
 
 // ─── Route handler ───────────────────────────────────────────────────────────
@@ -242,10 +287,17 @@ export async function POST(request: Request) {
     const db = createAdminClient() as any;
     const instanceName = body.instance;
 
+    // Skip history-sync bulk events immediately — before any DB work
+    const eventLower = (body.event ?? '').toLowerCase();
+    if (HISTORY_SYNC_EVENTS.has(eventLower)) {
+      console.log('[Webhook] Skipping history-sync event:', body.event);
+      return Response.json({ ok: true });
+    }
+
     // Find connection
     const { data: conn } = await db
       .from('whatsapp_connections')
-      .select('id, organization_id')
+      .select('id, organization_id, connected_at')
       .eq('instance_name', instanceName ?? '')
       .limit(1)
       .maybeSingle();
@@ -280,7 +332,7 @@ export async function POST(request: Request) {
     console.log('[Webhook] Processing event:', event, 'data keys:', Object.keys(data));
 
     try {
-      const ev = event?.toLowerCase();
+      const ev = eventLower;
       if (ev === 'messages.upsert' || ev === 'messages_upsert') {
         console.log('[Webhook] Message upsert — key:', JSON.stringify((data as Record<string, unknown>).key));
         await handleMessageUpsert(db, typedConn, data);

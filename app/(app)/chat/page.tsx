@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -22,7 +21,6 @@ import {
   Mic,
   MapPin,
   User,
-  MoreHorizontal,
   StickyNote,
 } from 'lucide-react';
 import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
@@ -284,6 +282,7 @@ function DateSeparator({ dateStr }: { dateStr: string }) {
 // -------------------------------------------------------
 
 function NoConnectionEmptyState() {
+  const router = useRouter();
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 p-8 text-center">
       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted">
@@ -297,7 +296,7 @@ function NoConnectionEmptyState() {
           Vincula el número de WhatsApp de tu hotel y gestiona todas las conversaciones desde aquí.
         </p>
       </div>
-      <Button onClick={() => (window.location.href = '/configuracion/whatsapp')}>
+      <Button onClick={() => router.push('/configuracion/whatsapp')}>
         Conectar WhatsApp
       </Button>
     </div>
@@ -449,12 +448,11 @@ interface ConversationsColumnProps {
   onSelect: (id: string) => void;
   searchQuery: string;
   onSearchChange: (v: string) => void;
-  onImport?: () => void;
-  isImporting?: boolean;
   activeFilter: FilterKey;
   onFilterChange: (f: FilterKey) => void;
   currentUserId: string | null;
   hiddenCount?: number;
+  connectedPhone?: string | null;
 }
 
 function ConversationsColumn({
@@ -464,12 +462,11 @@ function ConversationsColumn({
   onSelect,
   searchQuery,
   onSearchChange,
-  onImport,
-  isImporting,
   activeFilter,
   onFilterChange,
   currentUserId,
   hiddenCount = 0,
+  connectedPhone,
 }: ConversationsColumnProps) {
   const [showNewChat, setShowNewChat] = useState(false);
 
@@ -512,17 +509,6 @@ function ConversationsColumn({
             </span>
           </span>
           <div className="flex items-center gap-1.5">
-            {onImport && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={onImport}
-                disabled={isImporting}
-              >
-                {isImporting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Importar'}
-              </Button>
-            )}
             <Button
               variant="ghost"
               size="icon-sm"
@@ -587,18 +573,22 @@ function ConversationsColumn({
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-12 text-center text-sm text-muted-foreground">
             <MessageCircle className="h-8 w-8 opacity-40" />
-            <p>{searchQuery ? 'Sin resultados' : 'Sin conversaciones'}</p>
-            {!searchQuery && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs"
-                onClick={onImport}
-                disabled={isImporting}
-              >
-                {isImporting && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-                Importar chats recientes
-              </Button>
+            {searchQuery ? (
+              <p>Sin resultados</p>
+            ) : (
+              <div className="space-y-2 px-4">
+                <p className="font-medium text-foreground">
+                  {connectedPhone
+                    ? `¡Listo! Los mensajes nuevos que lleguen a ${connectedPhone} aparecerán aquí`
+                    : 'Sin conversaciones aún'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Los mensajes anteriores a esta conexión no se importan automáticamente.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Pide a tus huéspedes que te escriban y sus chats aparecerán aquí al instante.
+                </p>
+              </div>
             )}
           </div>
         ) : (
@@ -967,11 +957,98 @@ function MessagesColumn({
 
 interface ConnectedChatProps {
   connection: {
+    connectionId?: string;
     status: string;
     connected: boolean;
     displayName: string | null;
     phone: string | null;
+    disconnectReason?: string | null;
   };
+}
+
+function DisconnectedPendingScreen({
+  connection,
+}: {
+  connection: ConnectedChatProps['connection'];
+}) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
+  const reasonLabels: Record<string, string> = {
+    phone_logout: 'El teléfono cerró la sesión de WhatsApp Web.',
+    inactivity: 'La sesión se cerró por inactividad.',
+    banned: 'WhatsApp bloqueó esta cuenta.',
+  };
+  const reasonLabel = connection.disconnectReason
+    ? (reasonLabels[connection.disconnectReason] ?? 'La sesión se desconectó inesperadamente.')
+    : 'La sesión se desconectó inesperadamente.';
+
+  async function handleReconnect() {
+    setIsReconnecting(true);
+    try {
+      const res = await fetch('/api/whatsapp/reconnect', { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? 'No se pudo reconectar');
+      }
+      toast.success('Nueva sesión iniciada. Escanea el código QR.');
+      queryClient.invalidateQueries({ queryKey: ['whatsapp_connection'] });
+      router.push('/configuracion/whatsapp');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al reconectar');
+    } finally {
+      setIsReconnecting(false);
+    }
+  }
+
+  async function handleConnectNew() {
+    setIsDisconnecting(true);
+    try {
+      await fetch('/api/whatsapp/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archiveGuests: true }),
+      });
+      queryClient.invalidateQueries({ queryKey: ['whatsapp_connection'] });
+      router.push('/configuracion/whatsapp');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al limpiar la sesión');
+    } finally {
+      setIsDisconnecting(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-5 p-8 text-center">
+      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/30">
+        <WifiOff className="h-10 w-10 text-amber-600 dark:text-amber-400" />
+      </div>
+      <div>
+        <h2 className="font-heading text-lg font-semibold">WhatsApp desconectado</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{reasonLabel}</p>
+        {connection.phone && (
+          <p className="mt-1 text-xs text-muted-foreground">Número anterior: {connection.phone}</p>
+        )}
+      </div>
+      <div className="flex w-full max-w-xs flex-col gap-3">
+        <Button onClick={handleReconnect} disabled={isReconnecting || isDisconnecting} className="w-full">
+          {isReconnecting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+          Reconectar el mismo número
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleConnectNew}
+          disabled={isReconnecting || isDisconnecting}
+          className="w-full"
+        >
+          {isDisconnecting && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+          Conectar otro número
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function ConnectedChat({ connection }: ConnectedChatProps) {
@@ -980,9 +1057,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isMobileMessageView, setIsMobileMessageView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isImporting, setIsImporting] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
-  const queryClient = useQueryClient();
   const { data: profile } = useProfile();
   const currentUserId = profile?.id ?? null;
 
@@ -1006,23 +1081,6 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
   })();
 
   const selectedConv = allConversations.find((c) => c.id === selectedId) ?? null;
-
-  async function handleImport() {
-    setIsImporting(true);
-    try {
-      const res = await fetch('/api/whatsapp/import', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Error al importar');
-      toast.success(
-        `${data.chats} chats importados${data.namesUpdated ? ` · ${data.namesUpdated} nombres actualizados` : ''}`,
-      );
-      queryClient.invalidateQueries({ queryKey: ['chat_conversations'] });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al importar chats');
-    } finally {
-      setIsImporting(false);
-    }
-  }
 
   const handleSelectConversation = useCallback(
     (id: string) => {
@@ -1080,12 +1138,11 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
                 onSelect={handleSelectConversation}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                onImport={handleImport}
-                isImporting={isImporting}
                 activeFilter={activeFilter}
                 onFilterChange={setActiveFilter}
                 currentUserId={currentUserId}
                 hiddenCount={hiddenOnly.length}
+                connectedPhone={connection.phone}
               />
             </div>
           )
@@ -1099,12 +1156,11 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
                 onSelect={handleSelectConversation}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                onImport={handleImport}
-                isImporting={isImporting}
                 activeFilter={activeFilter}
                 onFilterChange={setActiveFilter}
                 currentUserId={currentUserId}
                 hiddenCount={hiddenOnly.length}
+                connectedPhone={connection.phone}
               />
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
@@ -1138,8 +1194,6 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
 export default function ChatPage() {
   const { data: connection, isLoading } = useWhatsAppConnection();
 
-  const isConnected = connection?.connected === true;
-
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -1148,7 +1202,16 @@ export default function ChatPage() {
     );
   }
 
-  if (!connection || !isConnected) {
+  // Session disconnected unexpectedly — offer reconnect options
+  if (connection?.status === 'disconnected_pending') {
+    return (
+      <div className="flex h-full flex-col">
+        <DisconnectedPendingScreen connection={connection} />
+      </div>
+    );
+  }
+
+  if (!connection || !connection.connected) {
     return (
       <div className="flex h-full flex-col">
         <NoConnectionEmptyState />

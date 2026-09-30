@@ -8,7 +8,7 @@ interface ConnectionRow {
   status: string;
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const {
@@ -29,6 +29,14 @@ export async function POST() {
       return Response.json({ error: 'No profile' }, { status: 400 });
     }
 
+    let archiveGuests = true;
+    try {
+      const body = await request.json() as { archiveGuests?: boolean };
+      if (typeof body.archiveGuests === 'boolean') archiveGuests = body.archiveGuests;
+    } catch {
+      // Body is optional — defaults to true
+    }
+
     // whatsapp_connections was added in migration — types not yet regenerated
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any;
@@ -46,28 +54,41 @@ export async function POST() {
     }
 
     const typedConn = conn as ConnectionRow;
-    const provider = getWhatsAppProvider();
-
-    try {
-      await provider.disconnect(typedConn.instance_name);
-    } catch (providerError) {
-      // Log but don't block — we still mark as disconnected in DB
-      console.error('Provider disconnect error (continuing):', providerError);
-    }
-
     const adminSupabase = createAdminClient();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const adminDb = adminSupabase as any;
 
-    await adminDb
-      .from('whatsapp_connections')
-      .update({
-        status: 'disconnected',
-        last_seen_at: new Date().toISOString(),
-      })
-      .eq('id', typedConn.id);
+    // Call DB procedure to close session and clean up conversations
+    const { data: closeResult, error: closeError } = await adminDb.rpc('close_whatsapp_session', {
+      p_connection_id: typedConn.id,
+      p_reason: 'user',
+      p_archive_guests: archiveGuests,
+    });
 
-    return Response.json({ ok: true });
+    if (closeError) {
+      console.error('[Disconnect] close_whatsapp_session error:', closeError);
+      // Proceed anyway — still clean up the provider and update status
+    }
+
+    const provider = getWhatsAppProvider();
+
+    // Tolerate provider errors — both steps are best-effort
+    try {
+      await provider.disconnect(typedConn.instance_name);
+    } catch (err) {
+      console.error('[Disconnect] provider.disconnect error (continuing):', err);
+    }
+
+    try {
+      await provider.deleteInstance(typedConn.instance_name);
+    } catch (err) {
+      console.error('[Disconnect] provider.deleteInstance error (continuing):', err);
+    }
+
+    return Response.json({
+      ok: true,
+      ...(closeResult ?? {}),
+    });
   } catch (error) {
     console.error('Disconnect route error:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';

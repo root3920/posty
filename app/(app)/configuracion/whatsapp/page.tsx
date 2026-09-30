@@ -2,20 +2,21 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   Loader2,
   CheckCircle2,
-  MessageCircle,
   Smartphone,
   ChevronDown,
   ChevronUp,
   Wifi,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { PageHeader } from '@/components/shared/page-header';
 import { useWhatsAppConnection } from '@/hooks/use-chat';
 import { cn } from '@/lib/utils';
@@ -325,6 +326,70 @@ function Step2({ accountType, onConnected }: Step2Props) {
 }
 
 // -------------------------------------------------------
+// Disconnect confirmation modal
+// -------------------------------------------------------
+
+interface DisconnectModalProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: (archiveGuests: boolean) => void;
+  isLoading: boolean;
+}
+
+function DisconnectModal({ open, onClose, onConfirm, isLoading }: DisconnectModalProps) {
+  const [archiveGuests, setArchiveGuests] = useState(true);
+
+  return (
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={(v) => { if (!v && !isLoading) onClose(); }}
+      title="Desconectar WhatsApp"
+      description="Esta acción no se puede deshacer."
+      footer={
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={onClose} disabled={isLoading} className="w-full sm:w-auto">
+            Cancelar
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => onConfirm(archiveGuests)}
+            disabled={isLoading}
+            className="w-full sm:w-auto"
+          >
+            {isLoading && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+            Desconectar y limpiar
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4 text-sm text-muted-foreground">
+        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-destructive">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            Al desconectar se eliminarán todas las conversaciones y mensajes de la sesión actual.
+          </p>
+        </div>
+
+        <div className="flex items-start gap-3 rounded-lg border p-3">
+          <Checkbox
+            id="archive-guests"
+            checked={archiveGuests}
+            onCheckedChange={(v) => setArchiveGuests(Boolean(v))}
+            className="mt-0.5"
+          />
+          <Label htmlFor="archive-guests" className="cursor-pointer leading-snug">
+            Guardar copia de conversaciones con huéspedes
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              Las conversaciones vinculadas a huéspedes registrados se archivarán antes de eliminar.
+            </span>
+          </Label>
+        </div>
+      </div>
+    </ResponsiveDialog>
+  );
+}
+
+// -------------------------------------------------------
 // Step 3 — Connected
 // -------------------------------------------------------
 
@@ -334,80 +399,94 @@ interface Step3Props {
 
 function Step3({ onDisconnect }: Step3Props) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: connection } = useWhatsAppConnection();
+  const [showModal, setShowModal] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
-  return (
-    <div className="flex flex-col items-center gap-6 py-4 text-center">
-      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-950/30">
-        <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
-      </div>
-
-      <div>
-        <h2 className="font-heading text-xl font-semibold text-foreground">
-          ¡WhatsApp conectado!
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Tu número ya está vinculado al hotel.
-        </p>
-      </div>
-
-      {connection && (
-        <div className="flex w-full max-w-xs flex-col items-center gap-3 rounded-xl border bg-muted/30 p-4">
-          {connection.profilePic && (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={connection.profilePic}
-              alt="Foto de perfil"
-              className="h-14 w-14 rounded-full border object-cover"
-            />
-          )}
-          {connection.displayName && (
-            <p className="font-medium">{connection.displayName}</p>
-          )}
-          {connection.phone && (
-            <p className="text-sm text-muted-foreground">{connection.phone}</p>
-          )}
-          <span className="rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
-            WhatsApp conectado
-          </span>
-        </div>
-      )}
-
-      <div className="flex w-full max-w-xs flex-col gap-3">
-        <Button className="w-full" onClick={() => router.push('/chat')}>
-          Ir al Chat
-        </Button>
-        <ImportButton />
-        <Button variant="outline" size="sm" className="w-full" onClick={onDisconnect}>
-          Desconectar
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function ImportButton() {
-  const [loading, setLoading] = useState(false);
-
-  async function handleImport() {
-    setLoading(true);
+  async function handleConfirmDisconnect(archiveGuests: boolean) {
+    setIsDisconnecting(true);
     try {
-      const res = await fetch('/api/whatsapp/import', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success(`${data.chats} chats importados${data.namesUpdated ? ` · ${data.namesUpdated} nombres actualizados` : ''}`);
+      const res = await fetch('/api/whatsapp/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archiveGuests }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? 'No se pudo desconectar');
+      }
+      toast.success('WhatsApp desconectado y conversaciones eliminadas');
+      queryClient.invalidateQueries({ queryKey: ['whatsapp_connection'] });
+      setShowModal(false);
+      onDisconnect();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al importar');
+      toast.error(err instanceof Error ? err.message : 'Error al desconectar');
     } finally {
-      setLoading(false);
+      setIsDisconnecting(false);
     }
   }
 
   return (
-    <Button variant="outline" size="sm" className="w-full" onClick={handleImport} disabled={loading}>
-      {loading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-      Importar chats recientes
-    </Button>
+    <>
+      <DisconnectModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={handleConfirmDisconnect}
+        isLoading={isDisconnecting}
+      />
+
+      <div className="flex flex-col items-center gap-6 py-4 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-950/30">
+          <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+        </div>
+
+        <div>
+          <h2 className="font-heading text-xl font-semibold text-foreground">
+            ¡WhatsApp conectado!
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Tu número ya está vinculado al hotel.
+          </p>
+        </div>
+
+        {connection && (
+          <div className="flex w-full max-w-xs flex-col items-center gap-3 rounded-xl border bg-muted/30 p-4">
+            {connection.profilePic && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={connection.profilePic}
+                alt="Foto de perfil"
+                className="h-14 w-14 rounded-full border object-cover"
+              />
+            )}
+            {connection.displayName && (
+              <p className="font-medium">{connection.displayName}</p>
+            )}
+            {connection.phone && (
+              <p className="text-sm text-muted-foreground">{connection.phone}</p>
+            )}
+            <span className="rounded-full bg-green-100 px-3 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
+              WhatsApp conectado
+            </span>
+          </div>
+        )}
+
+        <div className="flex w-full max-w-xs flex-col gap-3">
+          <Button className="w-full" onClick={() => router.push('/chat')}>
+            Ir al Chat
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-destructive hover:text-destructive"
+            onClick={() => setShowModal(true)}
+          >
+            Desconectar
+          </Button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -416,7 +495,6 @@ function ImportButton() {
 // -------------------------------------------------------
 
 export default function WhatsAppConfigPage() {
-  const router = useRouter();
   const [step, setStep] = useState<Step>(1);
   const [accountType, setAccountType] = useState<AccountType | null>(null);
   const [understood, setUnderstood] = useState(false);
@@ -467,20 +545,11 @@ export default function WhatsAppConfigPage() {
     setStep(3);
   }, []);
 
-  const handleDisconnect = useCallback(async () => {
-    try {
-      const res = await fetch('/api/whatsapp/disconnect', { method: 'POST' });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error ?? 'No se pudo desconectar');
-      }
-      toast.success('WhatsApp desconectado');
-      setStep(1);
-      setAccountType(null);
-      setUnderstood(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al desconectar');
-    }
+  const handleDisconnect = useCallback(() => {
+    // Called after the Step3 modal confirms and completes the disconnect
+    setStep(1);
+    setAccountType(null);
+    setUnderstood(false);
   }, []);
 
   const stepLabels: Record<Step, string> = {
