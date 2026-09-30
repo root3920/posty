@@ -32,6 +32,7 @@ import { TeamProgressPanel } from '@/components/hotel/team-progress-panel';
 import { StayHistoryTimeline } from '@/components/hotel/stay-history-timeline';
 import { FolioTable } from '@/components/hotel/folio-table';
 import { ConfirmArrivalModal } from '@/components/hotel/confirm-arrival-modal';
+import { AuditLogTimeline } from '@/components/hotel/audit-log-timeline';
 
 // -------------------------------------------------------
 // Page
@@ -106,6 +107,7 @@ export default function StayDetailPage() {
     { key: 'folio', label: 'Folio y pagos' },
     { key: 'datos', label: 'Datos personales' },
     { key: 'historial', label: 'Historial' },
+    { key: 'cambios', label: 'Cambios' },
     { key: 'incidencias', label: 'Incidencias' },
     { key: 'mensajes', label: 'Mensajes' },
     { key: 'preferencias', label: 'Preferencias' },
@@ -242,6 +244,8 @@ export default function StayDetailPage() {
         )}
 
         {activeTab === 'historial' && <StayHistoryTimeline history={history} />}
+
+        {activeTab === 'cambios' && <AuditLogTimeline entityType="stay" entityId={stayId} />}
 
         {(activeTab === 'incidencias' || activeTab === 'mensajes' || activeTab === 'preferencias' || activeTab === 'encuesta') && (
           <div className="rounded-xl border border-dashed bg-muted/30 p-8 text-center text-sm text-muted-foreground">

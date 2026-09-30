@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -9,16 +9,29 @@ import {
   BedDouble,
   DollarSign,
   Shield,
-  Clock,
   User,
   FileText,
   Droplets,
+  MoreHorizontal,
+  XCircle,
+  RefreshCw,
+  FilePlus,
+  Send,
+  Copy,
+  Download,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { KpiGrid } from '@/components/shared/kpi-grid';
 import { KpiCard } from '@/components/shared/kpi-card';
 import {
@@ -28,19 +41,36 @@ import {
   DEPOSIT_STATUS_LABELS,
 } from '@/components/contracts/contract-status-badge';
 import { RegisterPaymentDialog } from '@/components/contracts/register-payment-dialog';
-import { useContractDetail, type ContractInstallment } from '@/hooks/use-contracts';
+import { TerminateDialog } from '@/components/contracts/terminate-dialog';
+import { RenewDialog } from '@/components/contracts/renew-dialog';
+import { AmendmentDialog } from '@/components/contracts/amendment-dialog';
+import { AuditLogTimeline } from '@/components/hotel/audit-log-timeline';
+import {
+  useContractDetail,
+  useContractAmendments,
+  useContractDocuments,
+  useSendForSignature,
+  type ContractInstallment,
+} from '@/hooks/use-contracts';
 import { useOrganization } from '@/hooks/use-organization';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { diffNights, parseDateOnly, formatDateRangeOnly, formatDateOnly } from '@/lib/dates';
+import { toast } from 'sonner';
 
 // -------------------------------------------------------
 // Page
 // -------------------------------------------------------
 
+type ActiveTab = 'cuotas' | 'datos' | 'documentos' | 'otrosi' | 'cambios';
+
 export default function ContractDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { currency, locale } = useOrganization();
   const { data, isLoading, error } = useContractDetail(id);
+  const { data: amendments = [] } = useContractAmendments(id);
+  const { data: documents = [] } = useContractDocuments(id);
+  const sendForSignature = useSendForSignature();
 
   const [paymentTarget, setPaymentTarget] = useState<{
     mode: 'installment' | 'deposit';
@@ -49,7 +79,10 @@ export default function ContractDetailPage() {
     label: string;
   } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'cuotas' | 'datos'>('cuotas');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('cuotas');
+  const [terminateOpen, setTerminateOpen] = useState(false);
+  const [renewOpen, setRenewOpen] = useState(false);
+  const [amendmentOpen, setAmendmentOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -90,8 +123,26 @@ export default function ContractDetailPage() {
   const installmentPct =
     installments.length > 0 ? Math.round((paidInstallments / installments.length) * 100) : 0;
 
-  const depositPayments = payments.filter((p) => p.is_deposit);
-  const installmentPayments = payments.filter((p) => !p.is_deposit);
+  // Signature link (first document with a sign_token)
+  const signDoc = documents.find((d) => d.sign_token);
+  const signLink = signDoc
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/contrato/firmar/${signDoc.sign_token}`
+    : null;
+
+  function handleCopySignLink() {
+    if (signLink) {
+      navigator.clipboard.writeText(signLink);
+      toast.success('Enlace de firma copiado');
+    }
+  }
+
+  const TABS: { key: ActiveTab; label: string }[] = [
+    { key: 'cuotas', label: 'Cuotas' },
+    { key: 'datos', label: 'Datos' },
+    { key: 'documentos', label: `Documentos${documents.length > 0 ? ` (${documents.length})` : ''}` },
+    { key: 'otrosi', label: `Otrosí${amendments.length > 0 ? ` (${amendments.length})` : ''}` },
+    { key: 'cambios', label: 'Cambios' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -114,23 +165,93 @@ export default function ContractDetailPage() {
             </p>
           </div>
         </div>
-        {c.deposit_amount > 0 && c.deposit_status !== 'paid' && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setPaymentTarget({
-                mode: 'deposit',
-                targetId: c.id,
-                amount: c.deposit_amount - c.deposit_paid_amount,
-                label: `Depósito — ${c.code}`,
-              })
-            }
-          >
-            <Shield className="mr-2 h-4 w-4" />
-            Pagar depósito
-          </Button>
-        )}
+
+        <div className="flex items-center gap-2">
+          {/* Deposit button */}
+          {c.deposit_amount > 0 && c.deposit_status !== 'paid' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setPaymentTarget({
+                  mode: 'deposit',
+                  targetId: c.id,
+                  amount: c.deposit_amount - c.deposit_paid_amount,
+                  label: `Depósito — ${c.code}`,
+                })
+              }
+            >
+              <Shield className="mr-2 h-4 w-4" />
+              Pagar depósito
+            </Button>
+          )}
+
+          {/* Actions dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="outline" size="sm" aria-label="Acciones del contrato" />}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              {/* draft actions */}
+              {c.status === 'draft' && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => sendForSignature.mutate(c.id)}
+                    disabled={sendForSignature.isPending}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Enviar para firma
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Download className="mr-2 h-4 w-4" />
+                    Descargar PDF
+                  </DropdownMenuItem>
+                </>
+              )}
+
+              {/* sent_for_signature actions */}
+              {c.status === 'sent_for_signature' && (
+                <>
+                  <DropdownMenuItem>
+                    <Download className="mr-2 h-4 w-4" />
+                    Descargar PDF
+                  </DropdownMenuItem>
+                  {signLink && (
+                    <DropdownMenuItem onClick={handleCopySignLink}>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copiar link de firma
+                    </DropdownMenuItem>
+                  )}
+                </>
+              )}
+
+              {/* signed / active actions */}
+              {(c.status === 'signed' || c.status === 'active') && (
+                <>
+                  <DropdownMenuItem onClick={() => setTerminateOpen(true)}>
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Terminar contrato
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setRenewOpen(true)}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Renovar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setAmendmentOpen(true)}>
+                    <FilePlus className="mr-2 h-4 w-4" />
+                    Crear otrosí
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Download className="mr-2 h-4 w-4" />
+                    Descargar PDF
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -178,15 +299,12 @@ export default function ContractDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b">
-        {[
-          { key: 'cuotas' as const, label: 'Cuotas' },
-          { key: 'datos' as const, label: 'Datos' },
-        ].map((tab) => (
+      <div className="flex gap-1 border-b overflow-x-auto">
+        {TABS.map((tab) => (
           <button
             key={tab.key}
             type="button"
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === tab.key
                 ? 'border-primary text-primary border-b-2'
                 : 'text-muted-foreground hover:text-foreground'
@@ -378,6 +496,155 @@ export default function ContractDetailPage() {
         </div>
       )}
 
+      {/* Tab: Documentos */}
+      {activeTab === 'documentos' && (
+        <div className="space-y-3">
+          {documents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <FileText className="text-muted-foreground h-8 w-8 mb-2" />
+              <p className="text-muted-foreground text-sm">No hay documentos generados aún</p>
+              {c.status === 'draft' && (
+                <p className="text-muted-foreground text-xs mt-1">
+                  Envía el contrato para firma para generar el PDF
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/50 text-muted-foreground text-left text-xs">
+                    <th className="px-3 py-2">Tipo</th>
+                    <th className="px-3 py-2">Fecha</th>
+                    <th className="px-3 py-2">Firmado por</th>
+                    <th className="px-3 py-2">Fecha firma</th>
+                    <th className="px-3 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documents.map((doc) => (
+                    <tr key={doc.id} className="border-t">
+                      <td className="px-3 py-2 text-xs">
+                        <Badge variant="outline" className="text-xs">
+                          {doc.doc_type}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2 text-xs">
+                        {formatDate(doc.created_at)}
+                      </td>
+                      <td className="px-3 py-2 text-xs">
+                        {doc.signer_name ?? (doc.signed_at ? '—' : 'Pendiente')}
+                      </td>
+                      <td className="px-3 py-2 text-xs">
+                        {doc.signed_at ? formatDate(doc.signed_at) : '—'}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-1">
+                          {doc.pdf_path && (
+                            <a
+                              href={doc.pdf_path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center h-7 px-2.5 text-xs rounded-[min(var(--radius-md),12px)] hover:bg-muted hover:text-foreground transition-colors"
+                            >
+                              <Download className="h-3 w-3 mr-1" />
+                              PDF
+                            </a>
+                          )}
+                          {doc.sign_token && !doc.signed_at && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              onClick={() => {
+                                const link = `${window.location.origin}/contrato/firmar/${doc.sign_token}`;
+                                navigator.clipboard.writeText(link);
+                                toast.success('Enlace copiado');
+                              }}
+                            >
+                              <Copy className="h-3 w-3 mr-1" />
+                              Copiar link
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Otrosí */}
+      {activeTab === 'otrosi' && (
+        <div className="space-y-3">
+          {(c.status === 'signed' || c.status === 'active') && (
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => setAmendmentOpen(true)}>
+                <FilePlus className="mr-2 h-4 w-4" />
+                Crear otrosí
+              </Button>
+            </div>
+          )}
+
+          {amendments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <FileText className="text-muted-foreground h-8 w-8 mb-2" />
+              <p className="text-muted-foreground text-sm">No hay otrosíes registrados</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {amendments.map((am) => (
+                <div key={am.id} className="rounded-lg border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Otrosí #{am.amendment_number}</span>
+                    <span className="text-muted-foreground text-xs">
+                      Vigencia: {formatDateOnly(am.effective_date)}
+                    </span>
+                  </div>
+
+                  {am.reason && (
+                    <p className="text-muted-foreground text-xs">{am.reason}</p>
+                  )}
+
+                  <div className="space-y-1">
+                    {Object.entries(am.changes).map(([key, value]) => {
+                      const prevVal = am.previous_values?.[key];
+                      const label = AMENDMENT_FIELD_LABELS[key] ?? key;
+                      return (
+                        <div key={key} className="text-xs flex gap-2">
+                          <span className="text-muted-foreground min-w-[120px]">{label}:</span>
+                          {prevVal !== undefined && (
+                            <>
+                              <span className="line-through text-muted-foreground">
+                                {String(prevVal)}
+                              </span>
+                              <span>→</span>
+                            </>
+                          )}
+                          <span className="font-medium">{String(value)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-muted-foreground text-xs">
+                    Creado el {formatDate(am.created_at)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Cambios */}
+      {activeTab === 'cambios' && (
+        <AuditLogTimeline entityType="contract" entityId={id} />
+      )}
+
       {/* Payment dialog */}
       {paymentTarget && (
         <RegisterPaymentDialog
@@ -391,6 +658,31 @@ export default function ContractDetailPage() {
           label={paymentTarget.label}
         />
       )}
+
+      {/* Terminate dialog */}
+      <TerminateDialog
+        open={terminateOpen}
+        onOpenChange={setTerminateOpen}
+        contractId={c.id}
+        contractCode={c.code}
+        monthlyRate={c.monthly_rate}
+        depositPaid={c.deposit_paid_amount}
+        onTerminated={() => router.push('/contratos')}
+      />
+
+      {/* Renew dialog */}
+      <RenewDialog
+        open={renewOpen}
+        onOpenChange={setRenewOpen}
+        contract={c}
+      />
+
+      {/* Amendment dialog */}
+      <AmendmentDialog
+        open={amendmentOpen}
+        onOpenChange={setAmendmentOpen}
+        contract={c}
+      />
     </div>
   );
 }
@@ -478,3 +770,14 @@ function InfoCard({
     </div>
   );
 }
+
+// -------------------------------------------------------
+// Amendment field labels
+// -------------------------------------------------------
+
+const AMENDMENT_FIELD_LABELS: Record<string, string> = {
+  monthly_rate: 'Precio mensual',
+  end_date: 'Fecha de fin',
+  included_services: 'Servicios incluidos',
+  cleaning_frequency_days: 'Frecuencia de limpieza',
+};

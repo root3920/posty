@@ -1,7 +1,9 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { getSupabaseErrorMessage } from '@/lib/supabase/errors';
 import type { Tables } from '@/types/database';
 
 // -------------------------------------------------------
@@ -620,5 +622,70 @@ export function useReservations() {
     queryKey: ['hotel_reservations'],
     queryFn: fetchReservations,
     staleTime: 30 * 1000,
+  });
+}
+
+// -------------------------------------------------------
+// Merge guests mutation
+// -------------------------------------------------------
+
+export function useMergeGuests() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { keep_id: string; merge_id: string; reason?: string }) => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('merge_guests', {
+        p_keep_id: params.keep_id,
+        p_merge_id: params.merge_id,
+        p_reason: params.reason,
+      });
+      if (error) throw error;
+      return data as unknown as { success: boolean; stays_moved: number; contracts_moved: number; merged_name: string };
+    },
+    onSuccess: (data) => {
+      toast.success(`Fusionado: ${data.merged_name} · ${data.stays_moved} estancias, ${data.contracts_moved} contratos`);
+      queryClient.invalidateQueries({ queryKey: ['guest_detail'] });
+      queryClient.invalidateQueries({ queryKey: ['guest_stays'] });
+      queryClient.invalidateQueries({ queryKey: ['hotel_guests'] });
+    },
+    onError: (error) => toast.error(getSupabaseErrorMessage(error, 'fusionar huéspedes')),
+  });
+}
+
+// -------------------------------------------------------
+// Guest stats
+// -------------------------------------------------------
+
+export function useGuestStats(guestId: string | null) {
+  return useQuery({
+    queryKey: ['guest_stats', guestId],
+    queryFn: async () => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('get_guest_stats', { p_guest_id: guestId! });
+      if (error) throw error;
+      return data as unknown as { total_stays: number; total_nights: number; total_spent: number; total_contracts: number };
+    },
+    enabled: !!guestId,
+    staleTime: 30_000,
+  });
+}
+
+// -------------------------------------------------------
+// Duplicate guests
+// -------------------------------------------------------
+
+export function useDuplicateGuests() {
+  return useQuery({
+    queryKey: ['duplicate_guests'],
+    queryFn: async () => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('find_duplicate_guests');
+      if (error) throw error;
+      return (data ?? []) as Array<{ guest_a_id: string; guest_a_name: string; guest_b_id: string; guest_b_name: string; match_type: string }>;
+    },
+    staleTime: 60_000,
   });
 }

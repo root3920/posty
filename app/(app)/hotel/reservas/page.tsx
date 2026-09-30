@@ -33,6 +33,7 @@ import { EditStayDialog } from '@/components/hotel/edit-stay-dialog';
 import { ChangeRoomDialog } from '@/components/hotel/change-room-dialog';
 import { ExtendStayDialog } from '@/components/hotel/extend-stay-dialog';
 import { CancelStayDialog } from '@/components/hotel/cancel-stay-dialog';
+import { ConvertModalityDialog } from '@/components/hotel/convert-modality-dialog';
 import { RoomBadge } from '@/components/shared/room-badge';
 import { GuestName } from '@/components/shared/guest-name';
 import { StayBadge } from '@/components/shared/stay-badge';
@@ -149,6 +150,8 @@ function ReservasContent() {
   const [extendStayId, setExtendStayId] = useState<string | null>(null);
   const [cancelStayOpen, setCancelStayOpen] = useState(false);
   const [cancelStayId, setCancelStayId] = useState<string | null>(null);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertStayId, setConvertStayId] = useState<string | null>(null);
 
   const { data: reservations = [], isLoading } = useQuery({
     queryKey: ['stays_view'],
@@ -310,6 +313,7 @@ function ReservasContent() {
           onChangeRoom={() => { setChangeRoomStayId(stay.id); setChangeRoomOpen(true); }}
           onExtendStay={() => { setExtendStayId(stay.id); setExtendStayOpen(true); }}
           onCancelStay={() => { setCancelStayId(stay.id); setCancelStayOpen(true); }}
+          onConvertModality={() => { setConvertStayId(stay.id); setConvertOpen(true); }}
         />
       ),
     },
@@ -340,6 +344,7 @@ function ReservasContent() {
               onChangeRoom={() => { setChangeRoomStayId(stay.id); setChangeRoomOpen(true); }}
               onExtendStay={() => { setExtendStayId(stay.id); setExtendStayOpen(true); }}
               onCancelStay={() => { setCancelStayId(stay.id); setCancelStayOpen(true); }}
+              onConvertModality={() => { setConvertStayId(stay.id); setConvertOpen(true); }}
             />
           </div>
         </div>
@@ -510,6 +515,12 @@ function ReservasContent() {
         onOpenChange={setCancelStayOpen}
         stayId={cancelStayId}
         onSaved={handleConfirmed}
+      />
+      <ConvertModalityDialog
+        open={convertOpen}
+        onOpenChange={setConvertOpen}
+        stayId={convertStayId}
+        onConverted={handleConfirmed}
       />
     </div>
   );

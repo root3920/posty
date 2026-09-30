@@ -41,6 +41,7 @@ interface StayActionsMenuProps {
   onChangeRoom: () => void;
   onExtendStay: () => void;
   onCancelStay: () => void;
+  onConvertModality: () => void;
 }
 
 // -------------------------------------------------------
@@ -55,6 +56,7 @@ export function StayActionsMenu({
   onChangeRoom,
   onExtendStay,
   onCancelStay,
+  onConvertModality,
 }: StayActionsMenuProps) {
   const router = useRouter();
 
@@ -121,6 +123,10 @@ export function StayActionsMenu({
             <DropdownMenuItem onClick={onExtendStay}>
               <Calendar className="h-4 w-4 text-muted-foreground" />
               Extender o acortar
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onConvertModality}>
+              <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+              {stay.stay_type === 'long_stay' ? 'Convertir a corta' : 'Convertir a larga estadía'}
             </DropdownMenuItem>
           </>
         )}

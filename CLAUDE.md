@@ -143,14 +143,14 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [x] Fase 7: Dashboard principal, configuración completa, seed demo
 - [x] Contratos E1: Precios LE, wizard 4 pasos, cuotas con prorrateo, pagos, depósito, sección /contratos, detalle, config
 - [x] Hotel E1: Sidebar LE bajo Hotel con badge, acciones en TODAS las filas, columna Modalidad, audit_log, editar/cambiar/extender/cancelar reserva
-- [ ] Hotel E2: Conversión de modalidad (corta ↔ larga), guest_snapshot, visits
-- [ ] Hotel E3: Fusionar huéspedes, historial visible, reportes
+- [x] Hotel E2: Conversión de modalidad (corta ↔ larga), guest_snapshot, visits, nota crédito retroactiva
+- [x] Hotel E3: Fusionar huéspedes, cambiar titular, historial audit_log, stats de huésped, detección duplicados
 - [x] Eventos: Alquiler de espacios, reservas con detección de cruces, depósitos, calendario semanal, tareas automáticas
 - [x] Chat F0: Provider layer + Evolution API, webhook, conexión QR, chat mínimo de prueba
 - [x] Chat F1: Sección Chat completa (Realtime, filtros, medios, notas internas, asignación, quick replies, badge no leídos)
 - [x] Chat F2: Contexto del huésped (panel derecho), ContactActions, GuestContextPanel
 - [x] Chat F3: Rate limiting (20/min, 300/h, 5 sin respuesta), primer contacto, errores en español
-- [ ] Contratos E2: Plantilla PDF, firma electrónica, otrosí, renovación, terminación, tareas automáticas, Finanzas
+- [x] Contratos E2: Otrosí, renovación, terminación con liquidación, envío para firma, documentos
 
 ## Módulo Contratos de Larga Estadía
 

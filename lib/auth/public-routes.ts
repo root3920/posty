@@ -10,6 +10,7 @@ export const PUBLIC_ROUTES = [
   '/auth/setup',
   '/api/cron',
   '/api/webhooks/whatsapp',
+  '/contrato',
 ] as const;
 
 export function isPublicRoute(pathname: string): boolean {

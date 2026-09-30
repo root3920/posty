@@ -407,3 +407,201 @@ export function useRegisterDepositPayment() {
     },
   });
 }
+
+// Terminate contract
+export function useTerminateContract() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { contract_id: string; termination_date: string; reason?: string; penalty?: number }) => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc('terminate_contract', {
+        p_contract_id: params.contract_id,
+        p_termination_date: params.termination_date,
+        p_reason: params.reason,
+        p_penalty: params.penalty ?? 0,
+      });
+      if (error) throw error;
+      return data as unknown as { success: boolean; pending_amount: number; penalty: number; deposit_to_return: number };
+    },
+    onSuccess: () => {
+      toast.success('Contrato terminado');
+      queryClient.invalidateQueries({ queryKey: ['contract_detail'] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['contract_kpis'] });
+    },
+    onError: (error) => toast.error(getSupabaseErrorMessage(error, 'terminar contrato')),
+  });
+}
+
+// Renew contract
+export function useRenewContract() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { contract_id: string; new_end_date: string; new_rate?: number }) => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc('renew_contract', {
+        p_contract_id: params.contract_id,
+        p_new_end_date: params.new_end_date,
+        p_new_rate: params.new_rate,
+      });
+      if (error) throw error;
+      return data as unknown as { success: boolean; new_contract_id: string; new_code: string };
+    },
+    onSuccess: (data) => {
+      toast.success(`Contrato renovado: ${data.new_code}`);
+      queryClient.invalidateQueries({ queryKey: ['contract_detail'] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+    },
+    onError: (error) => toast.error(getSupabaseErrorMessage(error, 'renovar contrato')),
+  });
+}
+
+// Create amendment (otrosí)
+export function useCreateAmendment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { contract_id: string; changes: Record<string, unknown>; effective_date: string; reason?: string }) => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc('create_contract_amendment', {
+        p_contract_id: params.contract_id,
+        p_changes: params.changes,
+        p_effective_date: params.effective_date,
+        p_reason: params.reason,
+      });
+      if (error) throw error;
+      return data as unknown as { success: boolean; amendment_id: string; amendment_number: number };
+    },
+    onSuccess: (data) => {
+      toast.success(`Otrosí #${data.amendment_number} creado`);
+      queryClient.invalidateQueries({ queryKey: ['contract_detail'] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+    },
+    onError: (error) => toast.error(getSupabaseErrorMessage(error, 'crear otrosí')),
+  });
+}
+
+// Send for signature
+export function useSendForSignature() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (contractId: string) => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc('send_contract_for_signature', { p_contract_id: contractId });
+      if (error) throw error;
+      return data as unknown as { success: boolean; token: string };
+    },
+    onSuccess: () => {
+      toast.success('Contrato enviado para firma');
+      queryClient.invalidateQueries({ queryKey: ['contract_detail'] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+    },
+    onError: (error) => toast.error(getSupabaseErrorMessage(error, 'enviar para firma')),
+  });
+}
+
+// Fetch amendments for a contract
+export function useContractAmendments(contractId: string | undefined) {
+  return useQuery({
+    queryKey: ['contract_amendments', contractId],
+    queryFn: async () => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from('contract_amendments')
+        .select('*')
+        .eq('contract_id', contractId)
+        .order('amendment_number', { ascending: true });
+      if (error) throw error;
+      return data as Array<{ id: string; amendment_number: number; changes: Record<string, unknown>; previous_values: Record<string, unknown>; reason: string | null; effective_date: string; created_at: string }>;
+    },
+    enabled: !!contractId,
+    staleTime: 30_000,
+  });
+}
+
+// Convert short stay to long stay
+export function useConvertToLongStay() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      stay_id: string; end_date: string; monthly_rate: number;
+      billing_cycle?: string; payment_day?: number; tax_rate?: number;
+      deposit_amount?: number; included_services?: string[];
+      cleaning_frequency_days?: number; apply_retroactive?: boolean;
+    }) => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc('convert_short_to_long_stay', {
+        p_stay_id: params.stay_id,
+        p_end_date: params.end_date,
+        p_monthly_rate: params.monthly_rate,
+        p_billing_cycle: params.billing_cycle ?? 'monthly',
+        p_payment_day: params.payment_day ?? 1,
+        p_tax_rate: params.tax_rate ?? 0,
+        p_deposit_amount: params.deposit_amount ?? 0,
+        p_included_services: params.included_services ?? [],
+        p_cleaning_frequency_days: params.cleaning_frequency_days ?? 7,
+        p_apply_retroactive: params.apply_retroactive ?? false,
+      });
+      if (error) throw error;
+      return data as unknown as { success: boolean; contract_id: string; contract_code: string; mode: string };
+    },
+    onSuccess: (data) => {
+      toast.success(`Convertido a larga estadía: ${data.contract_code}`);
+      queryClient.invalidateQueries({ queryKey: ['stays_view'] });
+      queryClient.invalidateQueries({ queryKey: ['hotel_rooms'] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['contract_kpis'] });
+    },
+    onError: (error) => toast.error(getSupabaseErrorMessage(error, 'convertir estancia')),
+  });
+}
+
+// Convert long stay to short stay
+export function useConvertToShortStay() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { contract_id: string; rate_per_night: number; new_check_out: string }) => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc('convert_long_to_short_stay', {
+        p_contract_id: params.contract_id,
+        p_rate_per_night: params.rate_per_night,
+        p_new_check_out: params.new_check_out,
+      });
+      if (error) throw error;
+      return data as unknown as { success: boolean; new_stay_id: string; new_stay_code: string };
+    },
+    onSuccess: (data) => {
+      toast.success(`Convertido a estancia corta: ${data.new_stay_code}`);
+      queryClient.invalidateQueries({ queryKey: ['stays_view'] });
+      queryClient.invalidateQueries({ queryKey: ['hotel_rooms'] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+    },
+    onError: (error) => toast.error(getSupabaseErrorMessage(error, 'convertir estancia')),
+  });
+}
+
+// Fetch documents for a contract
+export function useContractDocuments(contractId: string | undefined) {
+  return useQuery({
+    queryKey: ['contract_documents', contractId],
+    queryFn: async () => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from('contract_documents')
+        .select('*')
+        .eq('contract_id', contractId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as Array<{ id: string; doc_type: string; pdf_path: string | null; sign_token: string | null; signed_at: string | null; signer_name: string | null; created_at: string }>;
+    },
+    enabled: !!contractId,
+    staleTime: 30_000,
+  });
+}

@@ -598,6 +598,156 @@ export type Database = {
           },
         ]
       }
+      contract_amendments: {
+        Row: {
+          amendment_number: number
+          changes: Json
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          effective_date: string
+          id: string
+          organization_id: string
+          pdf_path: string | null
+          previous_values: Json
+          reason: string | null
+          signed_at: string | null
+        }
+        Insert: {
+          amendment_number: number
+          changes?: Json
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          effective_date: string
+          id?: string
+          organization_id: string
+          pdf_path?: string | null
+          previous_values?: Json
+          reason?: string | null
+          signed_at?: string | null
+        }
+        Update: {
+          amendment_number?: number
+          changes?: Json
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string
+          id?: string
+          organization_id?: string
+          pdf_path?: string | null
+          previous_values?: Json
+          reason?: string | null
+          signed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_amendments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_amendments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_amendments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_amendments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_documents: {
+        Row: {
+          contract_id: string
+          created_at: string
+          doc_type: string
+          id: string
+          ip_address: string | null
+          organization_id: string
+          pdf_hash: string | null
+          pdf_path: string | null
+          sign_token: string | null
+          sign_token_expires_at: string | null
+          signature_image_path: string | null
+          signed_at: string | null
+          signer_document: string | null
+          signer_name: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          doc_type: string
+          id?: string
+          ip_address?: string | null
+          organization_id: string
+          pdf_hash?: string | null
+          pdf_path?: string | null
+          sign_token?: string | null
+          sign_token_expires_at?: string | null
+          signature_image_path?: string | null
+          signed_at?: string | null
+          signer_document?: string | null
+          signer_name?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          doc_type?: string
+          id?: string
+          ip_address?: string | null
+          organization_id?: string
+          pdf_hash?: string | null
+          pdf_path?: string | null
+          sign_token?: string | null
+          sign_token_expires_at?: string | null
+          signature_image_path?: string | null
+          signed_at?: string | null
+          signer_document?: string | null
+          signer_name?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_documents_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_documents_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_installments: {
         Row: {
           amount: number
@@ -789,6 +939,8 @@ export type Database = {
           payer_tax_id: string | null
           payment_day: number
           provisional_until: string | null
+          renewed_from_id: string | null
+          renewed_to_id: string | null
           room_id: string
           room_type_id: string
           signed_at: string | null
@@ -796,6 +948,9 @@ export type Database = {
           status: Database["public"]["Enums"]["contract_status"]
           stay_id: string | null
           tax_rate: number
+          terminated_at: string | null
+          termination_penalty: number | null
+          termination_reason: string | null
           updated_at: string
         }
         Insert: {
@@ -821,6 +976,8 @@ export type Database = {
           payer_tax_id?: string | null
           payment_day?: number
           provisional_until?: string | null
+          renewed_from_id?: string | null
+          renewed_to_id?: string | null
           room_id: string
           room_type_id: string
           signed_at?: string | null
@@ -828,6 +985,9 @@ export type Database = {
           status?: Database["public"]["Enums"]["contract_status"]
           stay_id?: string | null
           tax_rate?: number
+          terminated_at?: string | null
+          termination_penalty?: number | null
+          termination_reason?: string | null
           updated_at?: string
         }
         Update: {
@@ -853,6 +1013,8 @@ export type Database = {
           payer_tax_id?: string | null
           payment_day?: number
           provisional_until?: string | null
+          renewed_from_id?: string | null
+          renewed_to_id?: string | null
           room_id?: string
           room_type_id?: string
           signed_at?: string | null
@@ -860,6 +1022,9 @@ export type Database = {
           status?: Database["public"]["Enums"]["contract_status"]
           stay_id?: string | null
           tax_rate?: number
+          terminated_at?: string | null
+          termination_penalty?: number | null
+          termination_reason?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -910,6 +1075,34 @@ export type Database = {
             columns: ["origin_stay_id"]
             isOneToOne: false
             referencedRelation: "stays_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_renewed_from_id_fkey"
+            columns: ["renewed_from_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_renewed_from_id_fkey"
+            columns: ["renewed_from_id"]
+            isOneToOne: false
+            referencedRelation: "contracts_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_renewed_to_id_fkey"
+            columns: ["renewed_to_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_renewed_to_id_fkey"
+            columns: ["renewed_to_id"]
+            isOneToOne: false
+            referencedRelation: "contracts_view"
             referencedColumns: ["id"]
           },
           {
@@ -4598,6 +4791,15 @@ export type Database = {
         }
         Returns: Json
       }
+      create_contract_amendment: {
+        Args: {
+          p_changes: Json
+          p_contract_id: string
+          p_effective_date: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       create_contract_with_stay: {
         Args: {
           p_additional_guests?: string[]
@@ -4796,6 +4998,14 @@ export type Database = {
         }
         Returns: Json
       }
+      renew_contract: {
+        Args: {
+          p_contract_id: string
+          p_new_end_date: string
+          p_new_rate?: number
+        }
+        Returns: Json
+      }
       resolve_title: {
         Args: {
           p_guest: Record<string, unknown>
@@ -4836,6 +5046,10 @@ export type Database = {
         Args: { p_org_id: string }
         Returns: undefined
       }
+      send_contract_for_signature: {
+        Args: { p_contract_id: string }
+        Returns: Json
+      }
       set_conversation_status: {
         Args: { p_conversation_id: string; p_status: string }
         Returns: undefined
@@ -4859,6 +5073,15 @@ export type Database = {
           profile_id: string
           stat_date: string
         }[]
+      }
+      terminate_contract: {
+        Args: {
+          p_contract_id: string
+          p_penalty?: number
+          p_reason?: string
+          p_termination_date: string
+        }
+        Returns: Json
       }
       update_cleaning: {
         Args: {
