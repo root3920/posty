@@ -377,11 +377,37 @@ function Step3({ onDisconnect }: Step3Props) {
         <Button className="w-full" onClick={() => router.push('/chat')}>
           Ir al Chat
         </Button>
+        <ImportButton />
         <Button variant="outline" size="sm" className="w-full" onClick={onDisconnect}>
           Desconectar
         </Button>
       </div>
     </div>
+  );
+}
+
+function ImportButton() {
+  const [loading, setLoading] = useState(false);
+
+  async function handleImport() {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/whatsapp/import', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(`${data.chats} chats importados · ${data.messagesImported} mensajes`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al importar');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Button variant="outline" size="sm" className="w-full" onClick={handleImport} disabled={loading}>
+      {loading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+      Importar chats recientes
+    </Button>
   );
 }
 

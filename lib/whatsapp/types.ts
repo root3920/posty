@@ -18,6 +18,10 @@ export interface WhatsAppProvider {
 
   setWebhook(instanceName: string, config: WebhookConfig): Promise<void>;
 
+  findChats(instanceName: string): Promise<ChatContact[]>;
+
+  findMessages(instanceName: string, remoteJid: string, limit?: number): Promise<ChatMessage[]>;
+
   sendText(
     instanceName: string,
     number: string,
@@ -50,6 +54,20 @@ export interface WebhookConfig {
   url: string;
   events: string[];
   headers: Record<string, string>;
+}
+
+export interface ChatContact {
+  remoteJid: string;
+  pushName?: string;
+  profilePicUrl?: string;
+}
+
+export interface ChatMessage {
+  key: { remoteJid: string; fromMe: boolean; id: string };
+  pushName?: string;
+  message?: Record<string, unknown>;
+  messageType?: string;
+  messageTimestamp?: number;
 }
 
 export interface EvolutionWebhookPayload {

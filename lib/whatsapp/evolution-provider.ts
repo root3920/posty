@@ -1,4 +1,4 @@
-import type { ConnectionStatus, InstanceInfo, WebhookConfig, WhatsAppProvider } from './types';
+import type { ChatContact, ChatMessage, ConnectionStatus, InstanceInfo, WebhookConfig, WhatsAppProvider } from './types';
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -245,6 +245,54 @@ export class EvolutionProvider implements WhatsAppProvider {
     });
     await handleResponse<unknown>(response);
     console.log('[Evolution] setWebhook for', instanceName, '→', config.url);
+  }
+
+  async findChats(instanceName: string): Promise<ChatContact[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/findChats/${instanceName}`, {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({}),
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await handleResponse<any[]>(response);
+      return (data ?? [])
+        .filter((c) => c.id?.endsWith('@s.whatsapp.net')) // Only 1:1 chats, no groups
+        .map((c) => ({
+          remoteJid: c.id,
+          pushName: c.name ?? c.pushName,
+          profilePicUrl: c.profilePicUrl,
+        }));
+    } catch (err) {
+      console.error('[Evolution] findChats failed:', err);
+      return [];
+    }
+  }
+
+  async findMessages(instanceName: string, remoteJid: string, limit: number = 50): Promise<ChatMessage[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/findMessages/${instanceName}`, {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({
+          where: { key: { remoteJid } },
+          limit,
+        }),
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await handleResponse<any>(response);
+      const messages = Array.isArray(data) ? data : data?.messages ?? [];
+      return messages.map((m: ChatMessage) => ({
+        key: m.key,
+        pushName: m.pushName,
+        message: m.message,
+        messageType: m.messageType,
+        messageTimestamp: m.messageTimestamp,
+      }));
+    } catch (err) {
+      console.error('[Evolution] findMessages failed:', err);
+      return [];
+    }
   }
 
   async disconnect(instanceName: string): Promise<void> {

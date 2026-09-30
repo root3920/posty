@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
     // Get conversation details — RLS ensures it belongs to this org
     const { data: conversation, error: convError } = await db
-      .from('whatsapp_conversations')
+      .from('chat_conversations')
       .select('id, contact_phone_e164, connection_id')
       .eq('id', conversationId)
       .eq('organization_id', orgId)
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 
     // Update conversation preview
     await adminDb
-      .from('whatsapp_conversations')
+      .from('chat_conversations')
       .update({
         last_message_at: new Date().toISOString(),
         last_message_preview: text.slice(0, 100),

@@ -73,7 +73,7 @@ async function handleMessageUpsert(
 
     // Find or create conversation
     const { data: existingConv } = await db
-      .from('whatsapp_conversations')
+      .from('chat_conversations')
       .select('id')
       .eq('organization_id', conn.organization_id)
       .eq('connection_id', conn.id)
@@ -96,7 +96,7 @@ async function handleMessageUpsert(
         .maybeSingle();
 
       const { data: newConv, error: convError } = await db
-        .from('whatsapp_conversations')
+        .from('chat_conversations')
         .insert({
           organization_id: conn.organization_id,
           connection_id: conn.id,
@@ -135,13 +135,13 @@ async function handleMessageUpsert(
     // If incoming: increment unread count + update preview
     if (!fromMe) {
       const { data: cv } = await db
-        .from('whatsapp_conversations')
+        .from('chat_conversations')
         .select('unread_count')
         .eq('id', conversationId)
         .single();
 
       await db
-        .from('whatsapp_conversations')
+        .from('chat_conversations')
         .update({
           unread_count: ((cv?.unread_count as number) ?? 0) + 1,
           last_message_at: new Date().toISOString(),

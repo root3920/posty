@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   MessageCircle,
   Send,
@@ -13,6 +14,7 @@ import {
   Wifi,
   WifiOff,
   Search,
+  Loader2,
 } from 'lucide-react';
 import { formatDistanceToNow, isToday, isYesterday, isThisWeek, format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -41,13 +43,18 @@ function formatConversationTime(dateStr: string | null): string {
 }
 
 function formatPhone(phone: string): string {
-  // Show last 10 digits formatted
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length >= 10) {
-    const local = digits.slice(-10);
-    return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
+  try {
+    const { formatPhoneNumberIntl } = require('react-phone-number-input');
+    return formatPhoneNumberIntl(phone) || phone;
+  } catch {
+    // Fallback: show last 10 digits formatted
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length >= 10) {
+      const local = digits.slice(-10);
+      return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
+    }
+    return phone;
   }
-  return phone;
 }
 
 // -------------------------------------------------------
@@ -168,6 +175,8 @@ interface ConversationsColumnProps {
   onSelect: (id: string) => void;
   searchQuery: string;
   onSearchChange: (v: string) => void;
+  onImport?: () => void;
+  isImporting?: boolean;
 }
 
 function ConversationsColumn({
@@ -176,6 +185,8 @@ function ConversationsColumn({
   onSelect,
   searchQuery,
   onSearchChange,
+  onImport,
+  isImporting,
 }: ConversationsColumnProps) {
   const filtered = conversations.filter((c) => {
     const q = searchQuery.toLowerCase();
@@ -209,9 +220,21 @@ function ConversationsColumn({
       {/* List */}
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-center text-sm text-muted-foreground">
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center text-sm text-muted-foreground">
             <MessageCircle className="h-8 w-8 opacity-40" />
             <p>{searchQuery ? 'Sin resultados' : 'Sin conversaciones'}</p>
+            {!searchQuery && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={onImport}
+                disabled={isImporting}
+              >
+                {isImporting ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : null}
+                Importar chats recientes
+              </Button>
+            )}
           </div>
         ) : (
           filtered.map((conv) => (
@@ -440,6 +463,23 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isMobileMessageView, setIsMobileMessageView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const queryClient = useQueryClient();
+
+  async function handleImport() {
+    setIsImporting(true);
+    try {
+      const res = await fetch('/api/whatsapp/import', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Error al importar');
+      toast.success(`${data.chats} chats importados · ${data.messagesImported} mensajes`);
+      queryClient.invalidateQueries({ queryKey: ['chat_conversations'] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al importar chats');
+    } finally {
+      setIsImporting(false);
+    }
+  }
 
   const { data: conversations = [] } = useChatConversations();
 
@@ -475,7 +515,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
         )}
         <span>
           {isConnected
-            ? `Conectado${connection.displayName ? ` · ${connection.displayName}` : ''}${connection.phone ? ` · ${connection.phone}` : ''}`
+            ? `Conectado${connection.displayName ? ` · ${connection.displayName}` : ''}${connection.phone ? ` · ${formatPhone(connection.phone)}` : ''}`
             : 'Sin conexión — reconectando…'}
         </span>
       </div>
@@ -501,6 +541,8 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
                 onSelect={handleSelectConversation}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                onImport={handleImport}
+                isImporting={isImporting}
               />
             </div>
           )
@@ -514,6 +556,8 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
                 onSelect={handleSelectConversation}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                onImport={handleImport}
+                isImporting={isImporting}
               />
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
