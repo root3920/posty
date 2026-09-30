@@ -99,7 +99,7 @@ async function handleMessageUpsert(
     const msgType = extractMessageType(messageType);
 
     // Atomic: upsert contact then upsert conversation (no race conditions)
-    const { data: contactId } = await db.rpc('upsert_chat_contact', {
+    const { data: contactId, error: contactErr } = await db.rpc('upsert_chat_contact', {
       p_org_id: conn.organization_id,
       p_phone: phone,
       p_lid: lid,
@@ -107,12 +107,13 @@ async function handleMessageUpsert(
       p_profile_pic: null,
     });
 
-    if (!contactId) {
-      console.error('[Webhook] Failed to upsert contact for', phone ?? lid);
+    console.log('[Webhook] upsert_chat_contact result:', { contactId, err: contactErr?.message });
+    if (contactErr || !contactId) {
+      console.error('[Webhook] Failed to upsert contact:', contactErr?.message ?? 'null returned', 'phone:', phone, 'lid:', lid);
       continue;
     }
 
-    const { data: conversationId } = await db.rpc('upsert_chat_conversation', {
+    const { data: conversationId, error: convErr } = await db.rpc('upsert_chat_conversation', {
       p_org_id: conn.organization_id,
       p_connection_id: conn.id,
       p_contact_id: contactId,
@@ -121,8 +122,9 @@ async function handleMessageUpsert(
       p_is_inbound: !fromMe,
     });
 
-    if (!conversationId) {
-      console.error('[Webhook] Failed to upsert conversation');
+    console.log('[Webhook] upsert_chat_conversation result:', { conversationId, err: convErr?.message });
+    if (convErr || !conversationId) {
+      console.error('[Webhook] Failed to upsert conversation:', convErr?.message ?? 'null returned');
       continue;
     }
 
