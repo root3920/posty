@@ -13,8 +13,6 @@ import {
   ChevronUp,
   Wifi,
 } from 'lucide-react';
-import Image from 'next/image';
-
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -157,12 +155,6 @@ function Step1({
 // Step 2 — Scan QR
 // -------------------------------------------------------
 
-interface QrData {
-  qr: string | null;
-  connected: boolean;
-  status: string;
-}
-
 interface Step2Props {
   accountType: AccountType;
   onConnected: () => void;
@@ -170,51 +162,79 @@ interface Step2Props {
 
 function Step2({ accountType, onConnected }: Step2Props) {
   const [showAlternative, setShowAlternative] = useState(false);
+  const [qrExpired, setQrExpired] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
-  // Poll QR code every 5 seconds
-  const { data: qrData, isLoading: qrLoading } = useQuery<QrData, Error>({
+  // Poll QR code every 4 seconds
+  const { data: qrData, isLoading: qrLoading } = useQuery({
     queryKey: ['whatsapp_qr'],
-    queryFn: async (): Promise<QrData> => {
+    queryFn: async () => {
       const res = await fetch('/api/whatsapp/qr');
-      if (!res.ok) throw new Error('No se pudo obtener el código QR');
-      return res.json() as Promise<QrData>;
+      const body = await res.json();
+      return body as { base64?: string | null; code?: string; count?: number; connected?: boolean; error?: string };
+    },
+    refetchInterval: qrExpired ? false : 4_000,
+    staleTime: 3_000,
+  });
+
+  // Poll status every 5 seconds
+  const { data: statusData } = useQuery({
+    queryKey: ['whatsapp_status_poll'],
+    queryFn: async () => {
+      const res = await fetch('/api/whatsapp/status');
+      if (!res.ok) return { connected: false };
+      const body = await res.json();
+      return body as { connected?: boolean; providerState?: string };
     },
     refetchInterval: 5_000,
     staleTime: 4_000,
   });
 
-  // Poll status
-  const { data: statusData } = useQuery<{ status: string; connected: boolean }, Error>({
-    queryKey: ['whatsapp_status_poll'],
-    queryFn: async (): Promise<{ status: string; connected: boolean }> => {
-      const res = await fetch('/api/whatsapp/status');
-      if (!res.ok) throw new Error('No se pudo obtener el estado');
-      return res.json() as Promise<{ status: string; connected: boolean }>;
-    },
-    refetchInterval: 3_000,
-    staleTime: 2_000,
-  });
+  // Detect QR expiry (count >= 6 with no base64)
+  useEffect(() => {
+    if (qrData && !qrData.base64 && !qrData.connected && (qrData.count ?? 0) >= 6) {
+      setQrExpired(true);
+    }
+  }, [qrData]);
 
   // Advance when connected
   useEffect(() => {
-    if (qrData?.connected || statusData?.connected || statusData?.status === 'connected') {
+    if (qrData?.connected || statusData?.connected || statusData?.providerState === 'open') {
       onConnected();
     }
   }, [qrData, statusData, onConnected]);
+
+  // Reset instance (logout + reconnect) when QR expires
+  async function handleResetQr() {
+    setIsResetting(true);
+    try {
+      await fetch('/api/whatsapp/disconnect', { method: 'POST' });
+      await fetch('/api/whatsapp/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountType }),
+      });
+      setQrExpired(false);
+    } catch {
+      toast.error('No se pudo generar un nuevo código');
+    } finally {
+      setIsResetting(false);
+    }
+  }
+
+  const hasQr = !!qrData?.base64;
 
   const instructions =
     accountType === 'business'
       ? [
           'Abre WhatsApp Business en tu teléfono',
-          'Toca los tres puntos (⋮) en la esquina superior derecha',
-          'Selecciona "Dispositivos vinculados"',
+          'Toca ⋮ → Dispositivos vinculados',
           'Toca "Vincular un dispositivo"',
           'Escanea este código QR con la cámara',
         ]
       : [
           'Abre WhatsApp en tu teléfono',
-          'Ve a Configuración (ícono de engranaje)',
-          'Selecciona "Dispositivos vinculados"',
+          'Ve a Configuración → Dispositivos vinculados',
           'Toca "Vincular un dispositivo"',
           'Escanea este código QR con la cámara',
         ];
@@ -223,30 +243,41 @@ function Step2({ accountType, onConnected }: Step2Props) {
     <div className="space-y-6">
       {/* QR code */}
       <div className="flex flex-col items-center gap-4">
-        <div className="relative flex h-56 w-56 items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30">
-          {qrLoading && !qrData ? (
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          ) : qrData?.qr ? (
-            <Image
-              src={qrData.qr}
+        <div className="flex h-64 w-64 items-center justify-center rounded-xl border-2 border-dashed border-border bg-white dark:bg-muted/30">
+          {qrExpired ? (
+            <div className="flex flex-col items-center gap-3 p-4 text-center">
+              <p className="text-sm font-medium text-amber-600">El código expiró</p>
+              <Button size="sm" onClick={handleResetQr} disabled={isResetting}>
+                {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Generar nuevo código'}
+              </Button>
+            </div>
+          ) : qrLoading && !hasQr ? (
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">Generando código QR…</p>
+            </div>
+          ) : hasQr ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={qrData.base64!}
               alt="Código QR de WhatsApp"
-              fill
-              className="rounded-xl object-contain p-2"
-              unoptimized
+              className="h-60 w-60 rounded-lg object-contain"
             />
           ) : (
-            <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
-              <MessageCircle className="h-10 w-10" />
-              <p className="text-xs">Generando código QR…</p>
+            <div className="flex flex-col items-center gap-2 p-4 text-center text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <p className="text-xs">Esperando código QR…</p>
             </div>
           )}
         </div>
 
         {/* Status indicator */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Esperando escaneo…</span>
-        </div>
+        {!qrExpired && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Esperando escaneo…</span>
+          </div>
+        )}
       </div>
 
       {/* Instructions */}
@@ -282,12 +313,9 @@ function Step2({ accountType, onConnected }: Step2Props) {
         </button>
         {showAlternative && (
           <div className="border-t px-4 py-3">
-            <p className="mb-3 text-sm text-muted-foreground">
-              Vincular con número de teléfono
-            </p>
             <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
               <Smartphone className="h-4 w-4 shrink-0" />
-              <span>Disponible próximamente</span>
+              <span>Vincular con número de teléfono — disponible próximamente</span>
             </div>
           </div>
         )}
@@ -326,13 +354,11 @@ function Step3({ onDisconnect }: Step3Props) {
       {connection && (
         <div className="flex w-full max-w-xs flex-col items-center gap-3 rounded-xl border bg-muted/30 p-4">
           {connection.profile_pic_url && (
-            <Image
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
               src={connection.profile_pic_url}
               alt="Foto de perfil"
-              width={56}
-              height={56}
-              className="rounded-full border"
-              unoptimized
+              className="h-14 w-14 rounded-full border object-cover"
             />
           )}
           {connection.display_name && (

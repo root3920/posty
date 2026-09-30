@@ -73,14 +73,22 @@ export class EvolutionProvider implements WhatsAppProvider {
     };
   }
 
-  async getQrCode(instanceName: string): Promise<{ base64: string; code?: string }> {
+  async getQrCode(instanceName: string): Promise<{ base64: string | null; code?: string; count?: number; pairingCode?: string | null }> {
     const response = await fetch(`${this.baseUrl}/instance/connect/${instanceName}`, {
       method: 'GET',
       headers: this.headers(),
     });
 
-    const data = await handleResponse<{ base64: string; code?: string }>(response);
-    return { base64: data.base64, code: data.code };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = await handleResponse<any>(response);
+    console.log('[Evolution] getQrCode response keys:', Object.keys(data), 'count:', data.count);
+
+    // /instance/connect returns { base64, code, count, pairingCode } at top level
+    // /instance/create returns { qrcode: { base64, code } }
+    const base64 = data.base64 ?? data.qrcode?.base64 ?? null;
+    const code = data.code ?? data.qrcode?.code;
+
+    return { base64, code, count: data.count, pairingCode: data.pairingCode };
   }
 
   async getStatus(instanceName: string): Promise<{ state: ConnectionStatus }> {

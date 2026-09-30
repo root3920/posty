@@ -8,7 +8,7 @@ export interface WhatsAppProvider {
     events: string[];
   }): Promise<{ instanceName: string; token: string; qrBase64?: string }>;
 
-  getQrCode(instanceName: string): Promise<{ base64: string; code?: string }>;
+  getQrCode(instanceName: string): Promise<{ base64: string | null; code?: string; count?: number; pairingCode?: string | null }>;
 
   getStatus(instanceName: string): Promise<{ state: ConnectionStatus }>;
 

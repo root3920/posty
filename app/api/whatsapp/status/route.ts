@@ -51,12 +51,22 @@ export async function GET() {
 
     const typedConn = conn as ConnectionRow;
     const provider = getWhatsAppProvider();
-    const providerStatus = await provider.getStatus(typedConn.instance_name);
+
+    let providerState = 'close';
+    try {
+      const providerStatus = await provider.getStatus(typedConn.instance_name);
+      providerState = providerStatus.state;
+    } catch {
+      // Provider unreachable — use DB status
+    }
+
+    const connected = providerState === 'open' || typedConn.status === 'connected';
 
     return Response.json({
       connectionId: typedConn.id,
-      dbStatus: typedConn.status,
-      providerState: providerStatus.state,
+      status: typedConn.status,
+      providerState,
+      connected,
       connectedAt: typedConn.connected_at,
       lastSeenAt: typedConn.last_seen_at,
     });

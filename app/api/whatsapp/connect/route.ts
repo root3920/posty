@@ -68,6 +68,8 @@ export async function POST(request: Request) {
       events: ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'],
     });
 
+    console.log('[Connect] Instance created:', result.instanceName, 'hasQR:', !!result.qrBase64);
+
     const { data: conn, error: connError } = await adminDb
       .from('whatsapp_connections')
       .insert({

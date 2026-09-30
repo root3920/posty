@@ -49,11 +49,33 @@ export async function GET() {
     }
 
     const provider = getWhatsAppProvider();
+
+    // Also check live status — if already connected, skip QR
+    try {
+      const liveStatus = await provider.getStatus(typedConn.instance_name);
+      console.log('[QR route] Live status:', liveStatus.state);
+      if (liveStatus.state === 'open') {
+        return Response.json({ connected: true });
+      }
+    } catch {
+      // Status check failed — continue to get QR
+    }
+
     const qr = await provider.getQrCode(typedConn.instance_name);
-    return Response.json(qr);
+    console.log('[QR route] QR response: base64 length=', qr.base64?.length ?? 0, 'count=', qr.count);
+
+    return Response.json({
+      base64: qr.base64,
+      code: qr.code,
+      count: qr.count,
+      connected: false,
+    });
   } catch (error) {
     console.error('QR route error:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json({
+      error: 'No se pudo obtener el código QR. Verifica que Evolution esté encendido.',
+      base64: null,
+      connected: false,
+    }, { status: 502 });
   }
 }
