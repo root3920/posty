@@ -135,11 +135,24 @@ export function useChatConversations(filter?: {
     staleTime: 5_000,
   });
 
-  // Realtime subscription
+  return query;
+}
+
+// -------------------------------------------------------
+// Messages for a conversation (with Realtime)
+// -------------------------------------------------------
+
+/**
+ * Single Realtime subscription for all chat_conversations changes.
+ * Call this ONCE at the top level of the chat page — not inside each hook.
+ */
+export function useChatRealtime() {
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel('chat_conversations_changes')
+      .channel('posty_chat_realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chat_conversations' },
@@ -152,13 +165,7 @@ export function useChatConversations(filter?: {
 
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
-
-  return query;
 }
-
-// -------------------------------------------------------
-// Messages for a conversation (with Realtime)
-// -------------------------------------------------------
 
 export function useChatMessages(conversationId: string | null) {
   const queryClient = useQueryClient();

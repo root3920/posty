@@ -93,8 +93,9 @@ async function handleMessageUpsert(
 
     if (existingConv) {
       conversationId = existingConv.id as string;
-      // Update name if we got a pushName and conversation doesn't have one
-      if (pushName) {
+      // Update name if we got a pushName from an INCOMING message (not fromMe)
+      // fromMe messages have OUR name as pushName, not the contact's
+      if (pushName && !fromMe) {
         await db
           .from('chat_conversations')
           .update({ contact_name: pushName })
@@ -117,7 +118,7 @@ async function handleMessageUpsert(
           organization_id: conn.organization_id,
           connection_id: conn.id,
           contact_phone_e164: phone,
-          contact_name: pushName ?? null,
+          contact_name: fromMe ? null : (pushName ?? null),
           guest_id: guest?.id ?? null,
         })
         .select('id')

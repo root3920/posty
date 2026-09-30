@@ -36,11 +36,16 @@ export async function POST(request: Request) {
       return Response.json({ error: 'No auth' }, { status: 401 });
     }
 
-    const body = await request.json() as { conversationId?: string; text?: string };
-    const { conversationId, text } = body;
+    const body = await request.json() as { conversationId?: string; phone?: string; text?: string };
+    let { conversationId } = body;
+    const { text, phone } = body;
 
-    if (!conversationId || !text) {
-      return Response.json({ error: 'conversationId and text are required' }, { status: 400 });
+    if (!text) {
+      return Response.json({ error: 'El texto del mensaje es obligatorio' }, { status: 400 });
+    }
+
+    if (!conversationId && !phone) {
+      return Response.json({ error: 'Se requiere conversationId o phone' }, { status: 400 });
     }
 
     const { data: profile, error: profileError } = await supabase
@@ -58,6 +63,57 @@ export async function POST(request: Request) {
     // New tables added in migration — types not yet regenerated
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any;
+
+    const adminDb = createAdminClient() as typeof db;
+
+    // If phone provided but no conversationId, find or create conversation
+    if (!conversationId && phone) {
+
+      // Get connection
+      const { data: conn } = await adminDb
+        .from('whatsapp_connections')
+        .select('id')
+        .eq('organization_id', orgId)
+        .eq('status', 'connected')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!conn) {
+        return Response.json({ error: 'WhatsApp no está conectado' }, { status: 400 });
+      }
+
+      // Find or create conversation
+      const { data: existingConv } = await adminDb
+        .from('chat_conversations')
+        .select('id')
+        .eq('organization_id', orgId)
+        .eq('connection_id', conn.id)
+        .eq('contact_phone_e164', phone)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingConv) {
+        conversationId = existingConv.id;
+      } else {
+        const { data: newConv, error: newConvErr } = await adminDb
+          .from('chat_conversations')
+          .insert({
+            organization_id: orgId,
+            connection_id: conn.id,
+            contact_phone_e164: phone,
+            status: 'open',
+            is_hidden: false,
+          })
+          .select('id')
+          .single();
+
+        if (newConvErr || !newConv) {
+          return Response.json({ error: 'No se pudo crear la conversación' }, { status: 500 });
+        }
+        conversationId = newConv.id;
+      }
+    }
 
     // Get conversation details — RLS ensures it belongs to this org
     const { data: conversation, error: convError } = await db
@@ -92,7 +148,6 @@ export async function POST(request: Request) {
     }
 
     // Rate limiting: max 20 msgs/min, 300/hour per org
-    const adminDb = createAdminClient() as typeof db;
     const oneMinAgo = new Date(Date.now() - 60_000).toISOString();
     const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
 

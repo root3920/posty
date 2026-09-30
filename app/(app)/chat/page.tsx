@@ -38,6 +38,7 @@ import {
   useChatMessages,
   useChatNotes,
   useChatQuickReplies,
+  useChatRealtime,
   useMarkConversationRead,
   useAssignConversation,
   useSetConversationStatus,
@@ -963,6 +964,7 @@ interface ConnectedChatProps {
 
 function ConnectedChat({ connection }: ConnectedChatProps) {
   const isMobile = useIsMobile();
+  useChatRealtime(); // Single Realtime subscription for all conversation changes
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isMobileMessageView, setIsMobileMessageView] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
