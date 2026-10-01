@@ -51,12 +51,14 @@ export async function exchangeCodeForToken(
   console.log('[ig-callback] step=exchange_short status=' + res.status);
 
   if (!res.ok) {
-    console.error('[Instagram] Token exchange failed:', rawText.slice(0, 200));
+    console.error('[Instagram] Token exchange failed (status=' + res.status + '):', rawText.slice(0, 300));
     // Parse error for better message
     if (rawText.includes('Invalid platform app')) throw new Error('not_professional');
-    if (rawText.includes('code has been used')) throw new Error('code_used');
-    if (rawText.includes('redirect_uri')) throw new Error('config');
-    throw new Error('exchange_failed');
+    if (rawText.includes('code has been used') || rawText.includes('code has already been used')) throw new Error('code_used');
+    if (rawText.includes('Invalid verification code')) throw new Error('code_used');
+    if (rawText.includes('redirect_uri does not match') || rawText.includes('Mismatched redirect_uri')) throw new Error('config');
+    // Log raw error for debugging — never includes tokens (only the code which is single-use)
+    throw new Error('exchange_failed:' + rawText.slice(0, 100));
   }
 
   // Parse manually to extract user_id as string

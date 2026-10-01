@@ -34,12 +34,15 @@ export async function GET(request: Request) {
     return redirectWithError('denied');
   }
 
-  // 2. Must have a code
-  const code = searchParams.get('code');
+  // 2. Must have a code (Instagram appends #_ which browsers strip, but just in case)
+  let code = searchParams.get('code');
   if (!code) {
     console.log('[ig-callback] step=no_code');
     return redirectWithError('code_used');
   }
+  // Strip trailing #_ that Instagram sometimes appends
+  code = code.replace(/#_$/, '').trim();
+  console.log('[ig-callback] step=code_received len=' + code.length);
 
   // 3. Validate env
   console.log('[ig-callback] step=env_check vars:', {
@@ -168,7 +171,7 @@ export async function GET(request: Request) {
     if (msg === 'not_professional') return redirectWithError('not_professional');
     if (msg === 'not_tester') return redirectWithError('not_tester');
     if (msg === 'config') return redirectWithError('config');
-    if (msg === 'exchange_failed') return redirectWithError('code_used');
+    if (msg.startsWith('exchange_failed')) return redirectWithError('code_used');
     if (msg === 'exchange_long_failed') return redirectWithError('code_used');
 
     return redirectWithError('save_failed');
