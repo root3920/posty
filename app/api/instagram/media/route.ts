@@ -6,7 +6,7 @@ import { getMedia } from '@/lib/instagram/client';
 
 interface InstagramConnectionRow {
   id: string;
-  instagram_user_id: string;
+  ig_user_id: string;
   access_token_encrypted: string;
   status: string;
 }
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 
     const { data: conn, error: connError } = await adminDb
       .from('instagram_connections')
-      .select('id,instagram_user_id,access_token_encrypted,status')
+      .select('id,ig_user_id,access_token_encrypted,status')
       .eq('organization_id', profile.organization_id)
       .eq('status', 'connected')
       .maybeSingle();
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
     const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 30, 1), 100) : 30;
 
     const token = decryptToken(typedConn.access_token_encrypted);
-    const { media, nextCursor } = await getMedia(token, typedConn.instagram_user_id, cursor, limit);
+    const { media, nextCursor } = await getMedia(token, typedConn.ig_user_id, cursor, limit);
 
     console.log('[Instagram] Media fetched:', media.length, 'items, nextCursor:', nextCursor ?? 'none');
 

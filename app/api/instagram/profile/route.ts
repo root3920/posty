@@ -6,7 +6,7 @@ import { getProfile } from '@/lib/instagram/client';
 
 interface InstagramConnectionRow {
   id: string;
-  instagram_user_id: string;
+  ig_user_id: string;
   username: string;
   name: string | null;
   profile_picture_url: string | null;
@@ -62,7 +62,7 @@ export async function GET() {
     const { data: conn, error: connError } = await adminDb
       .from('instagram_connections')
       .select(
-        'id,instagram_user_id,username,name,profile_picture_url,account_type,media_count,followers_count,follows_count,access_token_encrypted,token_expires_at,status',
+        'id,ig_user_id,username,name,profile_picture_url,account_type,media_count,followers_count,follows_count,access_token_encrypted,token_expires_at,status',
       )
       .eq('organization_id', profile.organization_id)
       .eq('status', 'connected')
@@ -105,7 +105,7 @@ export async function GET() {
       console.error('[Instagram] Could not refresh profile from API, returning cached:', fetchErr);
       // Fall back to cached data
       igProfile = {
-        id: typedConn.instagram_user_id,
+        id: typedConn.ig_user_id,
         username: typedConn.username,
         name: typedConn.name ?? undefined,
         profile_picture_url: typedConn.profile_picture_url ?? undefined,
