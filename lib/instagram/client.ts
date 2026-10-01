@@ -167,3 +167,100 @@ export async function getMediaDetail(token: string, mediaId: string): Promise<In
   if (!res.ok) throw new Error('No se pudo obtener el detalle del post');
   return res.json();
 }
+
+// -------------------------------------------------------
+// Content Publishing API
+// -------------------------------------------------------
+
+export async function createMediaContainer(
+  token: string,
+  userId: string,
+  params: { imageUrl: string; caption?: string; altText?: string; isCarouselItem?: boolean },
+): Promise<string> {
+  const body: Record<string, string> = {
+    image_url: params.imageUrl,
+    access_token: token,
+  };
+  if (params.caption && !params.isCarouselItem) body.caption = params.caption;
+  if (params.altText) body.alt_text = params.altText;
+  if (params.isCarouselItem) body.is_carousel_item = 'true';
+
+  const res = await fetch(`${API_BASE}/${userId}/media`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  console.log('[Instagram] createMediaContainer status=' + res.status + ' id=' + data.id);
+  if (!res.ok || !data.id) throw new Error(data.error?.message ?? 'Error al crear contenedor');
+  return data.id;
+}
+
+export async function createCarouselContainer(
+  token: string,
+  userId: string,
+  params: { childrenIds: string[]; caption?: string },
+): Promise<string> {
+  const body: Record<string, unknown> = {
+    media_type: 'CAROUSEL',
+    children: params.childrenIds.join(','),
+    access_token: token,
+  };
+  if (params.caption) body.caption = params.caption;
+
+  const res = await fetch(`${API_BASE}/${userId}/media`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  console.log('[Instagram] createCarouselContainer status=' + res.status + ' id=' + data.id);
+  if (!res.ok || !data.id) throw new Error(data.error?.message ?? 'Error al crear carrusel');
+  return data.id;
+}
+
+export async function checkContainerStatus(
+  token: string,
+  containerId: string,
+): Promise<{ statusCode: string; errorMessage?: string }> {
+  const res = await fetch(
+    `${API_BASE}/${containerId}?fields=status_code,status&access_token=${token}`,
+  );
+  const data = await res.json();
+  return {
+    statusCode: data.status_code ?? data.status ?? 'UNKNOWN',
+    errorMessage: data.error?.message,
+  };
+}
+
+export async function publishContainer(
+  token: string,
+  userId: string,
+  containerId: string,
+): Promise<{ mediaId: string }> {
+  const res = await fetch(`${API_BASE}/${userId}/media_publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      creation_id: containerId,
+      access_token: token,
+    }),
+  });
+  const data = await res.json();
+  console.log('[Instagram] publishContainer status=' + res.status + ' id=' + data.id);
+  if (!res.ok || !data.id) throw new Error(data.error?.message ?? 'Error al publicar');
+  return { mediaId: data.id };
+}
+
+export async function getPublishingLimit(
+  token: string,
+  userId: string,
+): Promise<{ quota: number; used: number }> {
+  const res = await fetch(
+    `${API_BASE}/${userId}/content_publishing_limit?fields=config,quota_usage&access_token=${token}`,
+  );
+  const data = await res.json();
+  const config = data.data?.[0]?.config ?? {};
+  const usage = data.data?.[0]?.quota_usage ?? 0;
+  return { quota: config.quota_total ?? 50, used: usage };
+}

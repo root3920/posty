@@ -1943,6 +1943,57 @@ export type Database = {
           },
         ]
       }
+      instagram_api_logs: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          method: string
+          organization_id: string
+          post_id: string | null
+          request_body: Json | null
+          response_body: Json | null
+          status_code: number | null
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          method?: string
+          organization_id: string
+          post_id?: string | null
+          request_body?: Json | null
+          response_body?: Json | null
+          status_code?: number | null
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          method?: string
+          organization_id?: string
+          post_id?: string | null
+          request_body?: Json | null
+          response_body?: Json | null
+          status_code?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_api_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_api_logs_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_connections: {
         Row: {
           access_token_encrypted: string
@@ -2080,6 +2131,101 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_posts: {
+        Row: {
+          aspect_ratio: string | null
+          attempts: number
+          caption: string | null
+          connection_id: string
+          container_id: string | null
+          created_at: string
+          created_by: string | null
+          error: string | null
+          id: string
+          ig_media_id: string | null
+          media: Json
+          organization_id: string
+          permalink: string | null
+          published_at: string | null
+          scheduled_at: string | null
+          status: string
+          type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          attempts?: number
+          caption?: string | null
+          connection_id: string
+          container_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          ig_media_id?: string | null
+          media?: Json
+          organization_id: string
+          permalink?: string | null
+          published_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          aspect_ratio?: string | null
+          attempts?: number
+          caption?: string | null
+          connection_id?: string
+          container_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          ig_media_id?: string | null
+          media?: Json
+          organization_id?: string
+          permalink?: string | null
+          published_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_posts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_posts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_posts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_posts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

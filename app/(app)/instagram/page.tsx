@@ -20,13 +20,13 @@ import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button';
 import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { PageHeader } from '@/components/shared/page-header';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import {
   useInstagramConnection,
   useInstagramMedia,
   type InstagramMediaItem,
 } from '@/hooks/use-instagram';
+import { PostComposer } from '@/components/instagram/post-composer';
 
 // -------------------------------------------------------
 // No connection empty state
@@ -302,6 +302,7 @@ function ConnectedInstagramView() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InstagramMediaItem | null>(null);
   const [profileImgError, setProfileImgError] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
 
   // Sync first page once
   if (!initialized && firstPage) {
@@ -394,15 +395,10 @@ function ConnectedInstagramView() {
                 Ver en Instagram
               </a>
             )}
-            <Tooltip>
-              <TooltipTrigger render={<span />}>
-                <Button size="sm" disabled>
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Nuevo post
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Disponible proximamente</TooltipContent>
-            </Tooltip>
+            <Button size="sm" onClick={() => setComposerOpen(true)}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Nuevo post
+            </Button>
           </div>
         </div>
       </div>
@@ -448,6 +444,16 @@ function ConnectedInstagramView() {
       <MediaDetailModal
         item={selectedItem}
         onClose={() => setSelectedItem(null)}
+      />
+
+      {/* Post composer */}
+      <PostComposer
+        open={composerOpen}
+        onOpenChange={setComposerOpen}
+        connection={{
+          username: connection.username ?? '',
+          profile_picture_url: connection.profile_picture_url,
+        }}
       />
     </div>
   );

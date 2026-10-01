@@ -1,6 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 export interface InstagramConnection {
   id: string;
@@ -73,5 +74,45 @@ export function useInstagramMedia(cursor?: string) {
       return res.json() as Promise<{ media: InstagramMediaItem[]; nextCursor?: string }>;
     },
     staleTime: 60_000,
+  });
+}
+
+export function useUploadImage() {
+  return useMutation({
+    mutationFn: async ({ file, aspectRatio }: { file: File; aspectRatio?: string }) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      if (aspectRatio) formData.append('aspectRatio', aspectRatio);
+
+      const res = await fetch('/api/instagram/upload', { method: 'POST', body: formData });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Error al subir la imagen');
+      }
+      return res.json() as Promise<{ path: string; publicUrl: string }>;
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al subir'),
+  });
+}
+
+export function usePublishPost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { type?: string; caption?: string; media: Array<{ publicUrl: string; altText?: string }> }) => {
+      const res = await fetch('/api/instagram/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Error al publicar');
+      return data as { success: boolean; postId: string; mediaId?: string; permalink?: string };
+    },
+    onSuccess: (data) => {
+      toast.success('¡Publicado en Instagram!');
+      queryClient.invalidateQueries({ queryKey: ['instagram_media'] });
+      queryClient.invalidateQueries({ queryKey: ['instagram_connection'] });
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'Error al publicar'),
   });
 }
