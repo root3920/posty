@@ -195,15 +195,16 @@ function MediaContent({ type, mediaPath, body }: { type: string; mediaPath: stri
     return <p className="text-xs italic opacity-60">Mensaje no disponible en POSTY</p>;
   }
   // text / default
-  return <p className="whitespace-pre-wrap break-words">{body ?? '(sin contenido)'}</p>;
+  return <p className="whitespace-pre-wrap break-words">{body ?? ''}</p>;
 }
 
 // -------------------------------------------------------
 // Message bubble
 // -------------------------------------------------------
 
-function MessageBubble({ msg }: { msg: ChatMessage }) {
+function MessageBubble({ msg, onRetry, onDelete }: { msg: ChatMessage; onRetry?: (id: string) => void; onDelete?: (id: string) => void }) {
   const isOut = msg.direction === 'out';
+  const isFailed = msg.status === 'failed';
   const timeLabel = format(new Date(msg.created_at), 'HH:mm');
 
   return (
@@ -211,16 +212,35 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
       <div
         className={cn(
           'relative max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-xs',
-          isOut
-            ? 'rounded-br-sm bg-primary text-primary-foreground'
-            : 'rounded-bl-sm bg-muted text-foreground',
+          isFailed
+            ? 'rounded-br-sm border border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300'
+            : isOut
+              ? 'rounded-br-sm bg-primary text-primary-foreground'
+              : 'rounded-bl-sm bg-muted text-foreground',
         )}
       >
         <MediaContent type={msg.type} mediaPath={msg.media_path} body={msg.body} />
+        {isFailed && msg.error && (
+          <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">{msg.error}</p>
+        )}
+        {isFailed && (
+          <div className="mt-1.5 flex gap-2">
+            {onRetry && (
+              <button type="button" onClick={() => onRetry(msg.id)} className="text-[11px] font-medium text-red-700 underline dark:text-red-300">
+                Reintentar
+              </button>
+            )}
+            {onDelete && (
+              <button type="button" onClick={() => onDelete(msg.id)} className="text-[11px] text-red-500">
+                Eliminar
+              </button>
+            )}
+          </div>
+        )}
         <div
           className={cn(
             'mt-1 flex items-center gap-1 text-[11px]',
-            isOut ? 'justify-end text-primary-foreground/70' : 'justify-end text-muted-foreground',
+            isFailed ? 'justify-end text-red-500' : isOut ? 'justify-end text-primary-foreground/70' : 'justify-end text-muted-foreground',
           )}
         >
           {isOut && msg.sent_from === 'phone' && (
@@ -229,7 +249,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
             </span>
           )}
           <span>{timeLabel}</span>
-          {isOut && <StatusTicks status={msg.status} />}
+          {isOut && !isFailed && <StatusTicks status={msg.status} />}
         </div>
       </div>
     </div>
@@ -397,8 +417,10 @@ function ConversationItem({
   onClick: () => void;
 }) {
   const isLid = isLidContact(conv.contact_phone_e164);
-  const displayName = conv.contact_name || (isLid ? 'Contacto de WhatsApp' : formatPhone(conv.contact_phone_e164));
-  const initials = (conv.contact_name ?? '').charAt(0).toUpperCase() || (isLid ? '?' : '#');
+  // Skip names that are empty, just punctuation, or just spaces
+  const validName = conv.contact_name && conv.contact_name.replace(/[\s.·\-_]/g, '').length > 0 ? conv.contact_name : null;
+  const displayName = validName || (isLid ? 'Contacto de WhatsApp' : formatPhone(conv.contact_phone_e164));
+  const initials = (validName ?? '').charAt(0).toUpperCase() || (isLid ? '?' : '#');
   const timeLabel = conv.last_message_at ? formatMessageTime(conv.last_message_at) : '';
 
   return (
@@ -677,8 +699,8 @@ function MessagesColumn({
   const displayName = selectedConversation
     ? selectedConversation.contact_name || (isSelectedLid ? 'Contacto de WhatsApp' : formatPhone(selectedConversation.contact_phone_e164))
     : null;
-  const displayPhone = selectedConversation && !isSelectedLid
-    ? formatPhone(selectedConversation.contact_phone_e164)
+  const displayPhone = selectedConversation
+    ? (isSelectedLid ? 'Número oculto por WhatsApp' : formatPhone(selectedConversation.contact_phone_e164))
     : null;
 
   // Interleave messages and notes by created_at
@@ -701,19 +723,17 @@ function MessagesColumn({
     if (!body || !conversationId || isSending) return;
 
     setIsSending(true);
+    setText(''); // Clear immediately — message is saved as 'pending' in the DB
+
     try {
-      const res = await fetch('/api/whatsapp/send', {
+      await fetch('/api/whatsapp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversationId, text: body }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error ?? 'No se pudo enviar el mensaje');
-      }
-      setText('');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al enviar');
+      // Success or failure — the message bubble shows the status via Realtime
+    } catch {
+      // Network error — message stays as 'pending' in the DB
     } finally {
       setIsSending(false);
     }

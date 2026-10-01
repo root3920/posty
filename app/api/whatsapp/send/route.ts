@@ -115,10 +115,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // Get conversation details — RLS ensures it belongs to this org
+    // Get conversation details with contact's remote_jid for sending
     const { data: conversation, error: convError } = await db
       .from('chat_conversations')
-      .select('id, contact_phone_e164, connection_id')
+      .select('id, contact_phone_e164, connection_id, contact_id')
       .eq('id', conversationId)
       .eq('organization_id', orgId)
       .single();
@@ -199,23 +199,48 @@ export async function POST(request: Request) {
       }
     }
 
+    // Resolve the destination: use remote_jid from contact, or phone
+    let destination = typedConv.contact_phone_e164;
+    const contactId = (conversation as Record<string, unknown>).contact_id as string | null;
+
+    if (contactId) {
+      const { data: contact } = await adminDb
+        .from('chat_contacts')
+        .select('remote_jid, phone_e164, lid')
+        .eq('id', contactId)
+        .single();
+
+      if (contact?.remote_jid) {
+        // Use the exact JID (works for both @s.whatsapp.net and @lid)
+        destination = contact.remote_jid;
+      } else if (contact?.phone_e164) {
+        // Strip + and use as phone number
+        destination = contact.phone_e164.replace(/^\+/, '');
+      } else if (contact?.lid) {
+        destination = contact.lid + '@lid';
+      }
+    }
+
+    // Strip 'lid:' prefix if present (shouldn't be the destination format)
+    if (destination.startsWith('lid:')) {
+      destination = destination.slice(4) + '@lid';
+    }
+    // Strip '+' for Evolution (it expects digits only for phone numbers)
+    if (destination.startsWith('+')) {
+      destination = destination.slice(1);
+    }
+
+    console.log('[Send] Destination:', destination, 'for conversation:', conversationId);
+
     const provider = getWhatsAppProvider();
     const delay = calculateDelay(text);
 
-    const { messageId } = await provider.sendText(
-      typedConn.instance_name,
-      typedConv.contact_phone_e164,
-      text,
-      delay,
-    );
-
-    // Insert the outgoing message — admin client for bypassing RLS on insert
+    // Insert the message first as 'pending' so it shows in the UI immediately
     const { data: message, error: msgError } = await adminDb
       .from('chat_messages')
       .insert({
         organization_id: orgId,
         conversation_id: conversationId,
-        external_id: messageId,
         direction: 'out',
         type: 'text',
         body: text,
@@ -226,10 +251,49 @@ export async function POST(request: Request) {
       .select('id')
       .single();
 
-    if (msgError || !message) {
-      console.error('Failed to insert sent message:', msgError);
-      // Don't fail — message was already sent to WhatsApp
-      return Response.json({ messageId, dbError: msgError?.message });
+    const messageDbId = message?.id;
+
+    // Try to send via Evolution
+    let messageId: string | null = null;
+    let sendError: string | null = null;
+
+    try {
+      const result = await provider.sendText(
+        typedConn.instance_name,
+        destination,
+        text,
+        delay,
+      );
+      messageId = result.messageId;
+    } catch (err) {
+      sendError = err instanceof Error ? err.message : 'Error desconocido al enviar';
+      console.error('[Send] Evolution error:', sendError);
+    }
+
+    if (messageId && messageDbId) {
+      // Success: update with external_id
+      await adminDb
+        .from('chat_messages')
+        .update({ external_id: messageId, status: 'sent' })
+        .eq('id', messageDbId);
+    } else if (messageDbId) {
+      // Failed: mark as failed with error
+      const userError = sendError?.includes('not found') || sendError?.includes('404')
+        ? 'WhatsApp no aceptó el destino'
+        : sendError?.includes('disconnect') || sendError?.includes('close')
+          ? 'Sin conexión con WhatsApp'
+          : sendError ?? 'Error al enviar el mensaje';
+
+      await adminDb
+        .from('chat_messages')
+        .update({ status: 'failed', error: userError })
+        .eq('id', messageDbId);
+
+      return Response.json({
+        error: userError,
+        messageId: messageDbId,
+        status: 'failed',
+      }, { status: 502 });
     }
 
     const typedMessage = message as MessageRow;

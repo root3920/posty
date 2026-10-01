@@ -130,6 +130,7 @@ async function handleMessageUpsert(
       p_lid: lid,
       p_whatsapp_name: fromMe ? null : (pushName ?? null),
       p_profile_pic: null,
+      p_remote_jid: remoteJid,
     });
 
     console.log('[Webhook] upsert_chat_contact result:', { contactId, err: contactErr?.message });
@@ -172,23 +173,33 @@ async function handleMessageUpsert(
       continue;
     }
 
-    // If incoming: increment unread count + update preview
+    // Preview by type
+    const previewMap: Record<string, string> = {
+      image: '📷 Foto', audio: '🎤 Audio', video: '🎬 Video',
+      document: '📄 Documento', sticker: '🏷 Sticker', location: '📍 Ubicación',
+      contact: '👤 Contacto', unsupported: 'Mensaje',
+    };
+    const preview = bodyText ? bodyText.slice(0, 100) : (previewMap[msgType] ?? 'Mensaje');
+
+    // Update conversation: preview for ALL messages, unread only for incoming
+    const convUpdate: Record<string, unknown> = {
+      last_message_at: new Date().toISOString(),
+      last_message_preview: preview,
+    };
+
     if (!fromMe) {
       const { data: cv } = await db
         .from('chat_conversations')
         .select('unread_count')
         .eq('id', conversationId)
         .single();
-
-      await db
-        .from('chat_conversations')
-        .update({
-          unread_count: ((cv?.unread_count as number) ?? 0) + 1,
-          last_message_at: new Date().toISOString(),
-          last_message_preview: bodyText ? bodyText.slice(0, 100) : null,
-        })
-        .eq('id', conversationId);
+      convUpdate.unread_count = ((cv?.unread_count as number) ?? 0) + 1;
     }
+
+    await db
+      .from('chat_conversations')
+      .update(convUpdate)
+      .eq('id', conversationId);
   }
 }
 
