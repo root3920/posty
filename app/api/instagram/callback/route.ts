@@ -43,6 +43,13 @@ export async function GET(request: Request) {
   const { env, error: envError } = getInstagramEnv();
   if (!env) {
     console.error('[ig-callback] step=env_invalid error=' + envError);
+    // Log which vars are present (without values)
+    console.error('[ig-callback] env_check:', {
+      INSTAGRAM_APP_ID: !!process.env.INSTAGRAM_APP_ID,
+      INSTAGRAM_APP_SECRET: !!process.env.INSTAGRAM_APP_SECRET,
+      INSTAGRAM_REDIRECT_URI: !!process.env.INSTAGRAM_REDIRECT_URI,
+      TOKEN_ENCRYPTION_KEY: !!process.env.TOKEN_ENCRYPTION_KEY,
+    });
     return redirectWithError('config');
   }
 
