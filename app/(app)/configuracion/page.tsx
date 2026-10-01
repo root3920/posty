@@ -66,8 +66,8 @@ const SETTINGS_SECTIONS = [
   },
   {
     href: '/configuracion/facturacion',
-    label: 'Facturación electrónica',
-    description: 'DIAN, proveedor, numeración',
+    label: 'Impuestos y recibos',
+    description: 'IVA, ICA, impuesto al consumo',
     icon: Receipt,
   },
 ];

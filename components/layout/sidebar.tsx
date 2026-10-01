@@ -90,7 +90,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/configuracion/contratos', label: 'Contratos', icon: FileText },
       { href: '/configuracion/espacios', label: 'Espacios', icon: MapPin },
       { href: '/configuracion/regulatorio', label: 'Regulatorio', icon: FileText },
-      { href: '/configuracion/facturacion', label: 'Facturación', icon: FileText },
+      { href: '/configuracion/facturacion', label: 'Impuestos', icon: FileText },
       { href: '/configuracion/sistema', label: 'Sistema', icon: ServerCog },
     ],
   },

@@ -277,7 +277,7 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 
 ## TODO futuro
 - [x] TRA/SIRE: campos regulatorios, API MinCIT, generador SIRE, envío desde check-in, config RNT
-- [x] Facturación electrónica DIAN: invoices/credit_notes, proveedor Alegra, config DIAN, facturas desde estancias
+- [x] Impuestos y recibos: IVA alojamiento, ICA, impuesto al consumo (sin facturación electrónica DIAN)
 - [x] Reportes fiscales: libro ventas/compras, IVA, retención, FONTUR, ocupación, TRA, SIRE — CSV y Excel
 - [ ] Notificaciones en tiempo real (Supabase Realtime)
 - [ ] App móvil (React Native / Expo)

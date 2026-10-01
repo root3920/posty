@@ -37,7 +37,7 @@ const REPORT_OPTIONS: { value: ReportType; label: string; description: string }[
   {
     value: 'sales_book',
     label: 'Libro de ventas',
-    description: 'Facturas emitidas en el período',
+    description: 'Ingresos por cargos a folios y otros ingresos',
   },
   {
     value: 'purchase_book',
@@ -91,15 +91,13 @@ function getColumns(type: ReportType): ReportColumn[] {
   switch (type) {
     case 'sales_book':
       return [
-        { key: 'Número', header: 'N° Factura' },
         { key: 'Fecha', header: 'Fecha' },
-        { key: 'Cliente', header: 'Cliente' },
-        { key: 'NIT/CC', header: 'NIT / CC' },
-        { key: 'Subtotal', header: 'Subtotal', align: 'right' },
+        { key: 'Descripción', header: 'Descripción' },
+        { key: 'Base', header: 'Base', align: 'right' },
+        { key: 'IVA %', header: 'IVA %' },
         { key: 'IVA', header: 'IVA', align: 'right' },
         { key: 'Total', header: 'Total', align: 'right' },
-        { key: 'Estado DIAN', header: 'Estado DIAN' },
-        { key: 'CUFE', header: 'CUFE' },
+        { key: 'Fuente', header: 'Fuente' },
       ];
     case 'purchase_book':
       return [
@@ -179,26 +177,49 @@ async function fetchReport(
 
   switch (type) {
     case 'sales_book': {
-      const { data, error } = await (supabase as any)
-        .from('invoices')
-        .select(
-          'invoice_number, invoice_date, customer_name, customer_nit, subtotal, iva_amount, total, dian_status, cufe',
-        )
-        .gte('invoice_date', periodStart)
-        .lte('invoice_date', periodEnd)
-        .order('invoice_number');
-      if (error) throw error;
-      return (data ?? []).map((inv: any) => ({
-        'Número': inv.invoice_number ?? '',
-        'Fecha': inv.invoice_date ? formatDateOnly(inv.invoice_date) : '',
-        'Cliente': inv.customer_name ?? '',
-        'NIT/CC': inv.customer_nit ?? '',
-        'Subtotal': formatCurrency(inv.subtotal ?? 0),
-        'IVA': formatCurrency(inv.iva_amount ?? 0),
-        'Total': formatCurrency(inv.total ?? 0),
-        'Estado DIAN': inv.dian_status ?? '',
-        'CUFE': inv.cufe ?? '',
-      }));
+      // Revenue from folio charges (stays) + other_revenue
+      const { data: charges, error: chErr } = await (supabase as any)
+        .from('folio_charges')
+        .select('description, quantity, unit_price, tax_rate, total, posted_at, stay_id')
+        .gte('posted_at', periodStart)
+        .lte('posted_at', periodEnd + 'T23:59:59')
+        .order('posted_at');
+      if (chErr) throw chErr;
+
+      const { data: otherRev, error: orErr } = await supabase
+        .from('other_revenue')
+        .select('description, amount, tax_amount, revenue_date')
+        .gte('revenue_date', periodStart)
+        .lte('revenue_date', periodEnd)
+        .order('revenue_date');
+      if (orErr) throw orErr;
+
+      const rows: Record<string, unknown>[] = (charges ?? []).map((c: any) => {
+        const base = (c.quantity ?? 1) * (c.unit_price ?? 0);
+        const tax = base * (c.tax_rate ?? 0) / 100;
+        return {
+          'Fecha': c.posted_at ? formatDateOnly(c.posted_at) : '',
+          'Descripción': c.description ?? '',
+          'Base': formatCurrency(base),
+          'IVA %': `${c.tax_rate ?? 0}%`,
+          'IVA': formatCurrency(tax),
+          'Total': formatCurrency(c.total ?? 0),
+          'Fuente': 'Folio',
+        };
+      });
+
+      for (const r of otherRev ?? []) {
+        rows.push({
+          'Fecha': (r as any).revenue_date ? formatDateOnly((r as any).revenue_date) : '',
+          'Descripción': (r as any).description ?? '',
+          'Base': formatCurrency((r as any).amount ?? 0),
+          'IVA %': '',
+          'IVA': formatCurrency((r as any).tax_amount ?? 0),
+          'Total': formatCurrency(((r as any).amount ?? 0) + ((r as any).tax_amount ?? 0)),
+          'Fuente': 'Otros ingresos',
+        });
+      }
+      return rows;
     }
 
     case 'purchase_book': {
@@ -222,15 +243,15 @@ async function fetchReport(
     }
 
     case 'iva_declaration': {
-      // Ventas (IVA cobrado)
-      const { data: invoices, error: invErr } = await (supabase as any)
-        .from('invoices')
-        .select('subtotal, iva_amount, total')
-        .gte('invoice_date', periodStart)
-        .lte('invoice_date', periodEnd);
-      if (invErr) throw invErr;
+      // Revenue (IVA collected from folio charges)
+      const { data: charges, error: chErr } = await (supabase as any)
+        .from('folio_charges')
+        .select('quantity, unit_price, tax_rate')
+        .gte('posted_at', periodStart)
+        .lte('posted_at', periodEnd + 'T23:59:59');
+      if (chErr) throw chErr;
 
-      // Compras (IVA pagado)
+      // Purchases (IVA paid on expenses)
       const { data: expenses, error: expErr } = await supabase
         .from('expenses')
         .select('amount, tax_amount')
@@ -238,16 +259,21 @@ async function fetchReport(
         .lte('expense_date', periodEnd);
       if (expErr) throw expErr;
 
-      const totalSubtotal = (invoices ?? []).reduce((s: number, i: any) => s + (i.subtotal ?? 0), 0);
-      const totalIvaCobrado = (invoices ?? []).reduce((s: number, i: any) => s + (i.iva_amount ?? 0), 0);
+      let totalBase = 0;
+      let totalIvaCobrado = 0;
+      for (const c of charges ?? []) {
+        const base = ((c as any).quantity ?? 1) * ((c as any).unit_price ?? 0);
+        totalBase += base;
+        totalIvaCobrado += base * ((c as any).tax_rate ?? 0) / 100;
+      }
       const totalCompras = (expenses ?? []).reduce((s: number, e: any) => s + (e.amount ?? 0), 0);
       const totalIvaPagado = (expenses ?? []).reduce((s: number, e: any) => s + (e.tax_amount ?? 0), 0);
       const ivaNeto = totalIvaCobrado - totalIvaPagado;
 
       return [
         {
-          'Concepto': 'Ventas gravadas (facturas)',
-          'Base gravable': formatCurrency(totalSubtotal),
+          'Concepto': 'Ingresos gravados (cargos a folios)',
+          'Base gravable': formatCurrency(totalBase),
           'IVA': formatCurrency(totalIvaCobrado),
         },
         {
@@ -256,7 +282,7 @@ async function fetchReport(
           'IVA': formatCurrency(totalIvaPagado),
         },
         {
-          'Concepto': 'IVA neto a pagar / favor',
+          'Concepto': 'IVA neto a pagar / a favor',
           'Base gravable': '',
           'IVA': formatCurrency(ivaNeto),
         },

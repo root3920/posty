@@ -179,6 +179,7 @@ export type Database = {
           organization_id: string
           phone_e164: string | null
           profile_pic_url: string | null
+          remote_jid: string | null
           updated_at: string
           visibility: string
           whatsapp_name: string | null
@@ -192,6 +193,7 @@ export type Database = {
           organization_id: string
           phone_e164?: string | null
           profile_pic_url?: string | null
+          remote_jid?: string | null
           updated_at?: string
           visibility?: string
           whatsapp_name?: string | null
@@ -205,6 +207,7 @@ export type Database = {
           organization_id?: string
           phone_e164?: string | null
           profile_pic_url?: string | null
+          remote_jid?: string | null
           updated_at?: string
           visibility?: string
           whatsapp_name?: string | null
@@ -1233,70 +1236,6 @@ export type Database = {
           },
         ]
       }
-      credit_notes: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string | null
-          credit_note_number: string
-          cufe: string | null
-          dian_response: Json | null
-          dian_status: string
-          id: string
-          invoice_id: string
-          organization_id: string
-          reason: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          created_by?: string | null
-          credit_note_number: string
-          cufe?: string | null
-          dian_response?: Json | null
-          dian_status?: string
-          id?: string
-          invoice_id: string
-          organization_id: string
-          reason: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          credit_note_number?: string
-          cufe?: string | null
-          dian_response?: Json | null
-          dian_status?: string
-          id?: string
-          invoice_id?: string
-          organization_id?: string
-          reason?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "credit_notes_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "credit_notes_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "invoices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "credit_notes_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       daily_room_snapshots: {
         Row: {
           available_rooms: number
@@ -2004,260 +1943,6 @@ export type Database = {
           },
         ]
       }
-      invoice_lines: {
-        Row: {
-          description: string
-          discount: number
-          id: string
-          invoice_id: string
-          line_number: number
-          quantity: number
-          revenue_center_id: string | null
-          tax_amount: number
-          tax_rate: number
-          total: number
-          unit_price: number
-        }
-        Insert: {
-          description: string
-          discount?: number
-          id?: string
-          invoice_id: string
-          line_number: number
-          quantity?: number
-          revenue_center_id?: string | null
-          tax_amount?: number
-          tax_rate?: number
-          total?: number
-          unit_price: number
-        }
-        Update: {
-          description?: string
-          discount?: number
-          id?: string
-          invoice_id?: string
-          line_number?: number
-          quantity?: number
-          revenue_center_id?: string | null
-          tax_amount?: number
-          tax_rate?: number
-          total?: number
-          unit_price?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invoice_lines_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "invoices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoice_lines_revenue_center_id_fkey"
-            columns: ["revenue_center_id"]
-            isOneToOne: false
-            referencedRelation: "revenue_centers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      invoices: {
-        Row: {
-          consumption_tax: number
-          contract_id: string | null
-          created_at: string
-          created_by: string | null
-          cufe: string | null
-          customer_address: string | null
-          customer_document_number: string | null
-          customer_document_type: string | null
-          customer_email: string | null
-          customer_name: string
-          customer_nit: string | null
-          customer_phone: string | null
-          dian_response: Json | null
-          dian_status: string
-          discount_amount: number
-          due_date: string | null
-          event_booking_id: string | null
-          ica_amount: number
-          id: string
-          invoice_date: string
-          invoice_number: string
-          issuer_address: string | null
-          issuer_name: string
-          issuer_nit: string
-          iva_amount: number
-          iva_rate: number
-          notes: string | null
-          organization_id: string
-          payment_means_dian: string | null
-          payment_method_dian: string | null
-          pdf_path: string | null
-          prefix: string | null
-          qr_code_url: string | null
-          stay_id: string | null
-          subtotal: number
-          tax_base: number
-          total: number
-          updated_at: string
-          withholding_amount: number
-        }
-        Insert: {
-          consumption_tax?: number
-          contract_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          cufe?: string | null
-          customer_address?: string | null
-          customer_document_number?: string | null
-          customer_document_type?: string | null
-          customer_email?: string | null
-          customer_name: string
-          customer_nit?: string | null
-          customer_phone?: string | null
-          dian_response?: Json | null
-          dian_status?: string
-          discount_amount?: number
-          due_date?: string | null
-          event_booking_id?: string | null
-          ica_amount?: number
-          id?: string
-          invoice_date?: string
-          invoice_number: string
-          issuer_address?: string | null
-          issuer_name: string
-          issuer_nit: string
-          iva_amount?: number
-          iva_rate?: number
-          notes?: string | null
-          organization_id: string
-          payment_means_dian?: string | null
-          payment_method_dian?: string | null
-          pdf_path?: string | null
-          prefix?: string | null
-          qr_code_url?: string | null
-          stay_id?: string | null
-          subtotal?: number
-          tax_base?: number
-          total?: number
-          updated_at?: string
-          withholding_amount?: number
-        }
-        Update: {
-          consumption_tax?: number
-          contract_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          cufe?: string | null
-          customer_address?: string | null
-          customer_document_number?: string | null
-          customer_document_type?: string | null
-          customer_email?: string | null
-          customer_name?: string
-          customer_nit?: string | null
-          customer_phone?: string | null
-          dian_response?: Json | null
-          dian_status?: string
-          discount_amount?: number
-          due_date?: string | null
-          event_booking_id?: string | null
-          ica_amount?: number
-          id?: string
-          invoice_date?: string
-          invoice_number?: string
-          issuer_address?: string | null
-          issuer_name?: string
-          issuer_nit?: string
-          iva_amount?: number
-          iva_rate?: number
-          notes?: string | null
-          organization_id?: string
-          payment_means_dian?: string | null
-          payment_method_dian?: string | null
-          pdf_path?: string | null
-          prefix?: string | null
-          qr_code_url?: string | null
-          stay_id?: string | null
-          subtotal?: number
-          tax_base?: number
-          total?: number
-          updated_at?: string
-          withholding_amount?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invoices_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_contract_id_fkey"
-            columns: ["contract_id"]
-            isOneToOne: false
-            referencedRelation: "contracts_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_event_booking_id_fkey"
-            columns: ["event_booking_id"]
-            isOneToOne: false
-            referencedRelation: "event_bookings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_event_booking_id_fkey"
-            columns: ["event_booking_id"]
-            isOneToOne: false
-            referencedRelation: "event_bookings_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_stay_id_fkey"
-            columns: ["stay_id"]
-            isOneToOne: false
-            referencedRelation: "room_cleaning_status_view"
-            referencedColumns: ["current_stay_id"]
-          },
-          {
-            foreignKeyName: "invoices_stay_id_fkey"
-            columns: ["stay_id"]
-            isOneToOne: false
-            referencedRelation: "stay_balances"
-            referencedColumns: ["stay_id"]
-          },
-          {
-            foreignKeyName: "invoices_stay_id_fkey"
-            columns: ["stay_id"]
-            isOneToOne: false
-            referencedRelation: "stays"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_stay_id_fkey"
-            columns: ["stay_id"]
-            isOneToOne: false
-            referencedRelation: "stays_view"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       notifications: {
         Row: {
           body: string | null
@@ -2321,6 +2006,7 @@ export type Database = {
       }
       organizations: {
         Row: {
+          accommodation_iva_rate: number
           address: string | null
           brand_color: string | null
           city: string | null
@@ -2336,17 +2022,6 @@ export type Database = {
           default_check_in_time: string
           default_check_out_time: string
           department: string | null
-          dian_ciiu_code: string | null
-          dian_fiscal_responsibilities: string[] | null
-          dian_numbering_current: number | null
-          dian_numbering_from: number | null
-          dian_numbering_prefix: string | null
-          dian_numbering_to: number | null
-          dian_provider: string | null
-          dian_provider_api_key: string | null
-          dian_regime: string | null
-          dian_resolution_date: string | null
-          dian_resolution_number: string | null
           ica_rate: number | null
           id: string
           locale: string
@@ -2362,6 +2037,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accommodation_iva_rate?: number
           address?: string | null
           brand_color?: string | null
           city?: string | null
@@ -2377,17 +2053,6 @@ export type Database = {
           default_check_in_time?: string
           default_check_out_time?: string
           department?: string | null
-          dian_ciiu_code?: string | null
-          dian_fiscal_responsibilities?: string[] | null
-          dian_numbering_current?: number | null
-          dian_numbering_from?: number | null
-          dian_numbering_prefix?: string | null
-          dian_numbering_to?: number | null
-          dian_provider?: string | null
-          dian_provider_api_key?: string | null
-          dian_regime?: string | null
-          dian_resolution_date?: string | null
-          dian_resolution_number?: string | null
           ica_rate?: number | null
           id?: string
           locale?: string
@@ -2403,6 +2068,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accommodation_iva_rate?: number
           address?: string | null
           brand_color?: string | null
           city?: string | null
@@ -2418,17 +2084,6 @@ export type Database = {
           default_check_in_time?: string
           default_check_out_time?: string
           department?: string | null
-          dian_ciiu_code?: string | null
-          dian_fiscal_responsibilities?: string[] | null
-          dian_numbering_current?: number | null
-          dian_numbering_from?: number | null
-          dian_numbering_prefix?: string | null
-          dian_numbering_to?: number | null
-          dian_provider?: string | null
-          dian_provider_api_key?: string | null
-          dian_regime?: string | null
-          dian_resolution_date?: string | null
-          dian_resolution_number?: string | null
           ica_rate?: number | null
           id?: string
           locale?: string
@@ -3665,6 +3320,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           currency: string
+          external_invoice_number: string | null
           guest_snapshot: Json | null
           id: string
           nights: number | null
@@ -3693,6 +3349,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          external_invoice_number?: string | null
           guest_snapshot?: Json | null
           id?: string
           nights?: number | null
@@ -3721,6 +3378,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          external_invoice_number?: string | null
           guest_snapshot?: Json | null
           id?: string
           nights?: number | null
@@ -5576,7 +5234,6 @@ export type Database = {
         }
         Returns: Json
       }
-      create_invoice_from_stay: { Args: { p_stay_id: string }; Returns: Json }
       create_manual_cleaning: {
         Args: {
           p_assigned_to?: string
@@ -5881,16 +5538,28 @@ export type Database = {
         }
         Returns: Json
       }
-      upsert_chat_contact: {
-        Args: {
-          p_lid?: string
-          p_org_id: string
-          p_phone?: string
-          p_profile_pic?: string
-          p_whatsapp_name?: string
-        }
-        Returns: string
-      }
+      upsert_chat_contact:
+        | {
+            Args: {
+              p_lid?: string
+              p_org_id: string
+              p_phone?: string
+              p_profile_pic?: string
+              p_whatsapp_name?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_lid?: string
+              p_org_id: string
+              p_phone?: string
+              p_profile_pic?: string
+              p_remote_jid?: string
+              p_whatsapp_name?: string
+            }
+            Returns: string
+          }
       upsert_chat_conversation: {
         Args: {
           p_connection_id: string

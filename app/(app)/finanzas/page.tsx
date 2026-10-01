@@ -173,10 +173,6 @@ function FinanzasContent() {
             <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
             Presupuesto
           </Button>
-          <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/facturas')}>
-            <FileText className="mr-1.5 h-3.5 w-3.5" />
-            Facturas
-          </Button>
           <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/reportes')}>
             <BookOpen className="mr-1.5 h-3.5 w-3.5" />
             Reportes fiscales
