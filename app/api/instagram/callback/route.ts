@@ -11,11 +11,23 @@ import {
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.postyassistant.com';
 
 function redirectWithError(code: string): Response {
-  return Response.redirect(`${BASE_URL}/configuracion/instagram?ig_error=${code}`, 302);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `${BASE_URL}/configuracion/instagram?ig_error=${code}`,
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+    },
+  });
 }
 
 function redirectSuccess(username: string): Response {
-  return Response.redirect(`${BASE_URL}/instagram?connected=1&username=${encodeURIComponent(username)}`, 302);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `${BASE_URL}/instagram?connected=1&username=${encodeURIComponent(username)}`,
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+    },
+  });
 }
 
 /**
@@ -88,12 +100,17 @@ export async function GET(request: Request) {
     console.log('[ig-callback] step=auth_ok org=' + orgId.slice(0, 8));
 
     // 5. Exchange code for short-lived token
-    console.log('[ig-callback] step=exchange_short');
+    // Use the EXACT same redirect_uri that was used in the authorize step
+    // Derive it from the current request URL to ensure it matches
+    const callbackUrl = new URL(request.url);
+    const actualRedirectUri = `${callbackUrl.protocol}//${callbackUrl.host}${callbackUrl.pathname}`;
+    console.log('[ig-callback] step=exchange_short redirect_uri=' + actualRedirectUri + ' env_uri=' + env.INSTAGRAM_REDIRECT_URI);
+
     const { accessToken: shortToken } = await exchangeCodeForToken(
       code,
       env.INSTAGRAM_APP_ID,
       env.INSTAGRAM_APP_SECRET,
-      env.INSTAGRAM_REDIRECT_URI,
+      actualRedirectUri, // Use the actual URL Instagram redirected to, not the env var
     );
     console.log('[ig-callback] step=exchange_short_ok');
 

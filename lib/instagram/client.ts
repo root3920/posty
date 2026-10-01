@@ -34,16 +34,20 @@ export async function exchangeCodeForToken(
   appSecret: string,
   redirectUri: string,
 ): Promise<{ accessToken: string; userId: string }> {
+  const body = new URLSearchParams({
+    client_id: appId,
+    client_secret: appSecret,
+    grant_type: 'authorization_code',
+    redirect_uri: redirectUri,
+    code,
+  });
+
+  console.log('[ig-exchange] redirect_uri=' + redirectUri + ' code_len=' + code.length + ' app_id=' + appId);
+
   const res = await fetch(`${OAUTH_BASE}/oauth/access_token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: appId,
-      client_secret: appSecret,
-      grant_type: 'authorization_code',
-      redirect_uri: redirectUri,
-      code,
-    }),
+    body,
   });
 
   // Read as text first to preserve user_id precision (can exceed Number.MAX_SAFE_INTEGER)

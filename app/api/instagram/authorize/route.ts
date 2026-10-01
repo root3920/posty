@@ -41,7 +41,14 @@ export async function GET() {
 
     console.log('[Instagram] Redirecting to OAuth:', authUrl);
 
-    return Response.redirect(authUrl, 302);
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: authUrl,
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        Pragma: 'no-cache',
+      },
+    });
   } catch (error) {
     console.error('[Instagram] Authorize route error:', error);
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
