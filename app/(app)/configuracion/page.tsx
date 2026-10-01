@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, Shield, Users, Clock, List, Palette, CalendarClock, FileText, MapPin } from 'lucide-react';
+import { Building2, Shield, Users, Clock, List, Palette, CalendarClock, FileText, MapPin, BookLock, Receipt } from 'lucide-react';
 
 const SETTINGS_SECTIONS = [
   {
@@ -57,6 +57,18 @@ const SETTINGS_SECTIONS = [
     label: 'Espacios para eventos',
     description: 'Precios, horarios y capacidad de cada espacio',
     icon: MapPin,
+  },
+  {
+    href: '/configuracion/regulatorio',
+    label: 'Regulatorio',
+    description: 'RNT, TRA y SIRE',
+    icon: BookLock,
+  },
+  {
+    href: '/configuracion/facturacion',
+    label: 'Facturación electrónica',
+    description: 'DIAN, proveedor, numeración',
+    icon: Receipt,
   },
 ];
 

@@ -13,6 +13,8 @@ import {
   Banknote,
   ArrowUpRight,
   CalendarDays,
+  FileText,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { KpiGrid } from '@/components/shared/kpi-grid';
@@ -170,6 +172,14 @@ function FinanzasContent() {
           <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/presupuesto')}>
             <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
             Presupuesto
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/facturas')}>
+            <FileText className="mr-1.5 h-3.5 w-3.5" />
+            Facturas
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push('/finanzas/reportes')}>
+            <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+            Reportes fiscales
           </Button>
         </div>
       </div>

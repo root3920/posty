@@ -276,11 +276,12 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - Viewport: `width=device-width`, `viewportFit: 'cover'`, dvh para alturas
 
 ## TODO futuro
-- [ ] Exportación TRA/SIRE (regulatorio colombiano)
+- [x] TRA/SIRE: campos regulatorios, API MinCIT, generador SIRE, envío desde check-in, config RNT
+- [x] Facturación electrónica DIAN: invoices/credit_notes, proveedor Alegra, config DIAN, facturas desde estancias
+- [x] Reportes fiscales: libro ventas/compras, IVA, retención, FONTUR, ocupación, TRA, SIRE — CSV y Excel
 - [ ] Notificaciones en tiempo real (Supabase Realtime)
 - [ ] App móvil (React Native / Expo)
 - [ ] Integración OTAs (Booking, Expedia) vía channel manager
-- [ ] Reportes avanzados PDF/Excel
 
 ## Decisiones adicionales (Fase 7)
 

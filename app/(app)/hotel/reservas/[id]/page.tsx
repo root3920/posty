@@ -15,6 +15,9 @@ import {
   LogIn,
   LogOut,
   XCircle,
+  Send,
+  FileText,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -22,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useStayDetail, useStayTasks, useStayStatusHistory } from '@/hooks/use-hotel';
+import { useTraSubmissions, useSubmitTra, useGenerateSire } from '@/hooks/use-regulatory';
 import { useProfile } from '@/hooks/use-profile';
 import { useOrganization } from '@/hooks/use-organization';
 import { formatCurrency } from '@/lib/format';
@@ -55,6 +59,11 @@ export default function StayDetailPage() {
 
   const [activeTab, setActiveTab] = useState<string>('equipo');
   const [arrivalModalOpen, setArrivalModalOpen] = useState(false);
+
+  // Regulatory hooks
+  const { data: traSubmissions = [] } = useTraSubmissions(stayId);
+  const submitTra = useSubmitTra();
+  const generateSire = useGenerateSire();
 
   // Derive current phase from status + tasks
   const currentPhase = useMemo(() => {
@@ -136,7 +145,7 @@ export default function StayDetailPage() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex gap-2 shrink-0">
+          <div className="flex flex-wrap gap-2 shrink-0">
             {stay.status === 'reserved' && (
               <Button size="sm" onClick={() => setArrivalModalOpen(true)}>
                 <LogIn className="mr-1.5 h-4 w-4" />
@@ -147,6 +156,46 @@ export default function StayDetailPage() {
               <Button size="sm" variant="outline" disabled>
                 <LogOut className="mr-1.5 h-4 w-4" />
                 Check-out
+              </Button>
+            )}
+            {(stay.status === 'checked_in' || stay.status === 'checked_out') && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => submitTra.mutate(stayId)}
+                disabled={submitTra.isPending}
+              >
+                {submitTra.isPending ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-1.5 h-4 w-4" />
+                )}
+                Enviar TRA
+                {traSubmissions.length > 0 && (
+                  <TraStatusBadge status={traSubmissions[0].status} />
+                )}
+              </Button>
+            )}
+            {(stay.status === 'checked_in' || stay.status === 'checked_out') &&
+              guest?.nationality &&
+              guest.nationality !== 'CO' && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  generateSire.mutate({
+                    stayId,
+                    type: stay.status === 'checked_out' ? 'check_out' : 'check_in',
+                  })
+                }
+                disabled={generateSire.isPending}
+              >
+                {generateSire.isPending ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="mr-1.5 h-4 w-4" />
+                )}
+                Generar SIRE
               </Button>
             )}
           </div>
@@ -302,4 +351,19 @@ function Field({ label, value }: { label: string; value: string }) {
       <p className="font-medium">{value}</p>
     </div>
   );
+}
+
+function TraStatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    submitted: 'ml-1.5 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    pending: 'ml-1.5 rounded-full bg-yellow-100 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+    error: 'ml-1.5 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  };
+  const labels: Record<string, string> = {
+    submitted: 'enviada',
+    pending: 'pendiente',
+    error: 'error',
+  };
+  const cls = styles[status] ?? styles['pending'];
+  return <span className={cls}>{labels[status] ?? status}</span>;
 }
