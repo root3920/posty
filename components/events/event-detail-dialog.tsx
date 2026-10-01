@@ -19,6 +19,7 @@ import {
 
 import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { EntitySelect, type EntityOption } from '@/components/shared/entity-select';
+import { PhoneDisplay } from '@/components/shared/phone-display';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -195,14 +196,14 @@ export function EventDetailDialog({ open, onOpenChange, bookingId }: EventDetail
 
   function handleWhatsApp() {
     if (!booking) return;
-    const phone = booking.client_phone.replace(/\D/g, '');
+    const digits = booking.client_phone.replace(/\D/g, '');
     const formattedDate = formatDateOnly(booking.event_date, 'EEEE d \'de\' MMMM');
     const msg =
       `Hola ${booking.client_name}, te confirmamos tu reserva de evento ${booking.code} ` +
       `en ${booking.venue_name} para el ${formattedDate} de ${booking.start_time.slice(0, 5)} a ${booking.end_time.slice(0, 5)}. ` +
       `Total: ${formatCurrency(booking.rental_total, currency, locale)}. ` +
       `Depósito: ${formatCurrency(booking.deposit_required, currency, locale)}.`;
-    window.open(`https://wa.me/57${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, '_blank');
   }
 
   // -------------------------------------------------------
@@ -510,7 +511,11 @@ export function EventDetailDialog({ open, onOpenChange, bookingId }: EventDetail
               {booking.client_document && (
                 <InfoRow icon={FileText} label="Documento" value={booking.client_document} />
               )}
-              <InfoRow icon={Phone} label="Teléfono" value={booking.client_phone} />
+              <div className="flex items-center gap-2 text-xs">
+                <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Teléfono</span>
+                <PhoneDisplay value={booking.client_phone} className="ml-auto" />
+              </div>
               {booking.client_email && (
                 <InfoRow icon={Mail} label="Email" value={booking.client_email} />
               )}

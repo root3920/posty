@@ -20,8 +20,10 @@ import {
   Moon,
   DollarSign,
   AlertTriangle,
+  MessageCircle,
 } from 'lucide-react';
 
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -72,12 +74,13 @@ function useGuestContracts(guestId: string | null) {
 // Page
 // -------------------------------------------------------
 
-type Tab = 'info' | 'estancias' | 'contratos' | 'historial';
+type Tab = 'info' | 'estancias' | 'contratos' | 'chat' | 'historial';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'info', label: 'Info' },
   { key: 'estancias', label: 'Estancias' },
   { key: 'contratos', label: 'Contratos' },
+  { key: 'chat', label: 'Chat' },
   { key: 'historial', label: 'Historial' },
 ];
 
@@ -376,6 +379,11 @@ export default function GuestDetailPage() {
         </div>
       )}
 
+      {/* Tab: Chat */}
+      {activeTab === 'chat' && (
+        <GuestChatTab guestId={guestId} guestPhone={guest?.phone} />
+      )}
+
       {/* Tab: Historial */}
       {activeTab === 'historial' && (
         <AuditLogTimeline entityType="guest" entityId={guestId} />
@@ -404,6 +412,82 @@ function InfoField({ icon, label, value }: { icon: React.ReactNode; label: strin
         {icon} {label}
       </span>
       <p className="font-medium">{value}</p>
+    </div>
+  );
+}
+
+// -------------------------------------------------------
+// Guest Chat Tab
+// -------------------------------------------------------
+
+function GuestChatTab({ guestId, guestPhone }: { guestId: string; guestPhone?: string | null }) {
+  const { data: archives = [] } = useQuery({
+    queryKey: ['guest_chat_archives', guestId],
+    queryFn: async () => {
+      const supabase = createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from('guest_chat_archives')
+        .select('*')
+        .eq('guest_id', guestId)
+        .order('archived_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string; phone_e164: string | null; connection_phone: string | null;
+        messages: Array<{ direction: string; body: string | null; type: string; created_at: string }>;
+        period_start: string | null; period_end: string | null; archived_at: string;
+      }>;
+    },
+    staleTime: 60_000,
+  });
+
+  if (archives.length === 0 && !guestPhone) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+        <MessageCircle className="h-8 w-8 opacity-40" />
+        <p>No hay historial de chat para este huésped</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {guestPhone && (
+        <div className="flex items-center gap-2 rounded-lg border p-3 text-sm">
+          <MessageCircle className="h-4 w-4 text-[#25D366]" />
+          <span>Abrir chat activo:</span>
+          <Link href={`/chat?phone=${encodeURIComponent(guestPhone)}`} className="text-primary hover:underline">
+            Ir al chat →
+          </Link>
+        </div>
+      )}
+
+      {archives.map((archive) => (
+        <div key={archive.id} className="rounded-lg border">
+          <div className="flex items-center justify-between border-b px-3 py-2 text-xs text-muted-foreground">
+            <span>
+              Historial de WhatsApp
+              {archive.connection_phone && ` · ${archive.connection_phone}`}
+            </span>
+            <span>{formatDateOnly(archive.archived_at)}</span>
+          </div>
+          <div className="max-h-64 overflow-y-auto p-3 space-y-1.5">
+            {archive.messages.map((msg, i) => (
+              <div key={i} className={cn('flex', msg.direction === 'out' ? 'justify-end' : 'justify-start')}>
+                <div className={cn(
+                  'max-w-[75%] rounded-lg px-2.5 py-1.5 text-xs',
+                  msg.direction === 'out' ? 'bg-primary/10 text-foreground' : 'bg-muted text-foreground'
+                )}>
+                  <p>{msg.body ?? `[${msg.type}]`}</p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    {format(new Date(msg.created_at), 'HH:mm', { locale: es })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -22,6 +22,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { ResponsiveTable, type Column } from '@/components/shared/responsive-table';
 import { Fab } from '@/components/layout/fab';
 import { EntitySelect } from '@/components/shared/entity-select';
+import { PhoneDisplay } from '@/components/shared/phone-display';
 import {
   EventBookingStatusBadge,
   DepositStatusBadge,
@@ -340,7 +341,7 @@ function ReservasTab({
           <div className="flex flex-col">
             <span className="font-medium">{row.client_name}</span>
             {row.client_phone && (
-              <span className="text-xs text-muted-foreground">{row.client_phone}</span>
+              <PhoneDisplay value={row.client_phone} showActions={false} className="text-xs" />
             )}
           </div>
         ),

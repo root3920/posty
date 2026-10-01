@@ -151,6 +151,7 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [x] Chat F2: Contexto del huésped (panel derecho), ContactActions, GuestContextPanel
 - [x] Chat F3: Rate limiting (20/min, 300/h, 5 sin respuesta), primer contacto, errores en español
 - [x] Chat: Session lifecycle — sesión aislada por conexión, sin importar historial, desconexión limpia con archivado de huéspedes
+- [x] ContactActions en PhoneDisplay + eventos. Ficha huésped: pestaña Chat con archivados. wa.me sin country code hardcoded
 - [x] Contratos E2: Otrosí, renovación, terminación con liquidación, envío para firma, documentos
 
 ## Módulo Contratos de Larga Estadía
