@@ -199,6 +199,25 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - **Variables de entorno**: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `WHATSAPP_WEBHOOK_SECRET`
 - **Conexión**: QR escaneado desde /configuracion/whatsapp. Estado visible en /chat
 
+## Publicador automático de Instagram (Fase 3)
+
+- **Cron**: pg_cron `instagram-publish` cada minuto → pg_net llama `/api/cron/instagram-publish` con `CRON_SECRET` desde Supabase Vault
+- **Máquina de estados**: `draft → scheduled → processing → published | failed`. Desde `failed` puede ir a `scheduled` (retry) o `canceled`. Desde `draft/scheduled/failed` puede ir a `canceled`
+- **Claim**: `claim_due_instagram_posts(p_limit)` usa `FOR UPDATE SKIP LOCKED` para evitar duplicados entre corridas concurrentes
+- **Contenedor**: Se crea al momento de publicar (no al programar) porque vence en 24h. Se guarda `container_id` inmediatamente
+- **Idempotencia**: Si un post ya tiene `ig_media_id`, nunca se vuelve a publicar
+- **Reintentos**: Hasta 3, con espera de 2, 10 y 30 min, solo para errores temporales (red, 5xx, rate limit). Errores permanentes (token, permisos, formato) van directo a `failed`
+- **Stuck recovery**: `unstick_instagram_posts()` detecta posts en `processing` por >10 min sin `ig_media_id`
+- **Heartbeat**: `instagram_publisher_heartbeat` (singleton row) se escribe cada corrida. El frontend muestra indicador verde/rojo
+- **Desconexión**: Trigger `trg_ig_disconnect_move_to_draft` mueve programados a borrador al desconectar
+- **Timezone**: Todo scheduling usa `lib/datetime-tz.ts` (`hotelLocalToUtc` / `utcToHotelLocal`). La zona del hotel (organizations.timezone) es la referencia, nunca la del navegador
+- **Columnas nuevas**: `instagram_posts.children_container_ids`, `last_error_code`, `locked_at`, `next_attempt_at`
+- **Tabla nueva**: `instagram_publisher_heartbeat` (id=1 singleton)
+- **Funciones nuevas**: `claim_due_instagram_posts`, `unstick_instagram_posts`, `on_instagram_disconnect`
+- **Variables de entorno**: `CRON_SECRET` (en Vercel y en Supabase Vault)
+- **Ruta pública**: `/api/cron` ya está en `public-routes.ts`
+- **UI**: 3 pestañas en `/instagram`: Grilla (con programados arriba, borde punteado), Programados (lista + filtros + acciones), Calendario (mes/semana)
+
 ## Sistema de diseño
 
 ### Tipografía
@@ -281,7 +300,8 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [x] Reportes fiscales: libro ventas/compras, IVA, retención, FONTUR, ocupación, TRA, SIRE — CSV y Excel
 - [x] Instagram F1: Conexión OAuth, token largo, grilla de lectura, detalle de post, caché, desconexión
 - [x] Instagram F2: Publicar ahora (imagen + carrusel, recorte JPEG con sharp, alt text, caption, vista previa, Storage bucket)
-- [ ] Instagram F3: Programación, calendario, cron, cupo, reintentos, plantillas
+- [x] Instagram F3: Programación, calendario, cron, cupo, reintentos (sin plantillas — fase futura)
+- [ ] Instagram F4: Plantillas reutilizables, analytics, mejores horas para publicar
 - [ ] Notificaciones en tiempo real (Supabase Realtime)
 - [ ] App móvil (React Native / Expo)
 - [ ] Integración OTAs (Booking, Expedia) vía channel manager

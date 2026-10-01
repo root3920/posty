@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -15,18 +15,26 @@ import {
   ExternalLink,
   Plus,
   Loader2,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { PageHeader } from '@/components/shared/page-header';
 import { cn } from '@/lib/utils';
 import {
   useInstagramConnection,
   useInstagramMedia,
+  useInstagramPosts,
   type InstagramMediaItem,
+  type InstagramPost,
 } from '@/hooks/use-instagram';
+import { useOrganization } from '@/hooks/use-organization';
 import { PostComposer } from '@/components/instagram/post-composer';
+import { ScheduledPosts } from '@/components/instagram/scheduled-posts';
+import { ScheduledCalendar } from '@/components/instagram/scheduled-calendar';
+import { formatScheduledAt } from '@/lib/datetime-tz';
 
 // -------------------------------------------------------
 // No connection empty state
@@ -290,11 +298,61 @@ function MediaCell({ item, onClick }: { item: InstagramMediaItem; onClick: () =>
 }
 
 // -------------------------------------------------------
-// Connected view
+// Scheduled post preview cell (for the grilla)
+// -------------------------------------------------------
+
+function ScheduledMediaCell({ post, timezone, onClick }: {
+  post: InstagramPost;
+  timezone: string;
+  onClick: () => void;
+}) {
+  const media = post.media as Array<{ publicUrl: string }>;
+  const thumb = media?.[0]?.publicUrl;
+  const isCarousel = media && media.length > 1;
+  const scheduledLabel = post.scheduled_at
+    ? formatScheduledAt(post.scheduled_at, timezone)
+    : 'Borrador';
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
+      className="relative aspect-square cursor-pointer overflow-hidden border-2 border-dashed border-primary/40 rounded-sm"
+    >
+      {thumb ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={thumb} alt="Programado" className="h-full w-full object-cover opacity-70" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-muted">
+          <Clock className="h-6 w-6 text-muted-foreground/40" />
+        </div>
+      )}
+
+      {/* Badge */}
+      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-1 pt-3">
+        <p className="text-[9px] font-semibold text-white leading-tight truncate">
+          Programado · {scheduledLabel}
+        </p>
+      </div>
+
+      {isCarousel && (
+        <div className="absolute right-1 top-1 rounded-sm bg-black/60 p-0.5 text-white">
+          <Layers className="h-3 w-3" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -------------------------------------------------------
+// Connected view (with tabs)
 // -------------------------------------------------------
 
 function ConnectedInstagramView() {
   const { data: connection } = useInstagramConnection();
+  const { timezone } = useOrganization();
   const { data: firstPage, isLoading: isLoadingFirst } = useInstagramMedia(undefined);
   const [displayedItems, setDisplayedItems] = useState<InstagramMediaItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
@@ -303,6 +361,13 @@ function ConnectedInstagramView() {
   const [selectedItem, setSelectedItem] = useState<InstagramMediaItem | null>(null);
   const [profileImgError, setProfileImgError] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [editPost, setEditPost] = useState<InstagramPost | null>(null);
+
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') ?? 'grilla';
+
+  // Scheduled posts for grilla preview
+  const { data: scheduledPosts = [] } = useInstagramPosts(['scheduled']);
 
   // Sync first page once
   if (!initialized && firstPage) {
@@ -323,6 +388,23 @@ function ConnectedInstagramView() {
       }
     } finally {
       setLoadingMore(false);
+    }
+  }
+
+  const handleEdit = useCallback((post: InstagramPost) => {
+    setEditPost(post);
+    setComposerOpen(true);
+  }, []);
+
+  const handleNewPostForDate = useCallback((_date: string) => {
+    setEditPost(null);
+    setComposerOpen(true);
+  }, []);
+
+  function handleComposerClose(open: boolean) {
+    setComposerOpen(open);
+    if (!open) {
+      setTimeout(() => setEditPost(null), 300);
     }
   }
 
@@ -395,7 +477,7 @@ function ConnectedInstagramView() {
                 Ver en Instagram
               </a>
             )}
-            <Button size="sm" onClick={() => setComposerOpen(true)}>
+            <Button size="sm" onClick={() => { setEditPost(null); setComposerOpen(true); }}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Nuevo post
             </Button>
@@ -403,42 +485,84 @@ function ConnectedInstagramView() {
         </div>
       </div>
 
-      {/* Grid */}
-      {isLoadingFirst ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : displayedItems.length === 0 ? (
-        <div className="py-16 text-center text-sm text-muted-foreground">
-          No hay publicaciones aun
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-3 gap-1">
-            {displayedItems.map((item) => (
-              <MediaCell
-                key={item.id}
-                item={item}
-                onClick={() => setSelectedItem(item)}
-              />
-            ))}
-          </div>
+      {/* Tabs */}
+      <Tabs defaultValue={scheduledPosts.length > 0 ? 'programados' : defaultTab}>
+        <TabsList>
+          <TabsTrigger value="grilla">Grilla</TabsTrigger>
+          <TabsTrigger value="programados" className="relative">
+            Programados
+            {scheduledPosts.length > 0 && (
+              <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground tabular-nums">
+                {scheduledPosts.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="calendario">Calendario</TabsTrigger>
+        </TabsList>
 
-          {nextCursor && (
-            <div className="flex justify-center pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-              >
-                {loadingMore && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                Cargar mas
-              </Button>
+        {/* Grilla tab */}
+        <TabsContent value="grilla" className="mt-4">
+          {isLoadingFirst ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
+          ) : displayedItems.length === 0 && scheduledPosts.length === 0 ? (
+            <div className="py-16 text-center text-sm text-muted-foreground">
+              No hay publicaciones aun
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-1">
+                {/* Scheduled posts preview at the top */}
+                {scheduledPosts.map((post) => (
+                  <ScheduledMediaCell
+                    key={post.id}
+                    post={post}
+                    timezone={timezone}
+                    onClick={() => handleEdit(post)}
+                  />
+                ))}
+                {/* Published media */}
+                {displayedItems.map((item) => (
+                  <MediaCell
+                    key={item.id}
+                    item={item}
+                    onClick={() => setSelectedItem(item)}
+                  />
+                ))}
+              </div>
+
+              {nextCursor && (
+                <div className="flex justify-center pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                    Cargar mas
+                  </Button>
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
+        </TabsContent>
+
+        {/* Programados tab */}
+        <TabsContent value="programados" className="mt-4">
+          <ScheduledPosts timezone={timezone} onEdit={handleEdit} />
+        </TabsContent>
+
+        {/* Calendario tab */}
+        <TabsContent value="calendario" className="mt-4">
+          <ScheduledCalendar
+            timezone={timezone}
+            onNewPost={handleNewPostForDate}
+            onEditPost={handleEdit}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Detail modal */}
       <MediaDetailModal
@@ -449,11 +573,21 @@ function ConnectedInstagramView() {
       {/* Post composer */}
       <PostComposer
         open={composerOpen}
-        onOpenChange={setComposerOpen}
+        onOpenChange={handleComposerClose}
         connection={{
           username: connection.username ?? '',
           profile_picture_url: connection.profile_picture_url,
         }}
+        timezone={timezone}
+        editPost={editPost ? {
+          id: editPost.id,
+          type: editPost.type,
+          caption: editPost.caption,
+          media: editPost.media,
+          aspect_ratio: editPost.aspect_ratio,
+          status: editPost.status,
+          scheduled_at: editPost.scheduled_at,
+        } : null}
       />
     </div>
   );

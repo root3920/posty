@@ -15,7 +15,8 @@ import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { DialogFooterBar } from '@/components/shared/dialog-footer-bar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { useUploadImage, usePublishPost } from '@/hooks/use-instagram';
+import { useUploadImage, usePublishPost, useSavePost } from '@/hooks/use-instagram';
+import { SchedulePicker } from '@/components/instagram/schedule-picker';
 
 // -------------------------------------------------------
 // Types
@@ -382,6 +383,8 @@ function GridPreview({ mediaItems }: { mediaItems: MediaItem[] }) {
 // Post Composer (main export)
 // -------------------------------------------------------
 
+type PublishMode = 'now' | 'schedule' | 'draft';
+
 interface PostComposerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -389,26 +392,48 @@ interface PostComposerProps {
     username: string;
     profile_picture_url: string | null;
   };
+  timezone: string;
+  /** If provided, pre-fills the composer for editing */
+  editPost?: {
+    id: string;
+    type: string;
+    caption: string | null;
+    media: Array<{ publicUrl: string; altText?: string }>;
+    aspect_ratio: string | null;
+    status: string;
+    scheduled_at: string | null;
+  } | null;
 }
 
-export function PostComposer({ open, onOpenChange, connection }: PostComposerProps) {
+export function PostComposer({ open, onOpenChange, connection, timezone, editPost }: PostComposerProps) {
   // State
-  const [postType, setPostType] = useState<PostType>('IMAGE');
-  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-  const [caption, setCaption] = useState('');
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
+  const [postType, setPostType] = useState<PostType>(
+    (editPost?.type === 'CAROUSEL_ALBUM' ? 'CAROUSEL' : 'IMAGE') as PostType,
+  );
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>(
+    editPost?.media?.map(m => ({ path: '', publicUrl: m.publicUrl, altText: m.altText ?? '' })) ?? [],
+  );
+  const [caption, setCaption] = useState(editPost?.caption ?? '');
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>(
+    (editPost?.aspect_ratio as AspectRatio) ?? '1:1',
+  );
   const [carouselSelectedIndex, setCarouselSelectedIndex] = useState(0);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [publishMode, setPublishMode] = useState<PublishMode>(
+    editPost?.status === 'scheduled' ? 'schedule' : 'now',
+  );
+  const [scheduledAt, setScheduledAt] = useState<string | null>(editPost?.scheduled_at ?? null);
 
   // Hooks
   const uploadImage = useUploadImage();
   const publishPost = usePublishPost();
+  const savePost = useSavePost();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isUploading = uploadImage.isPending;
-  const isPublishing = publishPost.isPending;
+  const isPublishing = publishPost.isPending || savePost.isPending;
 
   const hashtagCount = countHashtags(caption);
   const captionLength = caption.length;
@@ -498,28 +523,55 @@ export function PostComposer({ open, onOpenChange, connection }: PostComposerPro
     if (hashtagCount > MAX_HASHTAGS) {
       errors.push(`Tienes más de ${MAX_HASHTAGS} hashtags (${hashtagCount}).`);
     }
+    if (publishMode === 'schedule') {
+      if (!scheduledAt) {
+        errors.push('Selecciona fecha y hora para programar.');
+      } else {
+        const diff = new Date(scheduledAt).getTime() - Date.now();
+        if (diff < 5 * 60 * 1000) {
+          errors.push('La hora debe ser al menos 5 minutos en el futuro.');
+        }
+        if (diff > 180 * 24 * 60 * 60 * 1000) {
+          errors.push('No se puede programar a más de 6 meses.');
+        }
+      }
+    }
     setValidationErrors(errors);
     return errors.length === 0;
   }
 
   // -------------------------------------------------------
-  // Publish
+  // Publish / Schedule / Draft
   // -------------------------------------------------------
 
-  async function handlePublish() {
+  async function handleSubmit() {
     setPublishError(null);
     if (!validate()) return;
 
+    const mediaPayload = mediaItems.map((m) => ({ publicUrl: m.publicUrl, altText: m.altText }));
+
     try {
-      await publishPost.mutateAsync({
-        type: postType,
-        caption,
-        media: mediaItems.map((m) => ({ publicUrl: m.publicUrl, altText: m.altText })),
-      });
-      // Success toast is shown by the hook
+      if (publishMode === 'now') {
+        await publishPost.mutateAsync({
+          type: postType,
+          caption,
+          media: mediaPayload,
+        });
+      } else {
+        // 'schedule' or 'draft'
+        await savePost.mutateAsync({
+          id: editPost?.id,
+          type: postType,
+          caption,
+          media: mediaPayload,
+          aspect_ratio: aspectRatio,
+          status: publishMode === 'schedule' ? 'scheduled' : 'draft',
+          scheduled_at: publishMode === 'schedule' ? scheduledAt! : undefined,
+        });
+      }
       handleClose();
     } catch (err) {
-      setPublishError(err instanceof Error ? err.message : 'Error al publicar. Intenta de nuevo.');
+      setPublishError(err instanceof Error ? err.message : 'Error. Intenta de nuevo.');
     }
   }
 
@@ -535,6 +587,8 @@ export function PostComposer({ open, onOpenChange, connection }: PostComposerPro
       setCarouselSelectedIndex(0);
       setPublishError(null);
       setValidationErrors([]);
+      setPublishMode('now');
+      setScheduledAt(null);
     }, 300);
   }
 
@@ -542,40 +596,74 @@ export function PostComposer({ open, onOpenChange, connection }: PostComposerPro
   // Footer
   // -------------------------------------------------------
 
+  const modeButtons = (
+    <div className="flex gap-1 rounded-lg border bg-muted/50 p-0.5">
+      {([
+        { value: 'now' as const, label: 'Publicar ahora' },
+        { value: 'schedule' as const, label: 'Programar' },
+        { value: 'draft' as const, label: 'Borrador' },
+      ]).map((m) => (
+        <button
+          key={m.value}
+          type="button"
+          onClick={() => setPublishMode(m.value)}
+          className={cn(
+            'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+            publishMode === m.value
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {m.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const submitLabel = publishMode === 'now'
+    ? 'Publicar ahora'
+    : publishMode === 'schedule'
+    ? 'Programar'
+    : 'Guardar borrador';
+
   const footer = (
-    <DialogFooterBar
-      summary={
-        (validationErrors.length > 0 || publishError) ? (
-          <div className="w-full space-y-0.5">
-            {validationErrors.map((err) => (
-              <p key={err} className="text-xs text-destructive">{err}</p>
-            ))}
-            {publishError && (
-              <p className="text-xs text-destructive">{publishError}</p>
-            )}
-          </div>
-        ) : undefined
-      }
-      secondary={
-        <Button
-          variant="outline"
-          size="sm"
-          disabled
-        >
-          Guardar borrador
-        </Button>
-      }
-      primary={
-        <Button
-          size="sm"
-          onClick={handlePublish}
-          disabled={isPublishing || isUploading}
-        >
-          {isPublishing && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-          Publicar ahora
-        </Button>
-      }
-    />
+    <div className="space-y-3">
+      {/* Errors */}
+      {(validationErrors.length > 0 || publishError) && (
+        <div className="space-y-0.5">
+          {validationErrors.map((err) => (
+            <p key={err} className="text-xs text-destructive">{err}</p>
+          ))}
+          {publishError && (
+            <p className="text-xs text-destructive">{publishError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Schedule picker (inline in footer area) */}
+      {publishMode === 'schedule' && (
+        <SchedulePicker
+          value={scheduledAt}
+          onChange={setScheduledAt}
+          timezone={timezone}
+        />
+      )}
+
+      {/* Mode selector + submit */}
+      <DialogFooterBar
+        secondary={modeButtons}
+        primary={
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={isPublishing || isUploading}
+          >
+            {isPublishing && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+            {submitLabel}
+          </Button>
+        }
+      />
+    </div>
   );
 
   // -------------------------------------------------------
