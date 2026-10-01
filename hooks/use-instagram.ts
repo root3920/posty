@@ -39,8 +39,23 @@ export function useInstagramConnection() {
       if (res.status === 404 || res.status === 503) return null;
       if (!res.ok) return null;
       const data = await res.json();
-      if (!data.id && !data.ig_user_id) return null;
-      return data;
+      // API returns { profile: { id, username, ... }, tokenExpiresAt }
+      const p = data.profile ?? data;
+      if (!p.id && !p.username) return null;
+      return {
+        id: p.id ?? '',
+        ig_user_id: p.id ?? '',
+        username: p.username ?? null,
+        name: p.name ?? null,
+        profile_picture_url: p.profile_picture_url ?? null,
+        account_type: p.account_type ?? null,
+        media_count: p.media_count ?? 0,
+        followers_count: p.followers_count ?? 0,
+        follows_count: p.follows_count ?? 0,
+        status: 'connected',
+        token_expires_at: data.tokenExpiresAt ?? '',
+        connected_at: '',
+      } as InstagramConnection;
     },
     staleTime: 30_000,
     refetchInterval: 60_000,
