@@ -156,7 +156,10 @@ export function useInstagramPosts(statusFilter?: string[]) {
     queryKey: ['instagram_posts', filterStr],
     queryFn: async (): Promise<InstagramPost[]> => {
       const res = await fetch(`/api/instagram/posts?status=${filterStr}`);
-      if (!res.ok) return [];
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `Error al obtener posts (${res.status})`);
+      }
       const data = await res.json();
       return data.posts ?? [];
     },
@@ -170,7 +173,10 @@ export function usePublishedPosts() {
     queryKey: ['instagram_posts', 'published'],
     queryFn: async (): Promise<InstagramPost[]> => {
       const res = await fetch('/api/instagram/posts?status=published&limit=50');
-      if (!res.ok) return [];
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `Error al obtener posts (${res.status})`);
+      }
       const data = await res.json();
       return data.posts ?? [];
     },
@@ -201,8 +207,16 @@ export function useSavePost() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['instagram_posts'] });
+      queryClient.invalidateQueries({ queryKey: ['instagram_media'] });
       if (variables.status === 'scheduled') {
-        toast.success('Post programado');
+        toast('Post programado', {
+          description: 'Ver programados →',
+          action: {
+            label: 'Ir',
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+            onClick: () => { window.location.href = '/instagram?tab=programados'; },
+          },
+        });
       } else {
         toast.success('Borrador guardado');
       }

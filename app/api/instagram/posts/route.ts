@@ -26,9 +26,11 @@ export async function GET(request: Request) {
     const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '100', 10), 200);
 
     const adminDb: AnyDb = createAdminClient();
+
+    // Build query — avoid ambiguous FK join (created_by AND updated_by both reference profiles)
     let query = adminDb
       .from('instagram_posts')
-      .select('*, profiles:created_by(id, first_name, last_name, avatar_url)')
+      .select('*')
       .eq('organization_id', profile.organization_id)
       .order('scheduled_at', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
@@ -38,10 +40,28 @@ export async function GET(request: Request) {
       query = query.in('status', statusFilter);
     }
 
-    const { data, error } = await query;
+    const { data: posts, error } = await query;
     if (error) throw error;
 
-    return Response.json({ posts: data ?? [] });
+    // Resolve author names in a second query to avoid the ambiguous FK issue
+    const authorIds = [...new Set((posts ?? []).map((p: { created_by: string | null }) => p.created_by).filter(Boolean))];
+    const profilesMap: Record<string, { id: string; first_name: string | null; last_name: string | null; avatar_url: string | null }> = {};
+    if (authorIds.length > 0) {
+      const { data: profiles } = await adminDb
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url')
+        .in('id', authorIds);
+      for (const p of profiles ?? []) {
+        profilesMap[p.id] = p;
+      }
+    }
+
+    const enriched = (posts ?? []).map((post: { created_by: string | null }) => ({
+      ...post,
+      profiles: post.created_by ? profilesMap[post.created_by] ?? null : null,
+    }));
+
+    return Response.json({ posts: enriched });
   } catch (error) {
     console.error('[Instagram] Posts GET error:', error);
     return Response.json({ error: 'Error al obtener posts' }, { status: 500 });

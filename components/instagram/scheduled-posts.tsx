@@ -377,7 +377,7 @@ export function ScheduledPosts({ timezone, onEdit }: ScheduledPostsProps) {
     failed: ['failed'],
     draft: ['draft'],
   };
-  const { data: posts = [], isLoading } = useInstagramPosts(statusMap[filter]);
+  const { data: posts = [], isLoading, error } = useInstagramPosts(statusMap[filter]);
 
   // Group by day (hotel-local)
   const grouped = useMemo(() => {
@@ -464,7 +464,14 @@ export function ScheduledPosts({ timezone, onEdit }: ScheduledPostsProps) {
       </div>
 
       {/* Posts list */}
-      {isLoading ? (
+      {error ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-12">
+          <AlertTriangle className="h-6 w-6 text-destructive" />
+          <p className="text-sm text-destructive">
+            {error instanceof Error ? error.message : 'Error al cargar posts'}
+          </p>
+        </div>
+      ) : isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
