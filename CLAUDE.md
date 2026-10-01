@@ -279,6 +279,9 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [x] TRA/SIRE: campos regulatorios, API MinCIT, generador SIRE, envío desde check-in, config RNT
 - [x] Impuestos y recibos: IVA alojamiento, ICA, impuesto al consumo (sin facturación electrónica DIAN)
 - [x] Reportes fiscales: libro ventas/compras, IVA, retención, FONTUR, ocupación, TRA, SIRE — CSV y Excel
+- [x] Instagram F1: Conexión OAuth, token largo, grilla de lectura, detalle de post, caché, desconexión
+- [ ] Instagram F2: Publicar ahora (imagen + carrusel, recorte, JPEG, alt text, caption, vista previa)
+- [ ] Instagram F3: Programación, calendario, cron, cupo, reintentos, plantillas
 - [ ] Notificaciones en tiempo real (Supabase Realtime)
 - [ ] App móvil (React Native / Expo)
 - [ ] Integración OTAs (Booking, Expedia) vía channel manager

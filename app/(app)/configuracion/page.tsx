@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, Shield, Users, Clock, List, Palette, CalendarClock, FileText, MapPin, BookLock, Receipt } from 'lucide-react';
+import { Building2, Shield, Users, Clock, List, Palette, CalendarClock, FileText, MapPin, BookLock, Receipt, Camera } from 'lucide-react';
 
 const SETTINGS_SECTIONS = [
   {
@@ -69,6 +69,12 @@ const SETTINGS_SECTIONS = [
     label: 'Impuestos y recibos',
     description: 'IVA, ICA, impuesto al consumo',
     icon: Receipt,
+  },
+  {
+    href: '/configuracion/instagram',
+    label: 'Instagram',
+    description: 'Conectar cuenta y publicaciones',
+    icon: Camera,
   },
 ];
 

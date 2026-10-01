@@ -28,6 +28,7 @@ import {
   FileText,
   MapPin,
   MessageCircle,
+  Camera,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -59,6 +60,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/equipo', label: 'Equipo', icon: Users, module: 'team' },
   { href: '/tareas', label: 'Tareas', icon: CheckSquare, module: 'tasks' },
   { href: '/chat', label: 'Chat', icon: MessageCircle, module: 'chat', badgeKey: 'chat_unread' },
+  { href: '/instagram', label: 'Instagram', icon: Camera, module: 'instagram' },
   {
     href: '/hotel',
     label: 'Hotel',
@@ -91,6 +93,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/configuracion/espacios', label: 'Espacios', icon: MapPin },
       { href: '/configuracion/regulatorio', label: 'Regulatorio', icon: FileText },
       { href: '/configuracion/facturacion', label: 'Impuestos', icon: FileText },
+      { href: '/configuracion/instagram', label: 'Instagram', icon: Camera },
       { href: '/configuracion/sistema', label: 'Sistema', icon: ServerCog },
     ],
   },

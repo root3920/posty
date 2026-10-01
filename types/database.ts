@@ -1943,6 +1943,147 @@ export type Database = {
           },
         ]
       }
+      instagram_connections: {
+        Row: {
+          access_token_encrypted: string
+          account_type: string | null
+          connected_at: string
+          connected_by: string | null
+          created_at: string
+          followers_count: number | null
+          follows_count: number | null
+          id: string
+          ig_user_id: string
+          media_count: number | null
+          name: string | null
+          organization_id: string
+          profile_picture_url: string | null
+          status: string
+          token_expires_at: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          access_token_encrypted: string
+          account_type?: string | null
+          connected_at?: string
+          connected_by?: string | null
+          created_at?: string
+          followers_count?: number | null
+          follows_count?: number | null
+          id?: string
+          ig_user_id: string
+          media_count?: number | null
+          name?: string | null
+          organization_id: string
+          profile_picture_url?: string | null
+          status?: string
+          token_expires_at: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          access_token_encrypted?: string
+          account_type?: string | null
+          connected_at?: string
+          connected_by?: string | null
+          created_at?: string
+          followers_count?: number | null
+          follows_count?: number | null
+          id?: string
+          ig_user_id?: string
+          media_count?: number | null
+          name?: string | null
+          organization_id?: string
+          profile_picture_url?: string | null
+          status?: string
+          token_expires_at?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_connections_connected_by_fkey"
+            columns: ["connected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_media: {
+        Row: {
+          cached_at: string
+          caption: string | null
+          children: Json | null
+          comments_count: number | null
+          connection_id: string
+          id: string
+          ig_media_id: string
+          like_count: number | null
+          media_type: string | null
+          media_url: string | null
+          organization_id: string
+          permalink: string | null
+          thumbnail_url: string | null
+          timestamp: string | null
+        }
+        Insert: {
+          cached_at?: string
+          caption?: string | null
+          children?: Json | null
+          comments_count?: number | null
+          connection_id: string
+          id?: string
+          ig_media_id: string
+          like_count?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          organization_id: string
+          permalink?: string | null
+          thumbnail_url?: string | null
+          timestamp?: string | null
+        }
+        Update: {
+          cached_at?: string
+          caption?: string | null
+          children?: Json | null
+          comments_count?: number | null
+          connection_id?: string
+          id?: string
+          ig_media_id?: string
+          like_count?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          organization_id?: string
+          permalink?: string | null
+          thumbnail_url?: string | null
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_media_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_media_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
@@ -5386,6 +5527,7 @@ export type Database = {
         Args: { p_org_id: string; p_role_id: string }
         Returns: undefined
       }
+      refresh_instagram_tokens: { Args: never; Returns: undefined }
       register_contract_payment: {
         Args: {
           p_amount: number

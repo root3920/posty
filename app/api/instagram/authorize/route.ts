@@ -1,0 +1,52 @@
+import { createClient } from '@/lib/supabase/server';
+import { getInstagramEnv } from '@/lib/instagram/env';
+
+/**
+ * GET /api/instagram/authorize
+ * Redirects the authenticated user to Instagram's OAuth authorization page.
+ */
+export async function GET() {
+  try {
+    const { env, error: envError } = getInstagramEnv();
+    if (!env) {
+      console.error('[Instagram] Env validation failed:', envError);
+      return Response.json(
+        { error: `Configuración de Instagram incompleta: ${envError}` },
+        { status: 503 },
+      );
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return Response.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
+    const scope = [
+      'instagram_basic',
+      'instagram_content_publish',
+      'pages_show_list',
+      'pages_read_engagement',
+    ].join(',');
+
+    const params = new URLSearchParams({
+      client_id: env.INSTAGRAM_APP_ID,
+      redirect_uri: env.INSTAGRAM_REDIRECT_URI,
+      scope,
+      response_type: 'code',
+    });
+
+    const authUrl = `https://api.instagram.com/oauth/authorize?${params.toString()}`;
+
+    console.log('[Instagram] Redirecting to OAuth:', authUrl);
+
+    return Response.redirect(authUrl, 302);
+  } catch (error) {
+    console.error('[Instagram] Authorize route error:', error);
+    const message = error instanceof Error ? error.message : 'Error interno del servidor';
+    return Response.json({ error: message }, { status: 500 });
+  }
+}

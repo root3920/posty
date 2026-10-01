@@ -19,6 +19,7 @@ import {
   MessageCircle,
   Sparkles,
   ChevronRight,
+  Camera,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -51,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/equipo', label: 'Equipo', icon: Users, module: 'team' },
   { href: '/tareas', label: 'Tareas', icon: CheckSquare, module: 'tasks' },
   { href: '/chat', label: 'Chat', icon: MessageCircle, module: 'chat' },
+  { href: '/instagram', label: 'Instagram', icon: Camera, module: 'instagram' },
   {
     href: '/hotel',
     label: 'Hotel',
