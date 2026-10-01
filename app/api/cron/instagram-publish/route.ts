@@ -5,6 +5,7 @@ import {
   checkContainerStatus, publishContainer, getPublishingLimit,
   getMedia,
 } from '@/lib/instagram/client';
+import { verifyCronRequest } from '@/lib/cron/verify';
 
 // The admin client type doesn't include the new tables/columns from Phase 3
 // until db:types is regenerated after applying the migration.
@@ -34,19 +35,12 @@ function isPermanentError(errorMsg: string, errorCode?: string): boolean {
 // Retry delays in minutes: attempt 1 → 2 min, 2 → 10 min, 3 → 30 min
 const RETRY_DELAYS = [2, 10, 30];
 
-export async function POST(request: Request) {
-  // Validate CRON_SECRET
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
+// Accept both POST (from pg_net) and GET (from manual curl / Vercel cron)
+export { handler as POST, handler as GET };
 
-  if (!cronSecret) {
-    console.error('[ig-publisher] CRON_SECRET not configured');
-    return Response.json({ error: 'Not configured' }, { status: 500 });
-  }
-
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+async function handler(request: Request) {
+  const authError = verifyCronRequest(request);
+  if (authError) return authError;
 
   const adminDb = createAdminClient() as unknown as AdminDb;
   let processedCount = 0;
