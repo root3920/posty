@@ -25,21 +25,19 @@ export async function GET() {
       return Response.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const scope = [
-      'instagram_basic',
-      'instagram_content_publish',
-      'pages_show_list',
-      'pages_read_engagement',
-    ].join(',');
+    // Instagram API with Instagram Login (2024+)
+    // Scopes: instagram_business_basic + instagram_business_content_publish
+    const scope = 'instagram_business_basic,instagram_business_content_publish';
 
     const params = new URLSearchParams({
       client_id: env.INSTAGRAM_APP_ID,
       redirect_uri: env.INSTAGRAM_REDIRECT_URI,
       scope,
       response_type: 'code',
+      enable_fb_login: '0',
     });
 
-    const authUrl = `https://api.instagram.com/oauth/authorize?${params.toString()}`;
+    const authUrl = `https://www.instagram.com/oauth/authorize?${params.toString()}`;
 
     console.log('[Instagram] Redirecting to OAuth:', authUrl);
 
