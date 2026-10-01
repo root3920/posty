@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -296,7 +296,34 @@ function ConnectedView() {
 // Page
 // -------------------------------------------------------
 
-export default function InstagramConfigPage() {
+const ERROR_MESSAGES: Record<string, string> = {
+  denied: 'Cancelaste o no aceptaste los permisos de Instagram.',
+  code_used: 'El enlace ya se usó o venció. Vuelve a darle Conectar.',
+  not_professional: 'Tu cuenta debe ser profesional (Empresa o Creador).',
+  not_tester: 'Esta cuenta no está autorizada como prueba en la app de Meta.',
+  state_mismatch: 'La sesión expiró. Vuelve a intentarlo.',
+  config: 'Falta configuración del servidor (avisa al administrador).',
+  save_failed: 'Se conectó con Instagram pero no se pudo guardar. Intenta de nuevo.',
+};
+
+function ErrorBanner() {
+  const searchParams = useSearchParams();
+  const igError = searchParams.get('ig_error');
+  if (!igError) return null;
+
+  const message = ERROR_MESSAGES[igError] ?? 'Ocurrió un error al conectar Instagram.';
+
+  return (
+    <div className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <p>{message}</p>
+      </div>
+    </div>
+  );
+}
+
+function InstagramConfigInner() {
   const { data: connection, isLoading } = useInstagramConnection();
 
   if (isLoading) {
@@ -307,9 +334,18 @@ export default function InstagramConfigPage() {
     );
   }
 
-  if (!connection) {
-    return <NotConnectedView />;
-  }
+  return (
+    <>
+      <ErrorBanner />
+      {connection ? <ConnectedView /> : <NotConnectedView />}
+    </>
+  );
+}
 
-  return <ConnectedView />;
+export default function InstagramConfigPage() {
+  return (
+    <Suspense>
+      <InstagramConfigInner />
+    </Suspense>
+  );
 }

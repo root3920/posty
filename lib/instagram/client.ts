@@ -33,7 +33,7 @@ export async function exchangeCodeForToken(
   appId: string,
   appSecret: string,
   redirectUri: string,
-): Promise<string> {
+): Promise<{ accessToken: string; userId: string }> {
   const res = await fetch(`${OAUTH_BASE}/oauth/access_token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -45,13 +45,28 @@ export async function exchangeCodeForToken(
       code,
     }),
   });
+
+  // Read as text first to preserve user_id precision (can exceed Number.MAX_SAFE_INTEGER)
+  const rawText = await res.text();
+  console.log('[ig-callback] step=exchange_short status=' + res.status);
+
   if (!res.ok) {
-    const err = await res.text();
-    console.error('[Instagram] Token exchange failed:', err);
-    throw new Error('No se pudo obtener el token de Instagram');
+    console.error('[Instagram] Token exchange failed:', rawText.slice(0, 200));
+    // Parse error for better message
+    if (rawText.includes('Invalid platform app')) throw new Error('not_professional');
+    if (rawText.includes('code has been used')) throw new Error('code_used');
+    if (rawText.includes('redirect_uri')) throw new Error('config');
+    throw new Error('exchange_failed');
   }
-  const data = await res.json();
-  return data.access_token;
+
+  // Parse manually to extract user_id as string
+  const data = JSON.parse(rawText);
+  const accessToken = data.access_token;
+  // user_id might be in data directly or wrapped in data.data[0]
+  const userId = String(data.user_id ?? data.data?.[0]?.user_id ?? '');
+
+  if (!accessToken) throw new Error('exchange_failed');
+  return { accessToken, userId };
 }
 
 /**
@@ -64,9 +79,14 @@ export async function getLongLivedToken(
   const res = await fetch(
     `${API_BASE}/access_token?grant_type=ig_exchange_token&client_secret=${appSecret}&access_token=${shortToken}`,
   );
-  if (!res.ok) throw new Error('No se pudo obtener el token de larga duración');
-  const data = await res.json();
-  return { token: data.access_token, expiresIn: data.expires_in ?? 5184000 }; // 60 days default
+  const rawText = await res.text();
+  console.log('[ig-callback] step=exchange_long status=' + res.status);
+  if (!res.ok) {
+    console.error('[Instagram] Long token exchange failed:', rawText.slice(0, 200));
+    throw new Error('exchange_long_failed');
+  }
+  const data = JSON.parse(rawText);
+  return { token: data.access_token, expiresIn: data.expires_in ?? 5184000 };
 }
 
 /**
