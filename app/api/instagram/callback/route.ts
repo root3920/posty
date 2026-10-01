@@ -22,6 +22,8 @@ function redirectSuccess(username: string): Response {
  * GET /api/instagram/callback (PUBLIC — Instagram redirects here after OAuth)
  */
 export async function GET(request: Request) {
+  console.log('[ig-callback] ENTRY url=' + request.url.split('?')[0] + ' params=' + new URL(request.url).searchParams.toString().slice(0, 50));
+
   const { searchParams } = new URL(request.url);
 
   // 1. Check if Instagram returned an error (user denied, etc.)
@@ -40,18 +42,22 @@ export async function GET(request: Request) {
   }
 
   // 3. Validate env
+  console.log('[ig-callback] step=env_check vars:', {
+    APP_ID: !!process.env.INSTAGRAM_APP_ID,
+    APP_SECRET: !!process.env.INSTAGRAM_APP_SECRET,
+    REDIRECT_URI: !!process.env.INSTAGRAM_REDIRECT_URI,
+    ENC_KEY: !!process.env.TOKEN_ENCRYPTION_KEY,
+    APP_ID_LEN: process.env.INSTAGRAM_APP_ID?.length ?? 0,
+    SECRET_LEN: process.env.INSTAGRAM_APP_SECRET?.length ?? 0,
+    URI_LEN: process.env.INSTAGRAM_REDIRECT_URI?.length ?? 0,
+    KEY_LEN: process.env.TOKEN_ENCRYPTION_KEY?.length ?? 0,
+  });
   const { env, error: envError } = getInstagramEnv();
   if (!env) {
     console.error('[ig-callback] step=env_invalid error=' + envError);
-    // Log which vars are present (without values)
-    console.error('[ig-callback] env_check:', {
-      INSTAGRAM_APP_ID: !!process.env.INSTAGRAM_APP_ID,
-      INSTAGRAM_APP_SECRET: !!process.env.INSTAGRAM_APP_SECRET,
-      INSTAGRAM_REDIRECT_URI: !!process.env.INSTAGRAM_REDIRECT_URI,
-      TOKEN_ENCRYPTION_KEY: !!process.env.TOKEN_ENCRYPTION_KEY,
-    });
     return redirectWithError('config');
   }
+  console.log('[ig-callback] step=env_ok');
 
   try {
     // 4. Check user session
