@@ -959,7 +959,7 @@ export function PostComposer({ open, onOpenChange, connection, timezone, editPos
       <Dialog open={open} onOpenChange={(v) => { if (!v) handleCloseAttempt(); }}>
         <DialogContent
           showCloseButton
-          className="flex max-h-[90vh] w-[min(1000px,94vw)] max-w-none flex-col gap-0 p-0"
+          className="flex max-h-[90vh] w-[94vw] sm:max-w-[1000px] flex-col gap-0 p-0"
         >
           {/* Header */}
           <div className="shrink-0 border-b px-5 py-3">

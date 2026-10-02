@@ -27,14 +27,31 @@ interface ResponsiveDialogProps {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
-  /** Dialog width on desktop. Default 'md' (max-w-lg). Use 'lg' for wizards. */
-  size?: 'md' | 'lg';
+  /**
+   * Dialog width on desktop.
+   * - sm: 420px  (confirmations, simple forms)
+   * - md: 520px  (default — standard forms)
+   * - lg: 720px  (wizards, wide forms)
+   * - xl: 1000px (composers, multi-column)
+   * - 2xl: 1200px (dashboards, large editors)
+   */
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
-const SIZE_CLASSES = {
-  md: 'max-w-lg',
-  lg: 'w-[calc(100vw-2rem)] max-w-2xl',
-} as const;
+/**
+ * Width classes per size.
+ *
+ * Each entry overrides BOTH the base `max-w-[calc(100%-2rem)]` (mobile)
+ * AND the `sm:max-w-sm` from DialogContent, using the same `sm:` breakpoint
+ * so tailwind-merge replaces instead of stacking.
+ */
+const SIZE_CLASSES: Record<NonNullable<ResponsiveDialogProps['size']>, string> = {
+  sm:  'w-[94vw] sm:max-w-[420px]',
+  md:  'w-[94vw] sm:max-w-[520px]',
+  lg:  'w-[94vw] sm:max-w-[720px]',
+  xl:  'w-[94vw] sm:max-w-[1000px]',
+  '2xl': 'w-[94vw] sm:max-w-[1200px]',
+};
 
 export function ResponsiveDialog({
   open,
@@ -98,7 +115,10 @@ export function ResponsiveDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton className={`${SIZE_CLASSES[size]} flex max-h-[calc(100dvh-4rem)] flex-col`}>
+      <DialogContent
+        showCloseButton
+        className={`${SIZE_CLASSES[size]} flex max-h-[calc(100dvh-4rem)] flex-col`}
+      >
         <DialogHeader className="shrink-0">
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
