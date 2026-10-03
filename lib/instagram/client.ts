@@ -252,6 +252,131 @@ export async function publishContainer(
   return { mediaId: data.id };
 }
 
+// -------------------------------------------------------
+// Insights API
+// -------------------------------------------------------
+
+export interface InsightsValue {
+  value: number;
+  end_time?: string;
+}
+
+export interface InsightsBreakdownItem {
+  dimension_key: string;
+  dimension_value: string;
+  value: number;
+}
+
+export interface InsightsMetricResult {
+  name: string;
+  period: string;
+  title?: string;
+  description?: string;
+  total_value?: { value: number; breakdowns?: Array<{ dimension_keys: string[]; results: Array<{ dimension_values: string[]; value: number }> }> };
+  values?: InsightsValue[];
+}
+
+/**
+ * Fetch account-level insights for a date range.
+ * The API enforces max 30 days between since/until.
+ *
+ * @param metricType 'total_value' or 'time_series'
+ */
+export async function getAccountInsights(
+  token: string,
+  userId: string,
+  metrics: string[],
+  since: Date,
+  until: Date,
+  metricType: 'total_value' | 'time_series' = 'total_value',
+): Promise<InsightsMetricResult[]> {
+  const sinceUnix = Math.floor(since.getTime() / 1000);
+  const untilUnix = Math.floor(until.getTime() / 1000);
+
+  const params = new URLSearchParams({
+    metric: metrics.join(','),
+    period: 'day',
+    metric_type: metricType,
+    since: sinceUnix.toString(),
+    until: untilUnix.toString(),
+    access_token: token,
+  });
+
+  const res = await fetch(`${API_BASE}/${userId}/insights?${params}`);
+  const data = await res.json();
+
+  if (!res.ok) {
+    const errorMsg = data.error?.message ?? `Insights error (${res.status})`;
+    const errorCode = data.error?.code?.toString() ?? '';
+    console.error('[Instagram] getAccountInsights failed:', errorMsg, 'metrics:', metrics.join(','));
+    throw new Error(`ig_insights:${errorCode}:${errorMsg}`);
+  }
+
+  return data.data ?? [];
+}
+
+/**
+ * Fetch insights for a specific media item.
+ * Returns metrics as a flat object { metricName: value }.
+ */
+export async function getMediaInsights(
+  token: string,
+  mediaId: string,
+  metrics: string[],
+): Promise<Record<string, number>> {
+  const params = new URLSearchParams({
+    metric: metrics.join(','),
+    access_token: token,
+  });
+
+  const res = await fetch(`${API_BASE}/${mediaId}/insights?${params}`);
+  const data = await res.json();
+
+  if (!res.ok) {
+    // Some metrics may not be available for certain media types — log but don't throw
+    const errorMsg = data.error?.message ?? `Media insights error (${res.status})`;
+    console.warn('[Instagram] getMediaInsights failed for', mediaId, ':', errorMsg);
+    return {};
+  }
+
+  const result: Record<string, number> = {};
+  for (const metric of (data.data ?? []) as Array<{ name: string; values?: Array<{ value: number }>; total_value?: { value: number } }>) {
+    result[metric.name] = metric.total_value?.value ?? metric.values?.[0]?.value ?? 0;
+  }
+  return result;
+}
+
+/**
+ * Fetch follower demographics (age, gender, country, city).
+ * Only works with 100+ followers.
+ * Only accepts fixed timeframes: this_week, this_month, prev_month, last_14_days, last_30_days, last_90_days.
+ */
+export async function getFollowerDemographics(
+  token: string,
+  userId: string,
+  timeframe: string = 'last_30_days',
+): Promise<InsightsMetricResult[]> {
+  const params = new URLSearchParams({
+    metric: 'follower_demographics',
+    period: 'lifetime',
+    timeframe,
+    metric_type: 'total_value',
+    breakdown: 'age,gender,country,city',
+    access_token: token,
+  });
+
+  const res = await fetch(`${API_BASE}/${userId}/insights?${params}`);
+  const data = await res.json();
+
+  if (!res.ok) {
+    const errorMsg = data.error?.message ?? `Demographics error (${res.status})`;
+    console.warn('[Instagram] getFollowerDemographics failed:', errorMsg);
+    return [];
+  }
+
+  return data.data ?? [];
+}
+
 export async function getPublishingLimit(
   token: string,
   userId: string,

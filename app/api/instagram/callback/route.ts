@@ -141,6 +141,13 @@ export async function GET(request: Request) {
       .limit(1)
       .maybeSingle();
 
+    // The scopes we requested — stored so UI can check if insights permission was granted
+    const requestedScopes = [
+      'instagram_business_basic',
+      'instagram_business_content_publish',
+      'instagram_business_manage_insights',
+    ];
+
     const connectionData = {
       organization_id: orgId,
       ig_user_id: igProfile.id, // string, no precision loss
@@ -156,6 +163,7 @@ export async function GET(request: Request) {
       status: 'connected',
       connected_at: new Date().toISOString(),
       connected_by: user.id,
+      granted_scopes: requestedScopes,
     };
 
     let saveError;

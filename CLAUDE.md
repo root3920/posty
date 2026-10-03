@@ -218,6 +218,21 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - **Ruta pública**: `/api/cron` ya está en `public-routes.ts`
 - **UI**: 3 pestañas en `/instagram`: Grilla (con programados arriba, borde punteado), Programados (lista + filtros + acciones), Calendario (mes/semana)
 
+## Estadísticas de Instagram (Fase A)
+
+- **Permiso nuevo**: `instagram_business_manage_insights` en el scope de OAuth. Columna `granted_scopes text[]` en `instagram_connections`
+- **Tablas**: `instagram_account_insights_daily` (métricas diarias por cuenta), `instagram_follower_snapshots` (foto diaria de seguidores), `instagram_media_insights` (métricas por post)
+- **Permiso POSTY**: `instagram.view_insights` (Gestor y Mercadeo por defecto)
+- **Métricas**: Definidas en `lib/instagram/insights-metrics.ts` — archivo único a editar si Meta cambia métricas
+- **API client**: `getAccountInsights`, `getMediaInsights`, `getFollowerDemographics` en `lib/instagram/client.ts`
+- **API routes**: `/api/instagram/insights` (GET: leer, POST: refrescar últimos 3 días), `/api/cron/instagram-insights` (cron diario 3AM)
+- **Cron**: `instagram-insights-daily` (pg_cron 0 3 * * *) re-fetch últimos 3 días con upsert (retraso 48h de Instagram)
+- **UI**: Botón "Estadísticas" en `/instagram`, modal `ResponsiveDialog size="2xl"` con tabs Resumen/Audiencia/Publicaciones/Historias
+- **Resumen**: KPI cards (14 métricas + engagement rate) + 4 gráficas (alcance diario, seguidores, seg/no-seg, por tipo de contenido)
+- **Reconexión**: Si falta el scope de insights, el modal muestra aviso con botón "Reconectar"
+- **Datos vacíos**: null → "Sin datos", nunca 0. Los datos de los últimos 2 días pueden estar incompletos
+- **Ventanas de 30 días**: La API de Instagram limita a 30 días por consulta; `splitInto30DayWindows` parte rangos largos
+
 ## Sistema de diseño
 
 ### Tipografía
@@ -301,7 +316,10 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [x] Instagram F1: Conexión OAuth, token largo, grilla de lectura, detalle de post, caché, desconexión
 - [x] Instagram F2: Publicar ahora (imagen + carrusel, recorte JPEG con sharp, alt text, caption, vista previa, Storage bucket)
 - [x] Instagram F3: Programación, calendario, cron, cupo, reintentos (sin plantillas — fase futura)
-- [ ] Instagram F4: Plantillas reutilizables, analytics, mejores horas para publicar
+- [x] Instagram Insights A: Permiso + reconexión + Resumen (KPIs + gráficas), consulta directa + guardado diario
+- [ ] Instagram Insights B: Audiencia y Publicaciones
+- [ ] Instagram Insights C: Historias, carga inicial del historial y exportar
+- [ ] Instagram F4: Plantillas reutilizables, mejores horas para publicar
 - [ ] Notificaciones en tiempo real (Supabase Realtime)
 - [ ] App móvil (React Native / Expo)
 - [ ] Integración OTAs (Booking, Expedia) vía channel manager

@@ -16,6 +16,7 @@ import {
   Plus,
   Loader2,
   Clock,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button';
@@ -34,6 +35,7 @@ import { useOrganization } from '@/hooks/use-organization';
 import { PostComposer } from '@/components/instagram/post-composer';
 import { ScheduledPosts } from '@/components/instagram/scheduled-posts';
 import { ScheduledCalendar } from '@/components/instagram/scheduled-calendar';
+import { InsightsModal } from '@/components/instagram/insights-modal';
 import { formatScheduledAt } from '@/lib/datetime-tz';
 
 // -------------------------------------------------------
@@ -362,6 +364,7 @@ function ConnectedInstagramView() {
   const [profileImgError, setProfileImgError] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [editPost, setEditPost] = useState<InstagramPost | null>(null);
+  const [insightsOpen, setInsightsOpen] = useState(false);
 
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') ?? 'grilla';
@@ -477,6 +480,10 @@ function ConnectedInstagramView() {
                 Ver en Instagram
               </a>
             )}
+            <Button variant="outline" size="sm" onClick={() => setInsightsOpen(true)}>
+              <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
+              Estadísticas
+            </Button>
             <Button size="sm" onClick={() => { setEditPost(null); setComposerOpen(true); }}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Nuevo post
@@ -588,6 +595,13 @@ function ConnectedInstagramView() {
           status: editPost.status,
           scheduled_at: editPost.scheduled_at,
         } : null}
+      />
+
+      {/* Insights modal */}
+      <InsightsModal
+        open={insightsOpen}
+        onOpenChange={setInsightsOpen}
+        hasInsightsScope={connection.granted_scopes?.includes('instagram_business_manage_insights') ?? false}
       />
     </div>
   );

@@ -17,6 +17,7 @@ interface InstagramConnectionRow {
   access_token_encrypted: string;
   token_expires_at: string | null;
   status: string;
+  granted_scopes: string[] | null;
 }
 
 /**
@@ -62,7 +63,7 @@ export async function GET() {
     const { data: conn, error: connError } = await adminDb
       .from('instagram_connections')
       .select(
-        'id,ig_user_id,username,name,profile_picture_url,account_type,media_count,followers_count,follows_count,access_token_encrypted,token_expires_at,status',
+        'id,ig_user_id,username,name,profile_picture_url,account_type,media_count,followers_count,follows_count,access_token_encrypted,token_expires_at,status,granted_scopes',
       )
       .eq('organization_id', profile.organization_id)
       .eq('status', 'connected')
@@ -119,6 +120,7 @@ export async function GET() {
     return Response.json({
       profile: igProfile,
       tokenExpiresAt: typedConn.token_expires_at,
+      grantedScopes: typedConn.granted_scopes ?? [],
     });
   } catch (error) {
     console.error('[Instagram] Profile route error:', error);

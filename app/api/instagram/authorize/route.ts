@@ -26,8 +26,8 @@ export async function GET() {
     }
 
     // Instagram API with Instagram Login (2024+)
-    // Scopes: instagram_business_basic + instagram_business_content_publish
-    const scope = 'instagram_business_basic,instagram_business_content_publish';
+    // Scopes: basic + publish + insights (for statistics)
+    const scope = 'instagram_business_basic,instagram_business_content_publish,instagram_business_manage_insights';
 
     const params = new URLSearchParams({
       client_id: env.INSTAGRAM_APP_ID,

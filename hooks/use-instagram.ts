@@ -16,6 +16,7 @@ export interface InstagramConnection {
   status: string;
   token_expires_at: string;
   connected_at: string;
+  granted_scopes: string[];
 }
 
 export interface InstagramMediaItem {
@@ -56,6 +57,7 @@ export function useInstagramConnection() {
         status: 'connected',
         token_expires_at: data.tokenExpiresAt ?? '',
         connected_at: '',
+        granted_scopes: data.grantedScopes ?? [],
       } as InstagramConnection;
     },
     staleTime: 30_000,
