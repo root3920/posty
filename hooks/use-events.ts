@@ -253,6 +253,7 @@ interface CreateEventBookingParams {
   deposit_received?: number;
   deposit_method_id?: string;
   notes?: string;
+  idempotency_key?: string;
 }
 
 export function useCreateEventBooking() {
@@ -276,6 +277,7 @@ export function useCreateEventBooking() {
         p_deposit_received: params.deposit_received,
         p_deposit_method_id: params.deposit_method_id,
         p_notes: params.notes,
+        p_idempotency_key: params.idempotency_key,
       });
       if (error) throw error;
       return data as unknown as { booking_id: string; code: string; venue_name: string };

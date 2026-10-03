@@ -14,6 +14,7 @@ const PG_ERROR_MAP: Record<string, string> = {
   '23505': 'Ya existe un registro con ese valor',
   '23503': 'El registro está en uso y no se puede modificar',
   '23514': 'El valor ingresado no es válido',
+  '23P01': 'Hay un conflicto con un registro existente',
   '42501': 'No tienes permiso para realizar esta acción',
   '42703': 'Error de configuración del sistema. Ya quedó registrado; intenta de nuevo en unos minutos o contacta a soporte',
   '42804': 'Error de configuración del sistema. Ya quedó registrado; intenta de nuevo en unos minutos o contacta a soporte',
@@ -46,9 +47,34 @@ export function getSupabaseErrorMessage(error: unknown, context?: string): strin
     }
 
     // Enrich 23505 (unique violation) with constraint info
-    if (err.code === '23505' && err.details) {
-      if (err.details.includes('name')) return `${prefix}Ya existe un registro con ese nombre`;
-      if (err.details.includes('code')) return `${prefix}Ya existe un registro con ese código`;
+    if (err.code === '23505') {
+      const detail = err.details ?? '';
+      const msg = err.message ?? '';
+      const combined = `${detail} ${msg}`;
+
+      // Log the exact constraint name for debugging
+      const constraintMatch = msg.match(/constraint "([^"]+)"/);
+      if (constraintMatch) {
+        console.warn(`[DB] Unique violation on constraint: ${constraintMatch[1]}`, detail);
+      }
+
+      if (combined.includes('no_double_booking_venue')) return `${prefix}Ese espacio ya está reservado en ese horario`;
+      if (combined.includes('no_double_booking')) return `${prefix}La habitación ya está reservada en esas fechas`;
+      if (combined.includes('idempotency_key')) return `${prefix}Esta operación ya fue procesada`;
+      if (detail.includes('code')) return `${prefix}Ya existe un registro con ese código`;
+      if (detail.includes('name')) return `${prefix}Ya existe un registro con ese nombre`;
+      if (detail.includes('email')) return `${prefix}Ya existe un registro con ese correo electrónico`;
+      if (detail.includes('document_number')) return `${prefix}Ya existe un huésped con ese documento`;
+      if (detail.includes('phone')) return `${prefix}Ya existe un registro con ese teléfono`;
+      return `${prefix}Ya existe un registro con ese valor`;
+    }
+
+    // Enrich exclusion violation (23P01)
+    if (err.code === '23P01') {
+      const msg = err.message ?? '';
+      if (msg.includes('no_double_booking_venue')) return `${prefix}Ese espacio ya está reservado en ese horario`;
+      if (msg.includes('no_double_booking')) return `${prefix}La habitación ya está reservada en esas fechas`;
+      return `${prefix}Hay un conflicto con un registro existente`;
     }
 
     return `${prefix}${mapped}`;
