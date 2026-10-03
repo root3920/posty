@@ -153,7 +153,7 @@ create or replace function public.create_stay_with_auto_room(
   p_guest_country_of_origin text default null,
   p_guest_notes text default null
 )
-returns jsonb
+returns json
 language plpgsql security definer set search_path = public
 as $$
 declare
@@ -264,7 +264,7 @@ begin
     update public.rooms set status = 'occupied' where id = v_room_id;
   end if;
 
-  return jsonb_build_object(
+  return json_build_object(
     'stay_id', v_stay_id,
     'stay_code', v_stay_code,
     'room_id', v_room_id,
@@ -340,14 +340,36 @@ create trigger trg_generate_event_code
 -- BUG 3: Event double-booking exclusion constraint
 -- -----------------------------------------------
 
--- 3a. Enable btree_gist in public schema for exclusion constraints on uuid
--- (Already enabled in extensions schema, need it accessible)
-create extension if not exists "btree_gist" schema public;
-
 -- 3b. Add exclusion constraint on event_bookings
 -- Prevents overlapping bookings for the same venue on the same date + time range.
 -- PostgreSQL has no `timerange`, so we use tstzrange combining date + time.
 -- Only applies to non-cancelled bookings.
+-- NOTE: If existing overlapping bookings exist, cancel the duplicates first.
+do $$
+declare
+  v_dup record;
+begin
+  -- Find and cancel duplicate overlapping bookings (keep the oldest one)
+  for v_dup in
+    select b2.id
+    from public.event_bookings b1
+    join public.event_bookings b2
+      on b1.venue_id = b2.venue_id
+      and b1.event_date = b2.event_date
+      and b1.id < b2.id  -- b1 is older
+      and b1.status != 'cancelled'
+      and b2.status != 'cancelled'
+      and b1.start_time < b2.end_time
+      and b1.end_time > b2.start_time
+  loop
+    update public.event_bookings
+    set status = 'cancelled'::event_booking_status
+    where id = v_dup.id;
+    raise notice 'Cancelled duplicate event booking: %', v_dup.id;
+  end loop;
+end;
+$$;
+
 alter table public.event_bookings
   add constraint no_double_booking_venue
   exclude using gist (
@@ -369,6 +391,9 @@ create unique index if not exists uq_event_bookings_idempotency
   where idempotency_key is not null;
 
 -- 3d. Recreate create_event_booking with per-org counter + idempotency
+-- Drop old signature (14 params) before creating new one (15 params)
+drop function if exists public.create_event_booking(uuid, date, time, time, int, text, text, text, text, boolean, text, numeric, uuid, text);
+
 create or replace function public.create_event_booking(
   p_venue_id uuid,
   p_event_date date,
@@ -386,7 +411,7 @@ create or replace function public.create_event_booking(
   p_notes text default null,
   p_idempotency_key text default null
 )
-returns jsonb
+returns json
 language plpgsql security definer set search_path = public
 as $$
 declare
@@ -413,7 +438,7 @@ begin
     where organization_id = v_org_id
       and idempotency_key = p_idempotency_key;
     if v_booking_id is not null then
-      return jsonb_build_object('booking_id', v_booking_id, 'code', v_booking_code, 'deduplicated', true);
+      return json_build_object('booking_id', v_booking_id, 'code', v_booking_code, 'deduplicated', true);
     end if;
   end if;
 
@@ -500,7 +525,7 @@ begin
     organization_id, booking_id, action, actor_id, details
   ) values (
     v_org_id, v_booking_id, 'created', v_user_id,
-    jsonb_build_object('status', v_status::text, 'total', v_total)
+    json_build_object('status', v_status::text, 'total', v_total)
   );
 
   -- Auto-create cleaning tasks if confirmed
@@ -540,6 +565,6 @@ begin
     order by ts.sort_order limit 1;
   end if;
 
-  return jsonb_build_object('booking_id', v_booking_id, 'code', v_booking_code);
+  return json_build_object('booking_id', v_booking_id, 'code', v_booking_code);
 end;
 $$;
