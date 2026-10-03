@@ -164,6 +164,14 @@ export function useChatRealtime() {
           queryClient.invalidateQueries({ queryKey: ['chat_unread_count'] });
         },
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'chat_contacts' },
+        () => {
+          // Avatar changed — refresh signed URLs
+          queryClient.invalidateQueries({ queryKey: ['avatar_urls'] });
+        },
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };

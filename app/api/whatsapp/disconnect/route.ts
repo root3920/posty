@@ -85,6 +85,29 @@ export async function POST(request: Request) {
       console.error('[Disconnect] provider.deleteInstance error (continuing):', err);
     }
 
+    // Delete avatar files from storage bucket (best-effort)
+    try {
+      const avatarPrefix = `${profile.organization_id}/${typedConn.id}/`;
+      const { data: avatarFiles } = await adminDb.storage
+        .from('whatsapp-avatars')
+        .list(avatarPrefix.slice(0, -1)); // list needs folder path without trailing /
+
+      if (avatarFiles && avatarFiles.length > 0) {
+        const paths = avatarFiles.map((f: { name: string }) => `${avatarPrefix}${f.name}`);
+        await adminDb.storage.from('whatsapp-avatars').remove(paths);
+        console.log(`[Disconnect] Deleted ${paths.length} avatar files`);
+      }
+    } catch (err) {
+      console.error('[Disconnect] Avatar cleanup error (continuing):', err);
+    }
+
+    // Clear avatar columns in chat_contacts (via DB function)
+    try {
+      await adminDb.rpc('clear_whatsapp_avatars', { p_connection_id: typedConn.id });
+    } catch (err) {
+      console.error('[Disconnect] clear_whatsapp_avatars error (continuing):', err);
+    }
+
     return Response.json({
       ok: true,
       ...(closeResult ?? {}),

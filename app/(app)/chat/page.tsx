@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,7 +20,6 @@ import {
   FileText,
   Mic,
   MapPin,
-  User,
   StickyNote,
 } from 'lucide-react';
 import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
@@ -47,6 +46,8 @@ import {
 } from '@/hooks/use-chat';
 import { useProfile } from '@/hooks/use-profile';
 import { GuestContextPanel } from '@/components/chat/guest-context-panel';
+import { ContactAvatar } from '@/components/chat/contact-avatar';
+import { useAvatarUrls, useAutoFetchAvatars } from '@/hooks/use-contact-avatars';
 import { cn } from '@/lib/utils';
 import { formatPhoneNumberIntl } from 'react-phone-number-input';
 
@@ -411,16 +412,17 @@ function ConversationItem({
   conv,
   selected,
   onClick,
+  avatarUrl,
 }: {
   conv: ChatConversation;
   selected: boolean;
   onClick: () => void;
+  avatarUrl?: string | null;
 }) {
   const isLid = isLidContact(conv.contact_phone_e164);
   // Skip names that are empty, just punctuation, or just spaces
   const validName = conv.contact_name && conv.contact_name.replace(/[\s.·\-_]/g, '').length > 0 ? conv.contact_name : null;
   const displayName = validName || (isLid ? 'Contacto de WhatsApp' : formatPhone(conv.contact_phone_e164));
-  const initials = (validName ?? '').charAt(0).toUpperCase() || (isLid ? '?' : '#');
   const timeLabel = conv.last_message_at ? formatMessageTime(conv.last_message_at) : '';
 
   return (
@@ -434,9 +436,12 @@ function ConversationItem({
       )}
     >
       {/* Avatar */}
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
-        {initials}
-      </div>
+      <ContactAvatar
+        name={validName}
+        avatarUrl={avatarUrl}
+        isLid={isLid}
+        size="md"
+      />
 
       {/* Content */}
       <div className="min-w-0 flex-1">
@@ -475,6 +480,7 @@ interface ConversationsColumnProps {
   currentUserId: string | null;
   hiddenCount?: number;
   connectedPhone?: string | null;
+  avatarUrls?: Record<string, string | null>;
 }
 
 function ConversationsColumn({
@@ -489,6 +495,7 @@ function ConversationsColumn({
   currentUserId,
   hiddenCount = 0,
   connectedPhone,
+  avatarUrls = {},
 }: ConversationsColumnProps) {
   const [showNewChat, setShowNewChat] = useState(false);
 
@@ -620,6 +627,7 @@ function ConversationsColumn({
               conv={conv}
               selected={selectedId === conv.id}
               onClick={() => onSelect(conv.id)}
+              avatarUrl={conv.contact_id ? avatarUrls[conv.contact_id] : null}
             />
           ))
         )}
@@ -671,6 +679,7 @@ interface MessagesColumnProps {
   onBack?: () => void;
   showBackButton?: boolean;
   currentUserId: string | null;
+  avatarUrl?: string | null;
 }
 
 function MessagesColumn({
@@ -679,6 +688,7 @@ function MessagesColumn({
   onBack,
   showBackButton,
   currentUserId,
+  avatarUrl,
 }: MessagesColumnProps) {
   const [inputTab, setInputTab] = useState<'message' | 'note'>('message');
   const [text, setText] = useState('');
@@ -794,9 +804,12 @@ function MessagesColumn({
             <ArrowLeft className="h-4 w-4" />
           </Button>
         )}
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
-          {displayName?.charAt(0).toUpperCase() ?? <User className="h-4 w-4" />}
-        </div>
+        <ContactAvatar
+          name={displayName}
+          avatarUrl={avatarUrl}
+          isLid={isSelectedLid}
+          size="sm"
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{displayName ?? 'Contacto'}</p>
           {selectedConversation && displayPhone && (
@@ -1085,6 +1098,24 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
 
   // Get all conversations for counts
   const { data: allConversations = [] } = useChatConversations();
+
+  // Avatar URLs for all visible contacts
+  const contactIds = useMemo(
+    () => allConversations.map((c) => c.contact_id).filter((id): id is string => !!id),
+    [allConversations],
+  );
+  const { data: avatarUrls = {} } = useAvatarUrls(contactIds);
+
+  // Auto-fetch avatars for contacts that need them
+  const { enqueue: enqueueAvatar } = useAutoFetchAvatars();
+  useEffect(() => {
+    // Enqueue avatar fetch for visible contacts that don't have a URL yet
+    for (const id of contactIds) {
+      if (!avatarUrls[id]) {
+        enqueueAvatar(id);
+      }
+    }
+  }, [contactIds, avatarUrls, enqueueAvatar]);
   const { data: hiddenConversations = [] } = useChatConversations({ showHidden: true });
   const hiddenOnly = hiddenConversations.filter((c) => c.is_hidden);
 
@@ -1147,6 +1178,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
                 onBack={handleBack}
                 showBackButton
                 currentUserId={currentUserId}
+                avatarUrl={selectedConv?.contact_id ? avatarUrls[selectedConv.contact_id] : null}
               />
             </div>
           ) : (
@@ -1163,6 +1195,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
                 currentUserId={currentUserId}
                 hiddenCount={hiddenOnly.length}
                 connectedPhone={connection.phone}
+                avatarUrls={avatarUrls}
               />
             </div>
           )
@@ -1181,6 +1214,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
                 currentUserId={currentUserId}
                 hiddenCount={hiddenOnly.length}
                 connectedPhone={connection.phone}
+                avatarUrls={avatarUrls}
               />
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
@@ -1188,6 +1222,7 @@ function ConnectedChat({ connection }: ConnectedChatProps) {
                 conversationId={selectedId}
                 conversations={allConversations}
                 currentUserId={currentUserId}
+                avatarUrl={selectedConv?.contact_id ? avatarUrls[selectedConv.contact_id] : null}
               />
             </div>
             {/* Guest context — desktop only, collapsible */}

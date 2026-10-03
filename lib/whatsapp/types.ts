@@ -35,6 +35,11 @@ export interface WhatsAppProvider {
     messageIds: string[],
   ): Promise<void>;
 
+  getProfilePicture(
+    instanceName: string,
+    number: string,
+  ): Promise<{ profilePictureUrl: string | null }>;
+
   disconnect(instanceName: string): Promise<void>;
 
   deleteInstance(instanceName: string): Promise<void>;

@@ -331,6 +331,38 @@ export class EvolutionProvider implements WhatsAppProvider {
     return [];
   }
 
+  async getProfilePicture(
+    instanceName: string,
+    number: string,
+  ): Promise<{ profilePictureUrl: string | null }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/fetchProfilePictureUrl/${instanceName}`, {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({ number }),
+      });
+
+      if (!response.ok) {
+        // 404 = contact has no picture or has hidden it
+        if (response.status === 404) {
+          return { profilePictureUrl: null };
+        }
+        const body = await response.text().catch(() => '');
+        console.warn(`[Evolution] fetchProfilePicture ${response.status}:`, body.slice(0, 200));
+        return { profilePictureUrl: null };
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
+      // Response can be { profilePictureUrl: "..." } or { wpiVersion: "...", profilePictureUrl: "..." }
+      const url = data.profilePictureUrl ?? data.imgUrl ?? data.picture ?? null;
+      return { profilePictureUrl: url };
+    } catch (err) {
+      console.error('[Evolution] fetchProfilePicture error:', err);
+      return { profilePictureUrl: null };
+    }
+  }
+
   async disconnect(instanceName: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}/instance/logout/${instanceName}`, {
       method: 'DELETE',
