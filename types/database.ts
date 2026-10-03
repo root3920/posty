@@ -1943,6 +1943,57 @@ export type Database = {
           },
         ]
       }
+      instagram_account_insights_daily: {
+        Row: {
+          breakdown_key: string
+          breakdown_value: string
+          connection_id: string
+          date: string
+          fetched_at: string
+          id: string
+          metric: string
+          organization_id: string
+          value: number
+        }
+        Insert: {
+          breakdown_key?: string
+          breakdown_value?: string
+          connection_id: string
+          date: string
+          fetched_at?: string
+          id?: string
+          metric: string
+          organization_id: string
+          value?: number
+        }
+        Update: {
+          breakdown_key?: string
+          breakdown_value?: string
+          connection_id?: string
+          date?: string
+          fetched_at?: string
+          id?: string
+          metric?: string
+          organization_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_account_insights_daily_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_account_insights_daily_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_api_logs: {
         Row: {
           created_at: string
@@ -2003,6 +2054,7 @@ export type Database = {
           created_at: string
           followers_count: number | null
           follows_count: number | null
+          granted_scopes: string[] | null
           id: string
           ig_user_id: string
           media_count: number | null
@@ -2022,6 +2074,7 @@ export type Database = {
           created_at?: string
           followers_count?: number | null
           follows_count?: number | null
+          granted_scopes?: string[] | null
           id?: string
           ig_user_id: string
           media_count?: number | null
@@ -2041,6 +2094,7 @@ export type Database = {
           created_at?: string
           followers_count?: number | null
           follows_count?: number | null
+          granted_scopes?: string[] | null
           id?: string
           ig_user_id?: string
           media_count?: number | null
@@ -2062,6 +2116,51 @@ export type Database = {
           },
           {
             foreignKeyName: "instagram_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_follower_snapshots: {
+        Row: {
+          connection_id: string
+          date: string
+          followers_count: number
+          follows_count: number
+          id: string
+          media_count: number
+          organization_id: string
+        }
+        Insert: {
+          connection_id: string
+          date: string
+          followers_count?: number
+          follows_count?: number
+          id?: string
+          media_count?: number
+          organization_id: string
+        }
+        Update: {
+          connection_id?: string
+          date?: string
+          followers_count?: number
+          follows_count?: number
+          id?: string
+          media_count?: number
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_follower_snapshots_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_follower_snapshots_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2135,11 +2234,57 @@ export type Database = {
           },
         ]
       }
+      instagram_media_insights: {
+        Row: {
+          connection_id: string
+          fetched_at: string
+          id: string
+          ig_media_id: string
+          media_product_type: string | null
+          metrics: Json
+          organization_id: string
+        }
+        Insert: {
+          connection_id: string
+          fetched_at?: string
+          id?: string
+          ig_media_id: string
+          media_product_type?: string | null
+          metrics?: Json
+          organization_id: string
+        }
+        Update: {
+          connection_id?: string
+          fetched_at?: string
+          id?: string
+          ig_media_id?: string
+          media_product_type?: string | null
+          metrics?: Json
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_media_insights_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_media_insights_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_posts: {
         Row: {
           aspect_ratio: string | null
           attempts: number
           caption: string | null
+          children_container_ids: Json | null
           connection_id: string
           container_id: string | null
           created_at: string
@@ -2147,7 +2292,10 @@ export type Database = {
           error: string | null
           id: string
           ig_media_id: string | null
+          last_error_code: string | null
+          locked_at: string | null
           media: Json
+          next_attempt_at: string | null
           organization_id: string
           permalink: string | null
           published_at: string | null
@@ -2161,6 +2309,7 @@ export type Database = {
           aspect_ratio?: string | null
           attempts?: number
           caption?: string | null
+          children_container_ids?: Json | null
           connection_id: string
           container_id?: string | null
           created_at?: string
@@ -2168,7 +2317,10 @@ export type Database = {
           error?: string | null
           id?: string
           ig_media_id?: string | null
+          last_error_code?: string | null
+          locked_at?: string | null
           media?: Json
+          next_attempt_at?: string | null
           organization_id: string
           permalink?: string | null
           published_at?: string | null
@@ -2182,6 +2334,7 @@ export type Database = {
           aspect_ratio?: string | null
           attempts?: number
           caption?: string | null
+          children_container_ids?: Json | null
           connection_id?: string
           container_id?: string | null
           created_at?: string
@@ -2189,7 +2342,10 @@ export type Database = {
           error?: string | null
           id?: string
           ig_media_id?: string | null
+          last_error_code?: string | null
+          locked_at?: string | null
           media?: Json
+          next_attempt_at?: string | null
           organization_id?: string
           permalink?: string | null
           published_at?: string | null
@@ -2229,6 +2385,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      instagram_publisher_heartbeat: {
+        Row: {
+          errors: number
+          id: number
+          last_run_at: string
+          processed: number
+          updated_at: string
+        }
+        Insert: {
+          errors?: number
+          id?: number
+          last_run_at?: string
+          processed?: number
+          updated_at?: string
+        }
+        Update: {
+          errors?: number
+          id?: number
+          last_run_at?: string
+          processed?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       notifications: {
         Row: {
@@ -5422,6 +5602,40 @@ export type Database = {
         Args: { p_new_guest_id: string; p_reason?: string; p_stay_id: string }
         Returns: Json
       }
+      claim_due_instagram_posts: {
+        Args: { p_limit?: number }
+        Returns: {
+          aspect_ratio: string | null
+          attempts: number
+          caption: string | null
+          children_container_ids: Json | null
+          connection_id: string
+          container_id: string | null
+          created_at: string
+          created_by: string | null
+          error: string | null
+          id: string
+          ig_media_id: string | null
+          last_error_code: string | null
+          locked_at: string | null
+          media: Json
+          next_attempt_at: string | null
+          organization_id: string
+          permalink: string | null
+          published_at: string | null
+          scheduled_at: string | null
+          status: string
+          type: string
+          updated_at: string
+          updated_by: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "instagram_posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       close_whatsapp_session: {
         Args: {
           p_archive_guests?: boolean
@@ -5801,6 +6015,7 @@ export type Database = {
         }
         Returns: Json
       }
+      unstick_instagram_posts: { Args: never; Returns: number }
       update_cleaning: {
         Args: {
           p_assigned_to?: string
