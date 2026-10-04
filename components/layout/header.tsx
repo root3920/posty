@@ -1,11 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Bell, Search, Moon, Sun, LogOut, User } from 'lucide-react';
+import { Bell, Moon, Sun, LogOut, User } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -16,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useProfile } from '@/hooks/use-profile';
 import { signOutAction } from '@/app/actions/auth';
+import { GlobalSearch } from './global-search';
 
 function getInitials(name: string): string {
   return name
@@ -41,14 +41,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-30 hidden h-14 items-center gap-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur-xl md:flex">
       {/* Search */}
-      <div className="relative max-w-md flex-1">
-        <Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-        <Input
-          placeholder="Buscar huésped, habitación, tarea..."
-          className="pl-9 shadow-xs"
-          disabled
-        />
-      </div>
+      <GlobalSearch />
 
       <div className="ml-auto flex items-center gap-2">
         {/* Org name */}

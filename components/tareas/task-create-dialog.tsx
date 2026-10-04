@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
@@ -102,6 +102,14 @@ export function TaskCreateDialog({ open, onOpenChange, defaultStatusId }: TaskCr
       startDate: null,
     },
   });
+
+  // Set default status when statuses load (they may arrive after form init)
+  const watchStatusId = watch('statusId');
+  useEffect(() => {
+    if (!watchStatusId && statuses.length > 0) {
+      setValue('statusId', defaultStatusId ?? statuses[0].id);
+    }
+  }, [statuses, watchStatusId, defaultStatusId, setValue]);
 
   const selectedAssigneeIds = watch('assigneeIds') ?? [];
   const selectedLabelIds = watch('labelIds') ?? [];

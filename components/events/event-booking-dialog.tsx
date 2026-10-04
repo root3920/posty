@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useId } from 'react';
 import { Loader2, Check, MapPin, User, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Country } from 'react-phone-number-input';
@@ -84,6 +84,7 @@ export function EventBookingDialog({
   const createBooking = useCreateEventBooking();
 
   const [step, setStep] = useState(1);
+  const [triedNext, setTriedNext] = useState(false); // Show errors after clicking "Siguiente"
 
   // Step 1: Venue & Schedule
   const [venueId, setVenueId] = useState(preselectedVenueId ?? '');
@@ -197,15 +198,35 @@ export function EventBookingDialog({
     warnings.push('No se pueden reservar fechas pasadas');
   }
 
-  // Step validation
-  const step1Valid =
-    !!venueId && !!eventDate && !!startTime && !!endTime && guestCount > 0 &&
-    timeToMinutes(endTime) > timeToMinutes(startTime) && warnings.length === 0;
-  const step2Valid = !!clientName.trim() && !!clientPhone.trim();
-  const step3Valid = true; // Payment info is optional
+  // Step validation — with individual error messages
+  const step1Errors: string[] = [];
+  if (!venueId) step1Errors.push('Selecciona un espacio');
+  if (!eventDate) step1Errors.push('Selecciona una fecha');
+  if (!startTime) step1Errors.push('Selecciona la hora de inicio');
+  if (!endTime) step1Errors.push('Selecciona la hora de fin');
+  if (startTime && endTime && timeToMinutes(endTime) <= timeToMinutes(startTime)) {
+    step1Errors.push('La hora de fin debe ser posterior a la de inicio');
+  }
+  if (guestCount <= 0) step1Errors.push('Indica el número de personas');
+  if (warnings.length > 0) step1Errors.push(...warnings);
+
+  const step2Errors: string[] = [];
+  if (!clientName.trim()) step2Errors.push('Ingresa el nombre del cliente');
+  if (!clientPhone.trim()) step2Errors.push('Ingresa el teléfono del cliente');
+
+  const step1Valid = step1Errors.length === 0;
+  const step2Valid = step2Errors.length === 0;
 
   // Submit
+  // Idempotency key: generated once per form open, regenerated on reset
+  const formId = useId();
+  const [idempotencyCounter, setIdempotencyCounter] = useState(0);
+  const idempotencyKey = `${formId}-${idempotencyCounter}`;
+
   function handleSubmit() {
+    // Prevent double submit — check mutation state
+    if (createBooking.isPending) return;
+
     createBooking.mutate(
       {
         venue_id: venueId,
@@ -222,6 +243,7 @@ export function EventBookingDialog({
         deposit_received: depositReceived,
         deposit_method_id: depositMethodId || undefined,
         notes: notes || undefined,
+        idempotency_key: idempotencyKey,
       },
       {
         onSuccess: () => {
@@ -235,6 +257,7 @@ export function EventBookingDialog({
 
   function resetForm() {
     setStep(1);
+    setTriedNext(false);
     setVenueId(preselectedVenueId ?? '');
     setEventDate('');
     setStartTime('');
@@ -250,6 +273,7 @@ export function EventBookingDialog({
     setDepositMethodId('');
     setRentalPaid(false);
     setNotes('');
+    setIdempotencyCounter((c) => c + 1);
   }
 
   // Status badge
@@ -288,8 +312,15 @@ export function EventBookingDialog({
           <Button
             type="button"
             size="sm"
-            disabled={(step === 1 && !step1Valid) || (step === 2 && !step2Valid)}
-            onClick={() => setStep(step + 1)}
+            onClick={() => {
+              const valid = step === 1 ? step1Valid : step === 2 ? step2Valid : true;
+              if (!valid) {
+                setTriedNext(true);
+                return;
+              }
+              setTriedNext(false);
+              setStep(step + 1);
+            }}
           >
             Siguiente
           </Button>
@@ -439,6 +470,15 @@ export function EventBookingDialog({
               ))}
             </div>
           )}
+
+          {/* Validation errors (shown after trying to advance) */}
+          {triedNext && step1Errors.length > 0 && (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-3 space-y-1">
+              {step1Errors.map((e, i) => (
+                <p key={i} className="text-xs text-destructive">{e}</p>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -502,6 +542,14 @@ export function EventBookingDialog({
                 onChange={(e) => setRoomNumber(e.target.value)}
                 placeholder="Ej. 201"
               />
+            </div>
+          )}
+          {/* Step 2 validation errors */}
+          {triedNext && step2Errors.length > 0 && (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-3 space-y-1">
+              {step2Errors.map((e, i) => (
+                <p key={i} className="text-xs text-destructive">{e}</p>
+              ))}
             </div>
           )}
         </div>

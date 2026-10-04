@@ -119,6 +119,17 @@ export function CheckInForm({ open, onOpenChange, mode = 'checkin', defaultRoomI
 
   const total = nights * (watchRate || 0);
 
+  // Preselect room when defaultRoomId is provided
+  useEffect(() => {
+    if (!defaultRoomId || rooms.length === 0) return;
+    const room = rooms.find((r) => r.id === defaultRoomId);
+    if (!room) return;
+    setValue('roomTypeId', room.room_type_id);
+    setValue('roomId', defaultRoomId);
+    setValue('ratePerNight', room.rate_override ?? room.room_type?.base_rate ?? 0);
+    setShowSpecificRoom(true);
+  }, [defaultRoomId, rooms, setValue]);
+
   // Check if selected type is still available when dates/guests change
   useEffect(() => {
     if (!watchRoomTypeId || typeAvailability.length === 0) return;

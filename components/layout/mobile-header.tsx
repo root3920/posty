@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useProfile } from '@/hooks/use-profile';
 import { useMobileNavStore } from './mobile-nav-store';
+import { GlobalSearch } from './global-search';
 
 function getInitials(name: string): string {
   return name
@@ -39,11 +40,11 @@ export function MobileHeader() {
       {/* Logo centrado */}
       <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
         <Image
-          src="/brand/posty-cat-white.png"
+          src="/brand/posty-cat-black.png"
           alt="POSTY"
           width={24}
           height={24}
-          className="shrink-0 dark:block"
+          className="shrink-0 dark:hidden"
           priority
         />
         <Image
@@ -51,7 +52,7 @@ export function MobileHeader() {
           alt="POSTY"
           width={24}
           height={24}
-          className="shrink-0 dark:hidden"
+          className="hidden shrink-0 dark:block"
           priority
         />
         <span className="font-heading text-[15px] font-bold tracking-tight">POSTY</span>
@@ -59,6 +60,7 @@ export function MobileHeader() {
 
       {/* Right actions */}
       <div className="flex items-center gap-1">
+        <GlobalSearch />
         <Button
           variant="ghost"
           size="icon"

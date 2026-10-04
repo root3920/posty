@@ -73,10 +73,10 @@ export async function createTaskAction(formData: CreateTaskInput) {
         status_id: statusId,
         priority: priority ?? 'normal',
         created_by: user.id,
-        due_date: dueDate ?? null,
-        start_date: startDate ?? null,
-        parent_task_id: parentTaskId ?? null,
-        room_id: roomId ?? null,
+        due_date: dueDate || null,
+        start_date: startDate || null,
+        parent_task_id: parentTaskId || null,
+        room_id: roomId || null,
         estimated_minutes: estimatedMinutes ?? null,
       })
       .select('id')

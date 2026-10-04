@@ -77,7 +77,7 @@ export function EspaciosTab({
         <div key={venue.id} className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="font-semibold leading-tight">{venue.name}</p>
+              <p className="font-semibold leading-tight truncate" title={venue.name}>{venue.name}</p>
               {venue.description && (
                 <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
                   {venue.description}
