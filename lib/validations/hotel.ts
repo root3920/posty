@@ -38,7 +38,10 @@ export const checkInSchema = z.object({
   travelReasonId: z.string().min(1).nullable().optional(),
   ratePerNight: z.number().positive('La tarifa debe ser positiva'),
   notes: z.string().nullable().optional(),
-});
+}).refine(
+  (data) => !data.checkInDate || !data.checkOutDate || data.checkOutDate > data.checkInDate,
+  { message: 'La fecha de salida debe ser posterior a la de entrada', path: ['checkOutDate'] },
+);
 
 export type CheckInInput = z.infer<typeof checkInSchema>;
 

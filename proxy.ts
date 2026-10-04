@@ -23,7 +23,9 @@ export async function proxy(request: NextRequest) {
   }
 
   // Allow public routes without auth check
-  if (isPublicRoute(pathname)) {
+  // (login/registro handled below — need to redirect if already authenticated)
+  const isLoginOrRegister = pathname === '/login' || pathname === '/registro';
+  if (isPublicRoute(pathname) && !isLoginOrRegister) {
     return geoResponse;
   }
 
@@ -75,8 +77,9 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Not authenticated → redirect to login
+  // Not authenticated → redirect to login (unless already on login/registro)
   if (!user) {
+    if (isLoginOrRegister) return geoResponse;
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);
