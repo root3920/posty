@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/header';
 import { MobileHeader } from '@/components/layout/mobile-header';
 import { MobileNavWrapper } from '@/components/layout/mobile-nav-wrapper';
 import { SetupProgressWrapper } from '@/components/onboarding/setup-progress-wrapper';
+import { WelcomeWizardWrapper } from '@/components/onboarding/welcome-wizard-wrapper';
 import { GeoProvider } from '@/components/providers/geo-provider';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -22,6 +23,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
         {/* Onboarding progress button — floating bottom-right */}
         <SetupProgressWrapper />
+
+        {/* Welcome wizard — auto-opens for new hotels */}
+        <WelcomeWizardWrapper />
 
         {/* Main column */}
         <div className="flex min-w-0 flex-1 flex-col md:overflow-hidden overflow-x-clip">
