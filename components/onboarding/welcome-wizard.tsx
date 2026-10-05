@@ -53,6 +53,7 @@ export function WelcomeWizard() {
   const router = useRouter();
 
   const [step, setStep] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
 
   // Step 2: Hotel data
   const [hotelName, setHotelName] = useState('');
@@ -189,18 +190,20 @@ export function WelcomeWizard() {
   // ---- Navigation ----
 
   function handleFinish() {
+    setDismissed(true);
     markWizardSeen();
     router.push('/dashboard');
   }
 
   function handleClose() {
+    setDismissed(true);
     markWizardSeen();
   }
 
-  // Don't show if: loading, already seen, not Gestor, no profile
-  if (isLoading || isWizardSeen || !profile) return null;
+  // Don't show if: loading, already seen, dismissed, not Gestor, no profile
+  if (isLoading || isWizardSeen || dismissed || !profile) return null;
 
-  const isOpen = !isWizardSeen;
+  const isOpen = true;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
