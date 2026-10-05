@@ -23,16 +23,13 @@ import {
   ClipboardList,
   Banknote,
   BedDouble as BedIcon,
-  Settings2,
-  CircleCheck,
-  Circle,
   LogIn,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { KpiGrid } from '@/components/shared/kpi-grid';
 import { KpiCard, KpiCardSkeleton } from '@/components/shared/kpi-card';
-import { useHotelKPIs, useRoomTypes } from '@/hooks/use-hotel';
+import { useHotelKPIs } from '@/hooks/use-hotel';
 import { useFinanceKPIs } from '@/hooks/use-finance';
 import { useTasks } from '@/hooks/use-tasks';
 import { useProfile } from '@/hooks/use-profile';
@@ -49,6 +46,7 @@ import { ConfirmArrivalModal } from '@/components/hotel/confirm-arrival-modal';
 import { getStayBadges, BADGE_STYLES } from '@/lib/stays/badges';
 import { useOrganization } from '@/hooks/use-organization';
 import { todayInTimezone } from '@/lib/dates';
+import { OnboardingSummaryCard } from '@/components/onboarding/onboarding-summary-card';
 
 // -------------------------------------------------------
 // Animation variants
@@ -115,42 +113,7 @@ function AlertItem({ icon, text, severity, href }: AlertItemProps) {
 // Onboarding step
 // -------------------------------------------------------
 
-function OnboardingStep({
-  step,
-  title,
-  description,
-  done,
-  href,
-}: {
-  step: number;
-  title: string;
-  description: string;
-  done: boolean;
-  href: string;
-}) {
-  return (
-    <motion.div variants={cardVariants}>
-      <Link
-        href={href}
-        className={`flex items-start gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-muted/50 ${done ? 'opacity-60' : ''}`}
-      >
-        <span className="mt-0.5 shrink-0">
-          {done ? (
-            <CircleCheck className="h-5 w-5 text-emerald-500" />
-          ) : (
-            <Circle className="h-5 w-5 text-muted-foreground/40" />
-          )}
-        </span>
-        <div className="min-w-0">
-          <p className={`text-sm font-medium ${done ? 'line-through text-muted-foreground' : ''}`}>
-            {step}. {title}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-        </div>
-      </Link>
-    </motion.div>
-  );
-}
+// OnboardingStep removed — replaced by OnboardingSummaryCard from components/onboarding/
 
 // -------------------------------------------------------
 // Section header
@@ -246,7 +209,7 @@ function DashboardContent() {
   // Data hooks
   const { data: profile } = useProfile();
   const { data: hotelKpis, isLoading: hotelLoading } = useHotelKPIs();
-  const { data: roomTypes = [] } = useRoomTypes();
+  // roomTypes removed — onboarding now uses centralized hook
   const { data: financeToday } = useFinanceKPIs(todayPeriod);
   const { data: financeMonth } = useFinanceKPIs(monthPeriod);
   const { tasks, statuses, isLoading: tasksLoading } = useTasks({ parentTaskId: null });
@@ -378,66 +341,9 @@ function DashboardContent() {
       </div>
 
         {/* ============================
-            Onboarding card (shown when no rooms exist)
+            Onboarding summary (uses centralized hook)
         ============================ */}
-        {(() => {
-          const hasRoomTypes = roomTypes.length > 0;
-          const hasRooms = (hotelKpis?.totalRooms ?? 0) > 0;
-          const hasTeam = (teamQuery.data?.length ?? 0) > 1;
-          const allDone = hasRoomTypes && hasRooms && hasTeam;
-          const dismissed = typeof window !== 'undefined' && localStorage.getItem('posty_setup_dismissed') === '1';
-          const show = !hotelLoading && hotelKpis && !allDone && !dismissed;
-
-          return show ? (
-          <motion.section
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="relative rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5 space-y-4"
-          >
-            <button
-              type="button"
-              onClick={() => { localStorage.setItem('posty_setup_dismissed', '1'); window.location.reload(); }}
-              className="absolute right-3 top-3 text-xs text-muted-foreground hover:text-foreground"
-              aria-label="Ocultar"
-            >
-              Ocultar
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Settings2 className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold">Configura tu hotel</h2>
-                <p className="text-xs text-muted-foreground">Completa estos pasos para empezar a operar</p>
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <OnboardingStep
-                step={1}
-                title="Crea tipos de habitación"
-                description="Define Twin, Suite, etc. con tarifas"
-                done={hasRoomTypes}
-                href="/configuracion/catalogos"
-              />
-              <OnboardingStep
-                step={2}
-                title="Crea habitaciones"
-                description="Agrega habitaciones individuales o en lote"
-                done={hasRooms}
-                href="/hotel/habitaciones"
-              />
-              <OnboardingStep
-                step={3}
-                title="Invita a tu equipo"
-                description="Agrega recepcionistas y personal"
-                done={hasTeam}
-                href="/configuracion/usuarios"
-              />
-            </div>
-          </motion.section>
-          ) : null;
-        })()}
+        <OnboardingSummaryCard />
 
         {/* ============================
             Section 1: Hotel hoy
