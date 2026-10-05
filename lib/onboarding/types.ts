@@ -17,6 +17,8 @@ export interface OnboardingCounts {
   has_tax_id: boolean;
   has_rnt: boolean;
   has_logo: boolean;
+  work_schedules: number;
+  cleaning_types: number;
 }
 
 export interface OnboardingStepDef {

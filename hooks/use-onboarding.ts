@@ -26,6 +26,7 @@ function useOnboardingCounts() {
           payment_methods: 0, event_venues: 0, recurring_tasks: 0,
           whatsapp_connected: 0, instagram_connected: 0,
           has_tax_id: false, has_rnt: false, has_logo: false,
+          work_schedules: 0, cleaning_types: 0,
         };
       }
       return data as OnboardingCounts;

@@ -85,7 +85,7 @@ export const ONBOARDING_STEPS: OnboardingStepDef[] = [
     href: '/configuracion/horarios',
     requiredModule: 'settings',
     skippable: true,
-    checkCompleted: () => false, // No simple count — skippable
+    checkCompleted: (c) => c.work_schedules > 0,
   },
 
   // -------------------------------------------------------
@@ -99,7 +99,7 @@ export const ONBOARDING_STEPS: OnboardingStepDef[] = [
     href: '/limpieza',
     requiredModule: 'housekeeping',
     skippable: true,
-    checkCompleted: () => false, // Complex config — skippable
+    checkCompleted: (c) => c.cleaning_types > 0,
   },
   {
     id: 'recurring_tasks',
