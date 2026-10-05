@@ -75,7 +75,7 @@ export async function GET() {
     }
 
     if (!conn) {
-      return Response.json({ error: 'No hay una conexión de Instagram activa' }, { status: 404 });
+      return Response.json({ connected: false });
     }
 
     const typedConn = conn as InstagramConnectionRow;

@@ -43,7 +43,8 @@ export function parseRoomNumbers(
     return { rooms, errors };
   }
 
-  const segments = input.split(',').map((s) => s.trim()).filter(Boolean);
+  // Accept comma, semicolon, space, and newline as separators
+  const segments = input.split(/[,;\s\n]+/).map((s) => s.trim()).filter(Boolean);
 
   for (const segment of segments) {
     if (segment.includes('-')) {
@@ -90,6 +91,10 @@ export function parseRoomNumbers(
       const num = parseInt(segment, 10);
       if (isNaN(num)) {
         errors.push(`Número inválido: "${segment}"`);
+        continue;
+      }
+      if (num <= 0) {
+        errors.push(`El número de habitación debe ser mayor que 0: "${segment}"`);
         continue;
       }
 

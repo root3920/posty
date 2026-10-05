@@ -134,4 +134,36 @@ FROM (VALUES
 LEFT JOIN pg_tables pt ON pt.schemaname = 'public' AND pt.tablename = t.table_name
 WHERE pt.tablename IS NULL OR pt.rowsecurity = false
 
+UNION ALL
+
+-- -----------------------------------------------
+-- 6. Views without security_invoker = true
+--    Every view exposed to the API must have this.
+-- -----------------------------------------------
+SELECT 'VIEW MISSING security_invoker' as issue,
+       c.relname::text as table_name,
+       null as column_name,
+       'CRITICAL: view may leak data across organizations' as detail
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public'
+  AND c.relkind = 'v'
+  AND (c.reloptions IS NULL OR NOT c.reloptions::text[] @> ARRAY['security_invoker=true'])
+
+UNION ALL
+
+-- -----------------------------------------------
+-- 7. Tables with organization_id but RLS disabled
+--    Auto-detects ALL tables, not just a hardcoded list.
+-- -----------------------------------------------
+SELECT 'TABLE WITH org_id BUT NO RLS' as issue,
+       t.tablename::text as table_name,
+       'organization_id' as column_name,
+       'CRITICAL: data may leak across organizations' as detail
+FROM pg_tables t
+JOIN information_schema.columns c
+  ON c.table_schema = 'public' AND c.table_name = t.tablename AND c.column_name = 'organization_id'
+WHERE t.schemaname = 'public'
+  AND t.rowsecurity = false
+
 ORDER BY 1, 2, 3;

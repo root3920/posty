@@ -186,21 +186,21 @@ export default function SistemaPage() {
               <tr className="border-b text-left text-muted-foreground">
                 <th className="px-2 py-1.5">Proceso</th>
                 <th className="px-2 py-1.5">Frecuencia</th>
-                <th className="px-2 py-1.5">Lógica</th>
+                <th className="px-2 py-1.5">Descripción</th>
                 <th className="px-2 py-1.5">Estado</th>
               </tr>
             </thead>
             <tbody>
-              <ProcessRow name="Programación de limpiezas" freq="Cada 5 min" logic="backfill_housekeeping_cleanings" status="activo" />
-              <ProcessRow name="Repaso de habitaciones vacías" freq="Diario 06:00" logic="Pendiente" status="pendiente" />
-              <ProcessRow name="Tareas recurrentes" freq="Cada minuto" logic="process_recurring_tasks" status="activo" />
-              <ProcessRow name="Alertas de limpieza vencida" freq="Cada hora" logic="Pendiente" status="pendiente" />
-              <ProcessRow name="Pre-check-in automático" freq="Cada hora" logic="Pendiente (Fase 3)" status="pendiente" />
-              <ProcessRow name="Auditoría nocturna" freq="Diario 23:55" logic="Pendiente (Fase 2)" status="pendiente" />
-              <ProcessRow name="Reservas web vencidas (15 min)" freq="Cada 5 min" logic="Pendiente (Fase 5)" status="pendiente" />
-              <ProcessRow name="Resumen semanal del Gestor" freq="Lunes 08:00" logic="Pendiente (Fase 4)" status="pendiente" />
-              <ProcessRow name="Correos automáticos" freq="Cada hora" logic="Pendiente (Fase 3)" status="pendiente" />
-              <ProcessRow name="Escalamiento de incidencias SLA" freq="Cada 5 min" logic="Pendiente (Fase 2)" status="pendiente" />
+              <ProcessRow name="Programación de limpiezas" freq="Cada 5 min" logic="Crea limpiezas para nuevas estancias automáticamente" status="activo" />
+              <ProcessRow name="Repaso de habitaciones vacías" freq="Diario 06:00" logic="Por implementar" status="pendiente" />
+              <ProcessRow name="Tareas recurrentes" freq="Cada minuto" logic="Genera tareas programadas según la configuración" status="activo" />
+              <ProcessRow name="Alertas de limpieza vencida" freq="Cada hora" logic="Por implementar" status="pendiente" />
+              <ProcessRow name="Pre-check-in automático" freq="Cada hora" logic="Por implementar" status="pendiente" />
+              <ProcessRow name="Auditoría nocturna" freq="Diario 23:55" logic="Por implementar" status="pendiente" />
+              <ProcessRow name="Reservas web vencidas (15 min)" freq="Cada 5 min" logic="Por implementar" status="pendiente" />
+              <ProcessRow name="Resumen semanal del Gestor" freq="Lunes 08:00" logic="Por implementar" status="pendiente" />
+              <ProcessRow name="Correos automáticos" freq="Cada hora" logic="Por implementar" status="pendiente" />
+              <ProcessRow name="Escalamiento de incidencias SLA" freq="Cada 5 min" logic="Por implementar" status="pendiente" />
             </tbody>
           </table>
         </div>
@@ -214,7 +214,7 @@ function ProcessRow({ name, freq, logic, status }: { name: string; freq: string;
     <tr className="border-b last:border-0">
       <td className="px-2 py-1.5 font-medium">{name}</td>
       <td className="px-2 py-1.5 text-muted-foreground">{freq}</td>
-      <td className="px-2 py-1.5 font-mono text-[10px] text-muted-foreground">{logic}</td>
+      <td className="px-2 py-1.5 text-muted-foreground">{logic}</td>
       <td className="px-2 py-1.5">
         <Badge variant={status === 'activo' ? 'default' : 'outline'} className="text-[9px]">
           {status === 'activo' ? 'Activo' : 'Pendiente'}

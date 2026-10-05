@@ -5,10 +5,7 @@ import { syncWhatsAppConnection } from '@/lib/whatsapp/sync';
 export async function GET() {
   try {
     if (!isWhatsAppConfigured()) {
-      return Response.json({
-        error: 'not_configured',
-        message: 'WhatsApp no está configurado en el servidor. Revisa EVOLUTION_API_URL, EVOLUTION_API_KEY y WHATSAPP_WEBHOOK_SECRET.',
-      }, { status: 503 });
+      return Response.json({ connected: false, status: 'not_configured' });
     }
 
     const supabase = await createClient();
@@ -38,7 +35,7 @@ export async function GET() {
     console.log('[Status] DB connection:', connBefore ? { id: connBefore.id, status: connBefore.status, instance: connBefore.instance_name } : 'NONE', 'err:', connErr?.message);
 
     if (!connBefore) {
-      return Response.json({ error: 'No connection', connected: false }, { status: 404 });
+      return Response.json({ connected: false, status: 'not_connected' });
     }
 
     // Run sync — queries Evolution, updates DB, ensures webhook
