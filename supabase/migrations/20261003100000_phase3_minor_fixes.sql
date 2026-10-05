@@ -7,10 +7,11 @@ alter table public.guests
   drop constraint if exists chk_guests_birth_date,
   add constraint chk_guests_birth_date check (birth_date is null or birth_date <= current_date);
 
--- F3-6c: Room number must be > 0 (no "room 0")
+-- F3-6c: Room number must not be '0'
+-- NOTE: column is "number", not "room_number" (room_number is a view alias)
 alter table public.rooms
-  drop constraint if exists chk_rooms_room_number_not_zero,
-  add constraint chk_rooms_room_number_not_zero check (room_number != '0');
+  drop constraint if exists chk_rooms_number_not_zero,
+  add constraint chk_rooms_number_not_zero check (number != '0');
 
 -- F3-6d: Room types — reasonable max capacity
 alter table public.room_types

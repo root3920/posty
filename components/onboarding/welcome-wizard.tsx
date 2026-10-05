@@ -15,6 +15,7 @@ import {
   SkipForward,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -107,13 +108,22 @@ export function WelcomeWizard() {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       toast.success('Datos del hotel guardados');
     },
-    onError: () => toast.error('Error al guardar los datos'),
+    onError: (err) => {
+      logSupabaseError(err, 'wizard:saveHotel');
+      toast.error(getSupabaseErrorMessage(err, 'Guardar hotel'));
+    },
   });
 
   const saveRooms = useMutation({
     mutationFn: async () => {
-      if (!rtName.trim() || !rtRate || parsedRooms.length === 0) {
-        throw new Error('Completa todos los campos');
+      if (!rtName.trim()) {
+        throw new Error('El nombre del tipo de habitación es obligatorio');
+      }
+      if (!rtRate || parseFloat(rtRate) <= 0) {
+        throw new Error('La tarifa por noche debe ser mayor que 0');
+      }
+      if (parsedRooms.length === 0) {
+        throw new Error('Agrega al menos un número de habitación');
       }
       const supabase = createClient();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -143,7 +153,10 @@ export function WelcomeWizard() {
       queryClient.invalidateQueries({ queryKey: ['onboarding_counts'] });
       toast.success(`${rtName} creado con ${parsedRooms.length} habitaciones`);
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : 'Error al crear habitaciones'),
+    onError: (err) => {
+      logSupabaseError(err, 'wizard:saveRooms');
+      toast.error(getSupabaseErrorMessage(err, 'Crear habitaciones'));
+    },
   });
 
   const sendInvite = useMutation({
