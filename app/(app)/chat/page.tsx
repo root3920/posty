@@ -47,6 +47,7 @@ import {
 import { useProfile } from '@/hooks/use-profile';
 import { GuestContextPanel } from '@/components/chat/guest-context-panel';
 import { ContactAvatar } from '@/components/chat/contact-avatar';
+import { ConversationActionsMenu } from '@/components/chat/conversation-actions-menu';
 import { useAvatarUrls, useAutoFetchAvatars } from '@/hooks/use-contact-avatars';
 import { cn } from '@/lib/utils';
 import { formatPhoneNumberIntl } from 'react-phone-number-input';
@@ -426,11 +427,13 @@ function ConversationItem({
   const timeLabel = conv.last_message_at ? formatMessageTime(conv.last_message_at) : '';
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
       className={cn(
-        'flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50',
+        'group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 cursor-pointer',
         selected && 'border-l-2 border-primary bg-primary/10 hover:bg-primary/10',
         !selected && 'border-l-2 border-transparent',
       )}
@@ -460,7 +463,12 @@ function ConversationItem({
           )}
         </div>
       </div>
-    </button>
+
+      {/* Actions menu (visible on hover) */}
+      <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+        <ConversationActionsMenu conversation={conv} size="sm" />
+      </div>
+    </div>
   );
 }
 
@@ -846,6 +854,15 @@ function MessagesColumn({
               'Cerrar'
             )}
           </Button>
+        )}
+
+        {/* Actions menu (hide/delete) */}
+        {selectedConversation && (
+          <ConversationActionsMenu
+            conversation={selectedConversation}
+            onDeleted={onBack}
+            size="sm"
+          />
         )}
       </div>
 

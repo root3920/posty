@@ -139,6 +139,25 @@ async function handleMessageUpsert(
       continue;
     }
 
+    // Check cleared_at: skip messages older than the deletion timestamp
+    // This prevents deleted conversations from "reviving" with old messages
+    const { data: contactRow } = await db
+      .from('chat_contacts')
+      .select('cleared_at')
+      .eq('id', contactId)
+      .maybeSingle();
+
+    if (contactRow?.cleared_at && msgTimestamp) {
+      const clearedMs = new Date(contactRow.cleared_at).getTime();
+      const msgMs = (typeof msgTimestamp === 'number' ? msgTimestamp : parseInt(msgTimestamp)) * 1000;
+      if (msgMs < clearedMs) {
+        console.log('[Webhook] Skipping message older than cleared_at for contact', contactId);
+        continue;
+      }
+      // New message after deletion — clear the cleared_at so future messages flow normally
+      await db.from('chat_contacts').update({ cleared_at: null }).eq('id', contactId);
+    }
+
     const { data: conversationId, error: convErr } = await db.rpc('upsert_chat_conversation', {
       p_org_id: conn.organization_id,
       p_connection_id: conn.id,
