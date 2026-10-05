@@ -2,7 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
-import { parseDateOnly } from '@/lib/dates';
+import { format } from 'date-fns';
+import { parseDateOnly, nowInTimezone } from '@/lib/dates';
 import type { Tables, Enums } from '@/types/database';
 
 // -------------------------------------------------------
@@ -160,14 +161,16 @@ async function fetchBudgets(year: number): Promise<Tables<'budgets'>[]> {
   return data ?? [];
 }
 
-async function fetchFinanceKPIs(period: FinancePeriod): Promise<FinanceKPIs> {
+async function fetchFinanceKPIs(period: FinancePeriod, timezone: string): Promise<FinanceKPIs> {
   const supabase = createClient();
   const { from, to } = period;
 
-  const today = new Date().toISOString().split('T')[0];
-  const in30 = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
-  const in60 = new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0];
-  const in90 = new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0];
+  // Use hotel timezone for "today" to avoid UTC off-by-one at night
+  const todayDate = nowInTimezone(timezone);
+  const today = format(todayDate, 'yyyy-MM-dd');
+  const in30 = format(new Date(todayDate.getTime() + 30 * 86400000), 'yyyy-MM-dd');
+  const in60 = format(new Date(todayDate.getTime() + 60 * 86400000), 'yyyy-MM-dd');
+  const in90 = format(new Date(todayDate.getTime() + 90 * 86400000), 'yyyy-MM-dd');
 
   // Fire all queries in parallel
   const [
@@ -539,10 +542,10 @@ export function useBudgets(year: number) {
   });
 }
 
-export function useFinanceKPIs(period: FinancePeriod) {
+export function useFinanceKPIs(period: FinancePeriod, timezone: string = 'America/Bogota') {
   return useQuery({
     queryKey: ['finance_kpis', period.from, period.to],
-    queryFn: () => fetchFinanceKPIs(period),
+    queryFn: () => fetchFinanceKPIs(period, timezone),
     staleTime: 60 * 1000,
     enabled: !!period.from && !!period.to,
   });

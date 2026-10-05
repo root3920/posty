@@ -3,7 +3,7 @@
 import { useState, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, startOfYear } from 'date-fns';
-import { parseDateOnly } from '@/lib/dates';
+import { parseDateOnly, nowInTimezone } from '@/lib/dates';
 import { es } from 'date-fns/locale';
 import {
   TrendingUp,
@@ -21,6 +21,7 @@ import { KpiGrid } from '@/components/shared/kpi-grid';
 import { useFinanceKPIs, type FinancePeriod } from '@/hooks/use-finance';
 import { KpiCard, KpiCardSkeleton } from '@/components/shared/kpi-card';
 import { formatCurrency, formatPercent, formatDateRange } from '@/lib/format';
+import { useOrganization } from '@/hooks/use-organization';
 import {
   RevenueExpenseChart,
   RevenueByCenterChart,
@@ -40,8 +41,8 @@ interface PeriodPreset {
   to: string;
 }
 
-function buildPresets(): PeriodPreset[] {
-  const today = new Date();
+function buildPresets(timezone: string): PeriodPreset[] {
+  const today = nowInTimezone(timezone);
   const todayStr = format(today, 'yyyy-MM-dd');
 
   return [
@@ -101,8 +102,9 @@ function FinanzasContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { timezone } = useOrganization();
 
-  const presets = useMemo(() => buildPresets(), []);
+  const presets = useMemo(() => buildPresets(timezone), [timezone]);
 
   const activePeriodKey = (searchParams.get('periodo') ?? 'mes') as PeriodKey;
   const customFrom = searchParams.get('desde') ?? '';

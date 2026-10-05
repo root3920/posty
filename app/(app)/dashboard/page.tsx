@@ -293,22 +293,24 @@ function DashboardContent() {
   // -------------------------------------------------------
 
   const taskKpis = useMemo(() => {
-    const doneTypes: Array<Enums<'task_status_type'>> = ['done'];
+    const openTypes = new Set<string>(['open', 'in_progress']);
     let pending = 0;
     let completed = 0;
     let overdue = 0;
 
     for (const task of tasks) {
       if (!task.status) continue;
-      const isDone = doneTypes.includes(task.status.type as Enums<'task_status_type'>);
-      const isCancelled = task.status.type === 'cancelled';
-      if (isDone) {
+      const statusType = task.status.type as string;
+      if (statusType === 'done') {
         completed++;
-      } else if (!isCancelled) {
+      } else if (statusType !== 'cancelled' && openTypes.has(statusType)) {
+        // Pendientes hoy: status open/in_progress AND due_date = today
+        if (task.due_date === todayStr) {
+          pending++;
+        }
+        // Vencidas: due_date < today AND not done
         if (task.due_date && task.due_date < todayStr) {
           overdue++;
-        } else {
-          pending++;
         }
       }
     }
@@ -378,13 +380,29 @@ function DashboardContent() {
         {/* ============================
             Onboarding card (shown when no rooms exist)
         ============================ */}
-        {!hotelLoading && hotelKpis && hotelKpis.totalRooms === 0 && (
+        {(() => {
+          const hasRoomTypes = roomTypes.length > 0;
+          const hasRooms = (hotelKpis?.totalRooms ?? 0) > 0;
+          const hasTeam = (teamQuery.data?.length ?? 0) > 1;
+          const allDone = hasRoomTypes && hasRooms && hasTeam;
+          const dismissed = typeof window !== 'undefined' && localStorage.getItem('posty_setup_dismissed') === '1';
+          const show = !hotelLoading && hotelKpis && !allDone && !dismissed;
+
+          return show ? (
           <motion.section
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5 space-y-4"
+            className="relative rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5 space-y-4"
           >
+            <button
+              type="button"
+              onClick={() => { localStorage.setItem('posty_setup_dismissed', '1'); window.location.reload(); }}
+              className="absolute right-3 top-3 text-xs text-muted-foreground hover:text-foreground"
+              aria-label="Ocultar"
+            >
+              Ocultar
+            </button>
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Settings2 className="h-5 w-5" />
@@ -399,26 +417,27 @@ function DashboardContent() {
                 step={1}
                 title="Crea tipos de habitación"
                 description="Define Twin, Suite, etc. con tarifas"
-                done={roomTypes.length > 0}
+                done={hasRoomTypes}
                 href="/configuracion/catalogos"
               />
               <OnboardingStep
                 step={2}
                 title="Crea habitaciones"
                 description="Agrega habitaciones individuales o en lote"
-                done={false}
+                done={hasRooms}
                 href="/hotel/habitaciones"
               />
               <OnboardingStep
                 step={3}
                 title="Invita a tu equipo"
                 description="Agrega recepcionistas y personal"
-                done={(teamQuery.data?.length ?? 0) > 1}
+                done={hasTeam}
                 href="/configuracion/usuarios"
               />
             </div>
           </motion.section>
-        )}
+          ) : null;
+        })()}
 
         {/* ============================
             Section 1: Hotel hoy
