@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Bell, Moon, Sun, LogOut, User } from 'lucide-react';
+import { Moon, Sun, LogOut, User, HelpCircle } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import {
 import { useProfile } from '@/hooks/use-profile';
 import { signOutAction } from '@/app/actions/auth';
 import { GlobalSearch } from './global-search';
+import { NotificationBell } from './notification-bell';
 
 function getInitials(name: string): string {
   return name
@@ -64,9 +65,7 @@ export function Header() {
         </Button>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" aria-label="Notificaciones" disabled className="rounded-[10px]">
-          <Bell className="h-4 w-4" />
-        </Button>
+        <NotificationBell />
 
         {/* Profile */}
         <DropdownMenu>
@@ -92,6 +91,13 @@ export function Header() {
             <DropdownMenuItem disabled>
               <User className="mr-2 h-4 w-4" />
               Mi perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              // Trigger tour replay for the current page
+              window.dispatchEvent(new CustomEvent('posty:replay-tour'));
+            }}>
+              <HelpCircle className="mr-2 h-4 w-4" />
+              Ver recorrido
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>

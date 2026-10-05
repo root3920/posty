@@ -1,12 +1,13 @@
 'use client';
 
 import Image from 'next/image';
-import { Menu, Bell } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useProfile } from '@/hooks/use-profile';
 import { useMobileNavStore } from './mobile-nav-store';
 import { GlobalSearch } from './global-search';
+import { NotificationBell } from './notification-bell';
 
 function getInitials(name: string): string {
   return name
@@ -61,15 +62,7 @@ export function MobileHeader() {
       {/* Right actions */}
       <div className="flex items-center gap-1">
         <GlobalSearch />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="touch-target rounded-[10px]"
-          aria-label="Notificaciones"
-          disabled
-        >
-          <Bell className="h-5 w-5" />
-        </Button>
+        <NotificationBell />
 
         <Button variant="ghost" size="icon" className="touch-target rounded-full" aria-label="Perfil">
           <Avatar className="h-8 w-8">

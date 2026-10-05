@@ -305,3 +305,35 @@
     .kpi-card { grid-column: span 1; }
   }
 }
+
+/* =============================================================
+   driver.js tour customization
+   ============================================================= */
+.driver-popover.posty-tour-popover {
+  --popover-bg: var(--popover);
+  --popover-fg: var(--popover-foreground);
+  background-color: hsl(var(--popover-bg, 0 0% 100%));
+  color: hsl(var(--popover-fg, 0 0% 3.9%));
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  max-width: 320px;
+}
+.driver-popover.posty-tour-popover .driver-popover-title {
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+}
+.driver-popover.posty-tour-popover .driver-popover-description {
+  font-size: 12px;
+  line-height: 1.5;
+  color: hsl(var(--muted-foreground, 0 0% 45.1%));
+}
+.driver-popover.posty-tour-popover .driver-popover-footer button {
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 6px 14px;
+}
+.driver-popover.posty-tour-popover .driver-popover-progress-text {
+  font-size: 10px;
+  color: hsl(var(--muted-foreground, 0 0% 45.1%));
+}

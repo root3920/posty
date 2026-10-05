@@ -26,6 +26,7 @@ import { formatPercent } from '@/lib/format';
 
 import { useRooms, useHotelKPIs, useRoomStatuses, useRoomTypes } from '@/hooks/use-hotel';
 import { RoomMap } from '@/components/hotel/room-map';
+import { TourTrigger } from '@/components/onboarding/tour-trigger';
 import { RoomDetailDrawer } from '@/components/hotel/room-detail-drawer';
 import { OccupancyTable } from '@/components/hotel/occupancy-table';
 import { CheckInForm } from '@/components/hotel/check-in-form';
@@ -80,6 +81,7 @@ function HotelContent() {
 
   return (
     <div className="space-y-6">
+      <TourTrigger module="hotel" />
       {/* ============================= */}
       {/* Header */}
       {/* ============================= */}
@@ -88,10 +90,10 @@ function HotelContent() {
         description={format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => router.push('/hotel/reservas')}>
+            <Button data-tour="hotel-reservas" variant="outline" size="sm" onClick={() => router.push('/hotel/reservas')}>
               Reservas
             </Button>
-            <Button onClick={() => setCheckInOpen(true)} size="sm">
+            <Button data-tour="hotel-checkin" onClick={() => setCheckInOpen(true)} size="sm">
               <Plus className="mr-1.5 h-4 w-4" />
               Nuevo check-in
             </Button>
@@ -227,13 +229,15 @@ function HotelContent() {
               ))}
             </div>
           ) : (
-            <RoomMap
-              rooms={rooms}
-              filterStatus={filterStatus}
-              filterType={filterType}
-              filterFloor={filterFloor}
-              onRoomClick={handleRoomClick}
-            />
+            <div data-tour="hotel-rooms">
+              <RoomMap
+                rooms={rooms}
+                filterStatus={filterStatus}
+                filterType={filterType}
+                filterFloor={filterFloor}
+                onRoomClick={handleRoomClick}
+              />
+            </div>
           )
         ) : (
           <OccupancyTable rooms={rooms} isLoading={roomsLoading} />

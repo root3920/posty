@@ -33,6 +33,7 @@ import { useProfile } from '@/hooks/use-profile';
 
 import { TaskListView } from '@/components/tareas/task-list-view';
 import { TaskKanbanView } from '@/components/tareas/task-kanban-view';
+import { TourTrigger } from '@/components/onboarding/tour-trigger';
 import { TaskCalendarView } from '@/components/tareas/task-calendar-view';
 import { MyTasksView } from '@/components/tareas/my-tasks-view';
 import { TaskDetailSheet } from '@/components/tareas/task-detail-sheet';
@@ -175,6 +176,7 @@ function TareasContent() {
 
   return (
     <div className="space-y-4">
+      <TourTrigger module="tareas" />
       {/* ============================= */}
       {/* Page header */}
       {/* ============================= */}
@@ -182,7 +184,7 @@ function TareasContent() {
         title="Tareas"
         description={format(now, "EEEE, d 'de' MMMM yyyy", { locale: es })}
         actions={
-          <Button onClick={() => setCreateOpen(true)} size="sm">
+          <Button data-tour="tareas-crear" onClick={() => setCreateOpen(true)} size="sm">
             <Plus className="mr-1.5 h-4 w-4" />
             Crear tarea
           </Button>
@@ -337,12 +339,14 @@ function TareasContent() {
         )}
 
         {activeTab === 'tablero' && (
+          <div data-tour="tareas-kanban">
           <TaskKanbanView
             tasks={tasks}
             statuses={statuses}
             isLoading={isLoading}
             onTaskClick={handleTaskClick}
           />
+          </div>
         )}
 
         {activeTab === 'calendario' && (

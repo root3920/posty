@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { differenceInDays, isToday } from 'date-fns';
-import { LogIn } from 'lucide-react';
+import { LogIn, BedDouble } from 'lucide-react';
 import type { RoomWithDetails } from '@/hooks/use-hotel';
 import { ConfirmArrivalModal } from '@/components/hotel/confirm-arrival-modal';
 
@@ -159,6 +159,20 @@ export function RoomMap({ rooms, filterStatus, filterType, filterFloor, onRoomCl
   });
 
   if (filtered.length === 0) {
+    // Distinguish: no rooms at all vs. filters hid them
+    if (rooms.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+            <BedDouble className="h-7 w-7 text-primary" />
+          </div>
+          <p className="text-sm font-medium">Crea tus habitaciones para empezar a recibir huéspedes</p>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+            Define tipos de habitación y luego agrega las habitaciones de tu hotel.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
         No hay habitaciones que coincidan con los filtros.

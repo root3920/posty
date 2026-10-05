@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronDown, ChevronRight, GitBranch } from 'lucide-react';
+import { ChevronDown, ChevronRight, GitBranch, CheckSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -280,9 +280,12 @@ export function TaskListView({ tasks, statuses, isLoading, onTaskClick }: TaskLi
 
       {tasks.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
-          <p className="text-sm font-medium text-muted-foreground">No hay tareas</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Crea una tarea para empezar
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+            <CheckSquare className="h-7 w-7 text-primary" />
+          </div>
+          <p className="text-sm font-medium">No hay tareas</p>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+            Crea tareas para organizar el trabajo de tu equipo. También puedes configurar tareas automáticas que se repiten.
           </p>
         </div>
       )}
