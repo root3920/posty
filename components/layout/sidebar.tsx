@@ -317,7 +317,7 @@ export function Sidebar() {
         collapsed ? 'w-[68px]' : 'md:w-[72px] lg:w-[240px]',
       )}
       style={{
-        background: 'linear-gradient(180deg, var(--sidebar) 0%, #82091b 100%)',
+        background: 'linear-gradient(180deg, var(--sidebar) 0%, var(--sidebar-darker, #82091b) 100%)',
       }}
     >
       {/* Logo */}

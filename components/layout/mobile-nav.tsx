@@ -170,7 +170,7 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
         showCloseButton={false}
         className="w-[min(85vw,320px)] p-0 gap-0"
         style={{
-          background: 'linear-gradient(180deg, var(--sidebar) 0%, #82091b 100%)',
+          background: 'linear-gradient(180deg, var(--sidebar) 0%, var(--sidebar-darker, #82091b) 100%)',
         }}
       >
         {/* Logo */}

@@ -51,7 +51,7 @@ export function MobileHeader() {
         <Button variant="ghost" size="icon" className="touch-target rounded-full" aria-label="Perfil">
           <Avatar className="h-8 w-8">
             {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
-            <AvatarFallback className="bg-posty-100 text-posty-700 text-xs font-semibold">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
               {profile ? getInitials(profile.full_name) : 'US'}
             </AvatarFallback>
           </Avatar>

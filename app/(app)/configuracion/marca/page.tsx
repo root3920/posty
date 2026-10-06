@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Palette, Upload, Loader2 } from 'lucide-react';
+import { Palette, Loader2, RotateCcw } from 'lucide-react';
 import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -11,24 +11,33 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/hooks/use-profile';
+import { LogoUploadCard } from '@/components/settings/logo-upload-card';
+import {
+  generateBrandPalette,
+  bestForeground,
+  isLightOnDark,
+  validateHex,
+  POSTY_DEFAULT_COLOR,
+  contrastRatio,
+} from '@/lib/brand-colors';
 
 // -------------------------------------------------------
 // Preset palette
 // -------------------------------------------------------
 
 const PRESET_COLORS = [
-  { label: 'POSTY 500', value: '#9c0b21' },
-  { label: 'POSTY 600', value: '#82091b' },
-  { label: 'POSTY 700', value: '#690717' },
-  { label: 'POSTY 400', value: '#be1d35' },
-  { label: 'POSTY 200', value: '#f8b4bc' },
-  { label: 'Índigo',    value: '#4f46e5' },
-  { label: 'Azul',     value: '#2563eb' },
-  { label: 'Cian',     value: '#0891b2' },
-  { label: 'Verde',    value: '#16a34a' },
-  { label: 'Esmeralda',value: '#059669' },
-  { label: 'Ámbar',    value: '#d97706' },
-  { label: 'Gris',     value: '#4b5563' },
+  { label: 'POSTY (rojo)',  value: '#9c0b21' },
+  { label: 'Índigo',       value: '#4f46e5' },
+  { label: 'Azul',         value: '#2563eb' },
+  { label: 'Cian',         value: '#0891b2' },
+  { label: 'Verde',        value: '#16a34a' },
+  { label: 'Esmeralda',    value: '#059669' },
+  { label: 'Ámbar',        value: '#d97706' },
+  { label: 'Rosa',         value: '#db2777' },
+  { label: 'Violeta',      value: '#7c3aed' },
+  { label: 'Gris',         value: '#4b5563' },
+  { label: 'Negro',        value: '#1f2937' },
+  { label: 'Marrón',       value: '#92400e' },
 ];
 
 // -------------------------------------------------------
@@ -39,7 +48,7 @@ async function fetchOrgBrand(orgId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, brand_color, logo_url')
+    .select('name, brand_color, logo_url')
     .eq('id', orgId)
     .single();
   if (error) throw error;
@@ -61,13 +70,36 @@ export default function MarcaPage() {
     enabled: !!orgId,
   });
 
-  const [color, setColor] = useState('#4f46e5');
+  const initialColor = org?.brand_color ?? POSTY_DEFAULT_COLOR;
+  const [color, setColor] = useState(initialColor);
+  const [hexInput, setHexInput] = useState(initialColor);
 
-  useEffect(() => {
-    if (org?.brand_color) {
+  // Sync when org data loads (only on first load)
+  const [synced, setSynced] = useState(false);
+  if (org?.brand_color && !synced) {
+    setSynced(true);
+    if (color === POSTY_DEFAULT_COLOR && org.brand_color !== POSTY_DEFAULT_COLOR) {
       setColor(org.brand_color);
+      setHexInput(org.brand_color);
     }
-  }, [org]);
+  }
+
+  const palette = useMemo(() => generateBrandPalette(color), [color]);
+  const fg = bestForeground(color);
+  const isDark = isLightOnDark(color);
+  const whiteContrast = contrastRatio(color, '#ffffff');
+  const isLowContrast = whiteContrast < 3;
+
+  function handleColorChange(hex: string) {
+    setColor(hex);
+    setHexInput(hex);
+  }
+
+  function handleHexInput(value: string) {
+    setHexInput(value);
+    const valid = validateHex(value);
+    if (valid) setColor(valid);
+  }
 
   const mutation = useMutation({
     mutationFn: async (brandColor: string) => {
@@ -97,7 +129,7 @@ export default function MarcaPage() {
           <Palette className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Marca y apariencia</h1>
+          <h1 className="font-heading text-2xl font-bold tracking-tight">Marca y apariencia</h1>
           <p className="text-sm text-muted-foreground">
             Personaliza el color y logo de tu hotel
           </p>
@@ -105,35 +137,7 @@ export default function MarcaPage() {
       </div>
 
       {/* Logo */}
-      <div className="rounded-xl border bg-card p-5 space-y-3">
-        <h2 className="text-sm font-semibold">Logo</h2>
-        <div className="flex items-center gap-4">
-          <div
-            className="flex h-20 w-20 items-center justify-center rounded-xl border-2 border-dashed"
-            style={{ borderColor: color }}
-          >
-            {org?.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={org.logo_url}
-                alt="Logo"
-                className="h-full w-full rounded-xl object-contain"
-              />
-            ) : (
-              <Upload className="h-8 w-8 text-muted-foreground" />
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Button type="button" variant="outline" size="sm" disabled>
-              <Upload className="mr-1.5 h-4 w-4" />
-              Subir logo
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Próximamente — requiere Supabase Storage
-            </p>
-          </div>
-        </div>
-      </div>
+      <LogoUploadCard currentLogoUrl={profile?.organization?.logo_url ?? null} />
 
       {/* Brand color */}
       <div className="rounded-xl border bg-card p-5 space-y-4">
@@ -150,7 +154,7 @@ export default function MarcaPage() {
                   key={preset.value}
                   type="button"
                   title={preset.label}
-                  onClick={() => setColor(preset.value)}
+                  onClick={() => handleColorChange(preset.value)}
                   className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${
                     color === preset.value
                       ? 'border-foreground scale-110'
@@ -163,19 +167,19 @@ export default function MarcaPage() {
 
             {/* Custom input */}
             <div className="flex items-center gap-3">
-              <Label htmlFor="brand-color-input">Color personalizado</Label>
+              <Label htmlFor="brand-color-input">Personalizado</Label>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
                   value={color}
-                  onChange={(e) => setColor(e.target.value)}
+                  onChange={(e) => handleColorChange(e.target.value)}
                   className="h-9 w-9 cursor-pointer rounded border bg-transparent p-0.5"
                   aria-label="Seleccionar color"
                 />
                 <Input
                   id="brand-color-input"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
+                  value={hexInput}
+                  onChange={(e) => handleHexInput(e.target.value)}
                   placeholder="#4f46e5"
                   className="w-32 font-mono text-sm"
                   maxLength={7}
@@ -183,40 +187,115 @@ export default function MarcaPage() {
               </div>
             </div>
 
-            {/* Save button */}
-            <Button
-              onClick={() => mutation.mutate(color)}
-              disabled={mutation.isPending}
-              className="mt-2"
-              style={{ backgroundColor: color, borderColor: color }}
-            >
-              {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Guardar color
-            </Button>
+            {/* Contrast warning */}
+            {isLowContrast && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Este color es muy claro: usaremos texto oscuro encima para que se lea bien.
+              </p>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => mutation.mutate(color)}
+                disabled={mutation.isPending}
+                style={{ backgroundColor: color, borderColor: color, color: fg }}
+              >
+                {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Guardar color
+              </Button>
+              {color !== POSTY_DEFAULT_COLOR && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    handleColorChange(POSTY_DEFAULT_COLOR);
+                    mutation.mutate(POSTY_DEFAULT_COLOR);
+                  }}
+                  disabled={mutation.isPending}
+                >
+                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                  Restablecer POSTY
+                </Button>
+              )}
+            </div>
           </>
         )}
       </div>
 
-      {/* Preview */}
+      {/* Live preview */}
       <div className="rounded-xl border bg-card p-5 space-y-3">
         <h2 className="text-sm font-semibold">Vista previa</h2>
-        <div
-          className="rounded-xl p-5 text-white space-y-2"
-          style={{ backgroundColor: color }}
-        >
-          <p className="font-bold text-lg">{org?.name ?? 'Mi Hotel'}</p>
-          <p className="text-sm opacity-80">Sistema de gestión hotelera POSTY</p>
-          <div className="flex gap-2 pt-1">
-            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium">
-              Color primario
-            </span>
-            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-mono">
-              {color}
-            </span>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Mini sidebar */}
+          <div
+            className="rounded-xl p-4 space-y-2"
+            style={{ background: `linear-gradient(180deg, ${color} 0%, ${palette['--sidebar-darker']} 100%)` }}
+          >
+            <p className="text-xs font-bold" style={{ color: fg }}>MENÚ LATERAL</p>
+            <div className="space-y-1">
+              {['Dashboard', 'Hotel', 'Tareas'].map((item, i) => (
+                <div
+                  key={item}
+                  className="rounded-md px-2.5 py-1.5 text-xs font-medium"
+                  style={i === 1 ? {
+                    backgroundColor: isDark ? '#ffffff' : '#0f0c0d',
+                    color: color,
+                  } : {
+                    color: isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.65)',
+                  }}
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* UI elements */}
+          <div className="space-y-3">
+            {/* Button */}
+            <div>
+              <p className="text-[10px] font-medium text-muted-foreground mb-1">BOTÓN</p>
+              <button
+                className="rounded-[10px] px-4 py-2 text-sm font-medium"
+                style={{ backgroundColor: color, color: fg }}
+              >
+                Guardar cambios
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div>
+              <p className="text-[10px] font-medium text-muted-foreground mb-1">PESTAÑA ACTIVA</p>
+              <div className="flex gap-1">
+                <span
+                  className="rounded-full px-3 py-1 text-xs font-medium"
+                  style={{ backgroundColor: color, color: fg }}
+                >
+                  Activa
+                </span>
+                <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                  Inactiva
+                </span>
+              </div>
+            </div>
+
+            {/* Chat bubble */}
+            <div>
+              <p className="text-[10px] font-medium text-muted-foreground mb-1">BURBUJA DE CHAT</p>
+              <div
+                className="inline-block rounded-2xl rounded-br-sm px-3 py-1.5 text-xs"
+                style={{ backgroundColor: color, color: fg }}
+              >
+                Hola, bienvenido al hotel
+              </div>
+            </div>
           </div>
         </div>
+
         <p className="text-xs text-muted-foreground">
-          Este color se aplica a elementos de acento en toda la aplicación.
+          El color se aplica al menú lateral, botones, pestañas activas, burbujas de chat y más.
+          Los colores de error, éxito y advertencia no cambian.
         </p>
       </div>
     </div>

@@ -111,8 +111,8 @@ export function KpiCard({
     <div className="rounded-[10px] border bg-card p-4 shadow-md xl:p-5" style={{ containerType: 'inline-size' }}>
       {/* Row 1: icon + help button */}
       <div className="flex items-center justify-between">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-posty-50 xl:h-10 xl:w-10 dark:bg-[rgba(156,11,33,0.15)]">
-          <span className="text-posty-600 dark:text-posty-400 [&_svg]:h-4 [&_svg]:w-4 xl:[&_svg]:h-5 xl:[&_svg]:w-5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-primary/10 xl:h-10 xl:w-10">
+          <span className="text-primary [&_svg]:h-4 [&_svg]:w-4 xl:[&_svg]:h-5 xl:[&_svg]:w-5">
             {icon}
           </span>
         </div>

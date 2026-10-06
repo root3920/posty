@@ -7,6 +7,7 @@ import { MobileNavWrapper } from '@/components/layout/mobile-nav-wrapper';
 import { SetupProgressWrapper } from '@/components/onboarding/setup-progress-wrapper';
 import { WelcomeWizardWrapper } from '@/components/onboarding/welcome-wizard-wrapper';
 import { GeoProvider } from '@/components/providers/geo-provider';
+import { BrandProvider } from '@/components/providers/brand-provider';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
@@ -14,6 +15,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <GeoProvider initialCountry={initialCountry}>
+      <BrandProvider />
       <div className="h-screen-safe flex">
         {/* Sidebar: hidden on mobile, rail on tablet (md-lg), full on desktop (xl+) */}
         <Sidebar />

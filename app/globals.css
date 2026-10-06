@@ -136,8 +136,9 @@
   --chart-4: #1F8A80;
   --chart-5: #7C6CF0;
 
-  /* Sidebar (posty-700 vino) */
+  /* Sidebar (posty-700 vino — overridden by BrandProvider) */
   --sidebar: #9C0B21;
+  --sidebar-darker: #82091B;
   --sidebar-foreground: rgba(255,255,255,0.80);
   --sidebar-primary: #FFFFFF;
   --sidebar-primary-foreground: #9C0B21;
@@ -145,6 +146,7 @@
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: rgba(255,255,255,0.15);
   --sidebar-ring: #E05C72;
+  --sidebar-hover: rgba(255,255,255,0.10);
 }
 
 /* =============================================================
@@ -177,8 +179,9 @@
   --chart-4: #7C6CF0;
   --chart-5: #B06AE8;
 
-  /* Sidebar */
+  /* Sidebar (overridden by BrandProvider) */
   --sidebar: #9C0B21;
+  --sidebar-darker: #82091B;
   --sidebar-foreground: rgba(255,255,255,0.80);
   --sidebar-primary: #0F0D0E;
   --sidebar-primary-foreground: #FFFFFF;
@@ -186,6 +189,7 @@
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: rgba(255,255,255,0.15);
   --sidebar-ring: #E05C72;
+  --sidebar-hover: rgba(255,255,255,0.10);
 }
 
 /* =============================================================
