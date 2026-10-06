@@ -8,6 +8,10 @@
 -- with the corrected column name.
 -- =============================================================
 
+-- Clean data BEFORE adding constraints (Phase 3 original didn't run)
+update public.guests set birth_date = null where birth_date > current_date;
+update public.rooms set number = '1' where number = '0';
+
 -- F3-6a: Guests birth_date must not be in the future
 alter table public.guests
   drop constraint if exists chk_guests_birth_date;
