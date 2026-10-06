@@ -186,17 +186,31 @@ export function useChatMessages(conversationId: string | null) {
     queryKey: ['chat_messages', conversationId],
     queryFn: async () => {
       const supabase = createClient();
-      // Fetch last 100 messages, ordered by WhatsApp timestamp (actual send time)
-      // wa_timestamp is the real message time; created_at is the DB insertion time
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const db = supabase as any;
+
+      // Try ordering by wa_timestamp first (correct chronological order)
+      let { data, error } = await db
         .from('chat_messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('wa_timestamp', { ascending: true, nullsFirst: true })
         .order('created_at', { ascending: true })
         .limit(200);
-      if (error) throw error;
+
+      // If wa_timestamp column doesn't exist yet (migration not applied),
+      // fall back to created_at ordering
+      if (error) {
+        console.warn('[chat] wa_timestamp order failed, using created_at:', error.message);
+        ({ data, error } = await db
+          .from('chat_messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true })
+          .limit(200));
+        if (error) throw error;
+      }
+
       return (data ?? []) as ChatMessage[];
     },
     enabled: !!conversationId,
