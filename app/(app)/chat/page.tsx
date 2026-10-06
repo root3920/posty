@@ -726,10 +726,15 @@ function MessagesColumn({
     | { kind: 'message'; data: ChatMessage }
     | { kind: 'note'; data: ChatNote };
 
+  // Sort by WhatsApp timestamp (real send time) with created_at as fallback
   const timeline: TimelineItem[] = [
     ...messages.map((m) => ({ kind: 'message' as const, data: m })),
     ...notes.map((n) => ({ kind: 'note' as const, data: n })),
-  ].sort((a, b) => new Date(a.data.created_at).getTime() - new Date(b.data.created_at).getTime());
+  ].sort((a, b) => {
+    const aTime = (a.kind === 'message' && (a.data as ChatMessage).wa_timestamp) || a.data.created_at;
+    const bTime = (b.kind === 'message' && (b.data as ChatMessage).wa_timestamp) || b.data.created_at;
+    return new Date(aTime).getTime() - new Date(bTime).getTime();
+  });
 
   // Auto-scroll on new messages
   useEffect(() => {

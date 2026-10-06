@@ -173,6 +173,13 @@ async function handleMessageUpsert(
       continue;
     }
 
+    // Convert WhatsApp timestamp to ISO string for storage
+    let waTimestampIso: string | null = null;
+    if (msgTimestamp) {
+      const tsMs = (typeof msgTimestamp === 'number' ? msgTimestamp : parseInt(String(msgTimestamp), 10)) * 1000;
+      if (tsMs > 0) waTimestampIso = new Date(tsMs).toISOString();
+    }
+
     // Insert message — idempotent via unique constraint on (organization_id, external_id)
     const { error: msgError } = await db.from('chat_messages').insert({
       organization_id: conn.organization_id,
@@ -183,6 +190,7 @@ async function handleMessageUpsert(
       body: bodyText,
       status: fromMe ? 'sent' : 'delivered',
       sent_from: fromMe ? 'phone' : null,
+      wa_timestamp: waTimestampIso,
     });
     console.log('[Webhook] Insert message result:', msgError ? msgError.message : 'OK', 'id:', messageId?.slice(0, 10));
 
@@ -201,8 +209,9 @@ async function handleMessageUpsert(
     const preview = bodyText ? bodyText.slice(0, 100) : (previewMap[msgType] ?? 'Mensaje');
 
     // Update conversation: preview for ALL messages, unread only for incoming
+    // Use WhatsApp timestamp if available (more accurate than server time)
     const convUpdate: Record<string, unknown> = {
-      last_message_at: new Date().toISOString(),
+      last_message_at: waTimestampIso ?? new Date().toISOString(),
       last_message_preview: preview,
     };
 

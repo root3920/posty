@@ -54,6 +54,7 @@ export interface ChatMessage {
   error: string | null;
   sent_by: string | null;
   sent_from: string | null;
+  wa_timestamp: string | null;
   created_at: string;
 }
 
@@ -185,12 +186,16 @@ export function useChatMessages(conversationId: string | null) {
     queryKey: ['chat_messages', conversationId],
     queryFn: async () => {
       const supabase = createClient();
+      // Fetch last 100 messages, ordered by WhatsApp timestamp (actual send time)
+      // wa_timestamp is the real message time; created_at is the DB insertion time
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from('chat_messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .order('wa_timestamp', { ascending: true, nullsFirst: true })
+        .order('created_at', { ascending: true })
+        .limit(200);
       if (error) throw error;
       return (data ?? []) as ChatMessage[];
     },
