@@ -8,9 +8,15 @@
 -- with the corrected column name.
 -- =============================================================
 
--- Clean data BEFORE adding constraints (Phase 3 original didn't run)
+-- Clean ALL data BEFORE adding constraints (Phase 3 original didn't run)
 update public.guests set birth_date = null where birth_date > current_date;
 update public.rooms set number = '1' where number = '0';
+update public.room_types set max_adults = greatest(max_adults, 1) where max_adults < 1;
+update public.room_types set max_adults = 50 where max_adults > 50;
+update public.room_types set max_children = greatest(max_children, 0) where max_children < 0;
+update public.room_types set max_children = 50 where max_children > 50;
+update public.payments set amount = greatest(amount, 0.01) where amount <= 0;
+update public.folio_charges set total = greatest(total, 0) where total < 0;
 
 -- F3-6a: Guests birth_date must not be in the future
 alter table public.guests
