@@ -12,6 +12,8 @@ alter table public.guests
 
 -- F3-6c: Room number must not be '0'
 -- NOTE: column is "number", not "room_number" (room_number is a view alias)
+update public.rooms set number = '1' where number = '0';
+
 alter table public.rooms
   drop constraint if exists chk_rooms_number_not_zero,
   add constraint chk_rooms_number_not_zero check (number != '0');
