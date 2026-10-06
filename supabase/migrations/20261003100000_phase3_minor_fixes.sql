@@ -3,6 +3,9 @@
 -- =============================================================
 
 -- F3-6a: Guests birth_date must not be in the future
+-- Fix existing bad data first
+update public.guests set birth_date = null where birth_date > current_date;
+
 alter table public.guests
   drop constraint if exists chk_guests_birth_date,
   add constraint chk_guests_birth_date check (birth_date is null or birth_date <= current_date);
