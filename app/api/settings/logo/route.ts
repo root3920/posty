@@ -3,6 +3,8 @@ import { randomBytes } from 'crypto';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
+export const maxDuration = 30;
+
 const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
 const MAX_DIMENSION = 512;
 const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -38,38 +40,45 @@ export async function POST(request: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Process: resize to max 512px, fix EXIF, output as WebP (preserving transparency)
-    const metadata = await sharp(buffer).metadata();
-    const hasAlpha = metadata.hasAlpha;
-
-    let pipeline = sharp(buffer).rotate(); // EXIF auto-rotation
-
-    // Resize if larger than MAX_DIMENSION
-    if ((metadata.width ?? 0) > MAX_DIMENSION || (metadata.height ?? 0) > MAX_DIMENSION) {
-      pipeline = pipeline.resize(MAX_DIMENSION, MAX_DIMENSION, {
-        fit: 'inside',
-        withoutEnlargement: true,
-      });
+    // Process: resize to max 512px, fix EXIF, always output as WebP
+    // WebP supports transparency and is smaller than PNG
+    let processed: Buffer;
+    try {
+      processed = await sharp(buffer)
+        .rotate() // EXIF auto-rotation
+        .resize(MAX_DIMENSION, MAX_DIMENSION, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 85 })
+        .toBuffer();
+    } catch (sharpErr) {
+      console.error('[logo] sharp processing error:', sharpErr);
+      return Response.json({ error: 'No se pudo procesar la imagen. Verifica que sea un archivo válido.' }, { status: 400 });
     }
 
-    // Output format: WebP if no alpha or has alpha; PNG if transparency needed and WebP not preferred
-    const outputFormat = hasAlpha ? 'png' : 'webp';
-    const contentType = hasAlpha ? 'image/png' : 'image/webp';
-    const ext = hasAlpha ? 'png' : 'webp';
-
-    if (outputFormat === 'png') {
-      pipeline = pipeline.png({ quality: 90 });
-    } else {
-      pipeline = pipeline.webp({ quality: 85 });
-    }
-
-    const processed = await pipeline.toBuffer();
+    const contentType = 'image/webp';
+    const ext = 'webp';
 
     // Generate unique filename (hash prevents caching issues)
     const hash = randomBytes(8).toString('hex');
     const logoPath = `${orgId}/logo-${hash}.${ext}`;
 
     const admin = createAdminClient();
+
+    // Ensure bucket exists (may not have been created by migration)
+    const { data: buckets } = await admin.storage.listBuckets();
+    if (!buckets?.find((b) => b.id === 'hotel-logos')) {
+      const { error: createBucketError } = await admin.storage.createBucket('hotel-logos', {
+        public: true,
+        fileSizeLimit: MAX_SIZE,
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+      });
+      if (createBucketError && !createBucketError.message?.includes('already exists')) {
+        console.error('[logo] Bucket creation error:', createBucketError);
+        return Response.json({ error: 'No se pudo crear el almacenamiento. Contacta a soporte.' }, { status: 500 });
+      }
+    }
 
     // Delete old logo if exists
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,8 +98,18 @@ export async function POST(request: Request) {
       .upload(logoPath, processed, { contentType, upsert: true });
 
     if (uploadError) {
-      console.error('[logo] Upload error:', uploadError);
-      return Response.json({ error: 'Error al subir el logo' }, { status: 500 });
+      console.error('[logo] Upload error:', JSON.stringify(uploadError));
+      const detail = uploadError.message ?? '';
+      if (detail.includes('not found') || detail.includes('Bucket')) {
+        return Response.json({ error: 'El almacenamiento no está configurado. Contacta a soporte.' }, { status: 500 });
+      }
+      if (detail.includes('Payload too large') || detail.includes('too large')) {
+        return Response.json({ error: 'El archivo es muy grande para el servidor.' }, { status: 413 });
+      }
+      if (detail.includes('policy') || detail.includes('denied') || detail.includes('RLS')) {
+        return Response.json({ error: 'No tienes permiso para subir archivos.' }, { status: 403 });
+      }
+      return Response.json({ error: `No se pudo guardar el logo: ${detail || 'intenta de nuevo'}` }, { status: 500 });
     }
 
     // Get public URL
@@ -99,14 +118,24 @@ export async function POST(request: Request) {
 
     // Update organization
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: updateError } = await (admin as any)
+    let { error: updateError } = await (admin as any)
       .from('organizations')
       .update({ logo_url: logoUrl, logo_path: logoPath })
       .eq('id', orgId);
 
+    // If logo_path column doesn't exist yet, fall back to logo_url only
+    if (updateError?.message?.includes('logo_path')) {
+      console.warn('[logo] logo_path column not found, using logo_url only');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ({ error: updateError } = await (admin as any)
+        .from('organizations')
+        .update({ logo_url: logoUrl })
+        .eq('id', orgId));
+    }
+
     if (updateError) {
-      console.error('[logo] DB update error:', updateError);
-      return Response.json({ error: 'Error al guardar el logo' }, { status: 500 });
+      console.error('[logo] DB update error:', JSON.stringify(updateError));
+      return Response.json({ error: `No se pudo guardar: ${updateError.message ?? 'intenta de nuevo'}` }, { status: 500 });
     }
 
     return Response.json({ logoUrl, logoPath });
