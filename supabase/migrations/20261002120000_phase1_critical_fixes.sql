@@ -374,9 +374,9 @@ alter table public.event_bookings
   add constraint no_double_booking_venue
   exclude using gist (
     venue_id with =,
-    tstzrange(
-      (event_date + start_time)::timestamptz,
-      (event_date + end_time)::timestamptz,
+    tsrange(
+      (event_date + start_time),
+      (event_date + end_time),
       '[)'
     ) with &&
   )
