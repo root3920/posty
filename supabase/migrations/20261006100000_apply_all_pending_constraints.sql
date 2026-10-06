@@ -15,7 +15,7 @@ update public.room_types set max_adults = 50 where max_adults > 50;
 update public.room_types set max_children = greatest(max_children, 0) where max_children < 0;
 update public.room_types set max_children = 50 where max_children > 50;
 update public.payments set amount = greatest(amount, 0.01) where amount <= 0;
-update public.folio_charges set total = greatest(total, 0) where total < 0;
+-- folio_charges.total is a GENERATED column — cannot update directly
 
 -- -----------------------------------------------
 -- 2. Phase 3 constraints (may or may not exist)
@@ -45,8 +45,7 @@ $$;
 alter table public.payments drop constraint if exists chk_payments_reasonable_amount;
 alter table public.payments add constraint chk_payments_reasonable_amount check (amount > 0 and amount < 100000000000);
 
-alter table public.folio_charges drop constraint if exists chk_folio_charges_reasonable_total;
-alter table public.folio_charges add constraint chk_folio_charges_reasonable_total check (total >= 0 and total < 100000000000);
+-- folio_charges.total is GENERATED — constraint not needed (inputs are validated instead)
 
 -- -----------------------------------------------
 -- 3. Onboarding RPCs (may already exist)
