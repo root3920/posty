@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,6 +7,7 @@ import { useProfile } from '@/hooks/use-profile';
 import { useMobileNavStore } from './mobile-nav-store';
 import { GlobalSearch } from './global-search';
 import { NotificationBell } from './notification-bell';
+import { HotelLogo } from './hotel-logo';
 
 function getInitials(name: string): string {
   return name
@@ -40,23 +40,7 @@ export function MobileHeader() {
 
       {/* Logo centrado */}
       <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-        <Image
-          src="/brand/posty-cat-black.png"
-          alt="POSTY"
-          width={24}
-          height={24}
-          className="shrink-0 dark:hidden"
-          priority
-        />
-        <Image
-          src="/brand/posty-cat-white.png"
-          alt="POSTY"
-          width={24}
-          height={24}
-          className="hidden shrink-0 dark:block"
-          priority
-        />
-        <span className="font-heading text-[15px] font-bold tracking-tight">POSTY</span>
+        <HotelLogo catSize={24} withText onDark={false} />
       </div>
 
       {/* Right actions */}

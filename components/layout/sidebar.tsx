@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -40,6 +39,7 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { useContractKpis } from '@/hooks/use-contracts';
 import { useChatUnreadCount } from '@/hooks/use-chat';
 import { useSidebarStore } from './sidebar-store';
+import { HotelLogo } from './hotel-logo';
 
 interface NavChild {
   href: string;
@@ -322,23 +322,17 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className={cn(
-        'flex h-16 items-center gap-2.5 border-b border-white/15 px-4',
+        'flex h-16 items-center border-b border-white/15 px-4',
         (collapsed || true) && 'md:justify-center md:px-2 lg:justify-start lg:px-4',
       )}>
-        <Image
-          src="/brand/posty-cat-white.png"
-          alt="POSTY"
-          width={30}
-          height={30}
-          className="shrink-0"
-          priority
-        />
-        <span className={cn(
-          'font-heading text-[17px] font-bold tracking-tight text-white',
-          collapsed ? 'hidden' : 'hidden lg:inline',
-        )}>
-          POSTY
-        </span>
+        {/* On tablet rail (md<lg): no text. On desktop: text unless collapsed */}
+        <div className={cn(collapsed ? '' : 'hidden lg:flex')}>
+          <HotelLogo catSize={30} withText onDark collapsed={collapsed} />
+        </div>
+        {/* Tablet rail: logo only */}
+        <div className={cn(collapsed ? 'hidden' : 'flex lg:hidden')}>
+          <HotelLogo catSize={28} withText={false} onDark collapsed />
+        </div>
       </div>
 
       {/* Navigation */}

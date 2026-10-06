@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2, Building2, Upload } from 'lucide-react';
+import { Loader2, Building2 } from 'lucide-react';
 import { getSupabaseErrorMessage, logSupabaseError } from '@/lib/supabase/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/hooks/use-profile';
+import { LogoUploadCard } from '@/components/settings/logo-upload-card';
 
 // -------------------------------------------------------
 // Schema
@@ -205,24 +206,8 @@ export default function EmpresaPage() {
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
-          {/* Logo placeholder */}
-          <div className="rounded-xl border bg-card p-5 space-y-3">
-            <h2 className="text-sm font-semibold">Logo del hotel</h2>
-            <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center rounded-xl border-2 border-dashed bg-muted text-muted-foreground">
-                <Building2 className="h-8 w-8" />
-              </div>
-              <div className="space-y-1.5">
-                <Button type="button" variant="outline" size="sm" disabled>
-                  <Upload className="mr-1.5 h-4 w-4" />
-                  Subir logo
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Próximamente — almacenamiento en Supabase Storage
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Logo upload */}
+          <LogoUploadCard currentLogoUrl={profile?.organization?.logo_url ?? null} />
 
           {/* Identity */}
           <div className="rounded-xl border bg-card p-5 space-y-4">

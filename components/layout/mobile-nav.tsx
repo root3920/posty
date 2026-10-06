@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -41,6 +40,7 @@ import {
   SheetContent,
   SheetClose,
 } from '@/components/ui/sheet';
+import { HotelLogo } from './hotel-logo';
 
 interface NavChild {
   href: string;
@@ -175,17 +175,7 @@ export function MobileNav({ open, onOpenChange }: MobileNavProps) {
       >
         {/* Logo */}
         <div className="flex h-14 items-center gap-2.5 border-b border-white/15 px-4">
-          <Image
-            src="/brand/posty-cat-white.png"
-            alt="POSTY"
-            width={28}
-            height={28}
-            className="shrink-0"
-            priority
-          />
-          <span className="font-heading text-[17px] font-bold tracking-tight text-white">
-            POSTY
-          </span>
+          <HotelLogo catSize={28} withText onDark />
           <SheetClose className="ml-auto flex h-8 w-8 items-center justify-center rounded-[10px] text-white/60 transition-colors hover:bg-white/10 hover:text-white" aria-label="Cerrar menú">
             <ChevronRight className="h-4 w-4" />
           </SheetClose>
