@@ -12,24 +12,62 @@ import { STAGE_ORDER } from '@/lib/onboarding/types';
 // Data fetching
 // -------------------------------------------------------
 
+/**
+ * Fetches onboarding completion counts.
+ * Tries the dedicated RPC first; falls back to individual queries
+ * if the RPC doesn't exist yet (migration not applied).
+ */
 function useOnboardingCounts() {
   return useQuery({
     queryKey: ['onboarding_counts'],
     queryFn: async (): Promise<OnboardingCounts> => {
       const supabase = createClient();
+
+      // Try the RPC first (fast, single query)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any).rpc('get_onboarding_counts');
-      if (error) {
-        console.error('[onboarding] counts error:', error);
-        return {
-          room_types: 0, rooms: 0, stays: 0, team_members: 0,
-          payment_methods: 0, event_venues: 0, recurring_tasks: 0,
-          whatsapp_connected: 0, instagram_connected: 0,
-          has_tax_id: false, has_rnt: false, has_logo: false,
-          work_schedules: 0, cleaning_types: 0,
-        };
+      if (!error && data) {
+        return data as OnboardingCounts;
       }
-      return data as OnboardingCounts;
+
+      // Fallback: query tables directly (works even without the migration)
+      console.warn('[onboarding] RPC failed, using fallback queries:', error?.message);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+
+      const [rtRes, rmRes, stRes, tmRes, pmRes, evRes, rcRes, waRes, igRes, orgRes, wsRes, ctRes] = await Promise.all([
+        db.from('room_types').select('id', { count: 'exact', head: true }).is('archived_at', null),
+        db.from('rooms').select('id', { count: 'exact', head: true }).eq('is_active', true),
+        db.from('stays').select('id', { count: 'exact', head: true }),
+        db.from('profiles').select('id', { count: 'exact', head: true }).eq('is_active', true),
+        db.from('payment_methods').select('id', { count: 'exact', head: true }).is('archived_at', null),
+        db.from('event_venues').select('id', { count: 'exact', head: true }).eq('is_active', true),
+        db.from('recurring_tasks').select('id', { count: 'exact', head: true }).eq('is_active', true),
+        db.from('whatsapp_connections').select('id', { count: 'exact', head: true }).eq('status', 'connected'),
+        db.from('instagram_connections').select('id', { count: 'exact', head: true }).eq('status', 'connected'),
+        db.from('organizations').select('tax_id, rnt_number, logo_url').limit(1).single(),
+        db.from('work_schedules').select('id', { count: 'exact', head: true }),
+        db.from('cleaning_types').select('id', { count: 'exact', head: true }).is('archived_at', null),
+      ]);
+
+      const org = orgRes.data;
+
+      return {
+        room_types: rtRes.count ?? 0,
+        rooms: rmRes.count ?? 0,
+        stays: stRes.count ?? 0,
+        team_members: tmRes.count ?? 0,
+        payment_methods: pmRes.count ?? 0,
+        event_venues: evRes.count ?? 0,
+        recurring_tasks: rcRes.count ?? 0,
+        whatsapp_connected: waRes.count ?? 0,
+        instagram_connected: igRes.count ?? 0,
+        has_tax_id: !!(org?.tax_id && org.tax_id.trim()),
+        has_rnt: !!(org?.rnt_number && org.rnt_number.trim()),
+        has_logo: !!(org?.logo_url && org.logo_url.trim()),
+        work_schedules: wsRes.count ?? 0,
+        cleaning_types: ctRes.count ?? 0,
+      };
     },
     staleTime: 30_000,
   });
@@ -43,7 +81,8 @@ function useOnboardingState() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any).rpc('get_onboarding_state');
       if (error) {
-        console.error('[onboarding] state error:', error);
+        // RPC may not exist if migration not applied yet — not critical
+        console.warn('[onboarding] state RPC not available:', error.message);
         return {};
       }
       return (data as Record<string, string>) ?? {};
