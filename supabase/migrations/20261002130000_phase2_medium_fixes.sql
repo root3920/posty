@@ -12,6 +12,27 @@
 -- on all tables that have user-facing name columns.
 -- -----------------------------------------------
 
+-- First: fix existing data that violates the new constraints
+update public.room_types set name = 'Sin nombre' where btrim(name) = '' or name is null;
+update public.room_types set name = left(name, 60) where char_length(name) > 60;
+update public.event_venues set name = 'Sin nombre' where btrim(name) = '' or name is null;
+update public.event_venues set name = left(name, 60) where char_length(name) > 60;
+update public.roles set name = left(name, 60) where char_length(name) > 60;
+update public.task_statuses set name = left(name, 60) where char_length(name) > 60;
+update public.task_labels set name = left(name, 60) where char_length(name) > 60;
+update public.booking_channels set name = left(name, 60) where char_length(name) > 60;
+update public.travel_reasons set name = left(name, 60) where char_length(name) > 60;
+update public.payment_methods set name = left(name, 60) where char_length(name) > 60;
+update public.revenue_centers set name = left(name, 60) where char_length(name) > 60;
+update public.expense_categories set name = left(name, 60) where char_length(name) > 60;
+update public.document_types set name = left(name, 60) where char_length(name) > 60;
+update public.cleaning_types set name = left(name, 60) where char_length(name) > 60;
+update public.shift_templates set name = left(name, 60) where char_length(name) > 60;
+update public.guests set first_name = coalesce(nullif(btrim(first_name), ''), 'Sin nombre') where btrim(first_name) = '' or first_name is null;
+update public.guests set first_name = left(first_name, 60) where char_length(first_name) > 60;
+update public.guests set last_name = coalesce(nullif(btrim(last_name), ''), 'Sin apellido') where btrim(last_name) = '' or last_name is null;
+update public.guests set last_name = left(last_name, 60) where char_length(last_name) > 60;
+
 -- room_types
 alter table public.room_types
   drop constraint if exists chk_room_types_name,
@@ -142,22 +163,22 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object(
     'type', 'room',
     'id', r.id,
-    'title', 'Hab. ' || r.room_number,
+    'title', 'Hab. ' || r.number,
     'subtitle', r.type_name,
     'href', '/hotel/habitaciones'
   )), '[]'::jsonb)
   into v_rooms
   from (
-    select r.id, r.room_number, rt.name as type_name
+    select r.id, r.number, rt.name as type_name
     from public.rooms r
     join public.room_types rt on rt.id = r.room_type_id
     where r.organization_id = v_org_id
       and r.is_active = true
       and (
-        r.room_number ilike '%' || v_q || '%'
+        r.number ilike '%' || v_q || '%'
         or rt.name ilike '%' || v_q || '%'
       )
-    order by r.room_number
+    order by r.number
     limit p_limit
   ) r;
 
