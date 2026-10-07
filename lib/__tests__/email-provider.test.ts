@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { render } from '@react-email/render';
 
 // -------------------------------------------------------
 // Mock provider (simulates Resend without real HTTP calls)
@@ -109,11 +110,9 @@ describe('MockEmailProvider', () => {
 
 describe('email env validation', () => {
   it('rejects missing RESEND_API_KEY', async () => {
-    // Dynamic import to avoid cached module state
     vi.stubEnv('RESEND_API_KEY', '');
     vi.stubEnv('EMAIL_FROM', 'test@test.com');
 
-    // We test the zod schema directly instead of the cached getEmailEnv
     const { z } = await import('zod');
     const schema = z.object({
       RESEND_API_KEY: z.string().min(1),
@@ -157,6 +156,72 @@ describe('email plain text templates', () => {
     const text = testEmailText('POSTY HOTEL');
     expect(text).toContain('POSTY HOTEL');
     expect(text).toContain('prueba');
+  });
+});
+
+// -------------------------------------------------------
+// Template HTML rendering (all templates render without errors)
+// -------------------------------------------------------
+
+import { TestEmail } from '../email/templates/test-email';
+import { ManualEmail } from '../email/templates/manual-email';
+
+describe('email template HTML rendering', () => {
+  it('renders TestEmail to valid HTML', async () => {
+    const element = TestEmail({
+      hotelName: 'POSTY HOTEL',
+      logoUrl: 'https://example.com/logo.png',
+      brandColor: '#9c0b21',
+    });
+    const html = await render(element);
+
+    expect(html).toContain('<!DOCTYPE html');
+    expect(html).toContain('POSTY HOTEL');
+    expect(html).toContain('prueba');
+    expect(html.length).toBeGreaterThan(100);
+  });
+
+  it('renders TestEmail without logo', async () => {
+    const element = TestEmail({
+      hotelName: 'Hotel Sin Logo',
+    });
+    const html = await render(element);
+
+    expect(html).toContain('Hotel Sin Logo');
+    expect(html).toContain('<!DOCTYPE html');
+  });
+
+  it('renders ManualEmail to valid HTML', async () => {
+    const element = ManualEmail({
+      hotelName: 'POSTY HOTEL',
+      logoUrl: null,
+      brandColor: '#4f46e5',
+      guestName: 'Carlos',
+      subject: 'Confirmación de reserva',
+      body: 'Su reserva ha sido confirmada.\nLe esperamos el viernes.',
+    });
+    const html = await render(element);
+
+    expect(html).toContain('<!DOCTYPE html');
+    expect(html).toContain('Carlos');
+    expect(html).toContain('POSTY HOTEL');
+    expect(html).toContain('Su reserva ha sido confirmada.');
+    expect(html).toContain('Le esperamos el viernes.');
+    expect(html.length).toBeGreaterThan(100);
+  });
+
+  it('renders ManualEmail plain text via render()', async () => {
+    const element = ManualEmail({
+      hotelName: 'POSTY HOTEL',
+      guestName: 'Ana',
+      subject: 'Info',
+      body: 'Texto de prueba.',
+    });
+    const text = await render(element, { plainText: true });
+
+    expect(text).toContain('Ana');
+    expect(text).toContain('POSTY HOTEL');
+    expect(text).toContain('Texto de prueba');
   });
 });
 

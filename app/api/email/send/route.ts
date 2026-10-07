@@ -158,18 +158,21 @@ export async function POST(request: Request) {
 
       return Response.json({ id: emailRow.id, providerId: result.id, status: 'sent' });
     } catch (sendErr) {
-      const errorMsg = sendErr instanceof Error ? sendErr.message : 'Error desconocido';
-      console.error('Error al enviar correo via Resend:', errorMsg);
+      const raw = sendErr instanceof Error ? sendErr.message : 'Error desconocido';
+      console.error('Error al enviar correo via Resend:', raw);
       await adminDb
         .from('email_messages')
-        .update({ status: 'failed', error: errorMsg, updated_at: new Date().toISOString() })
+        .update({ status: 'failed', error: raw, updated_at: new Date().toISOString() })
         .eq('id', emailRow.id);
 
-      return Response.json({ error: `Error al enviar: ${errorMsg}` }, { status: 502 });
+      // User-facing: Spanish message. The raw detail is saved in email_messages.error
+      const userMsg = raw.startsWith('No se pudo') || raw.startsWith('Resend')
+        ? raw
+        : 'No se pudo enviar el correo. Intenta de nuevo.';
+      return Response.json({ error: userMsg }, { status: 502 });
     }
   } catch (error) {
-    console.error('Email send error:', error);
-    const msg = error instanceof Error ? error.message : 'Error interno del servidor';
-    return Response.json({ error: msg }, { status: 500 });
+    console.error('Error inesperado en envío de correo:', error);
+    return Response.json({ error: 'No se pudo enviar el correo. Intenta de nuevo.' }, { status: 500 });
   }
 }
