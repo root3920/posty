@@ -10,6 +10,7 @@ export const PUBLIC_ROUTES = [
   '/auth/setup',
   '/api/cron',
   '/api/webhooks/whatsapp',
+  '/api/webhooks/resend',
   '/api/instagram/callback',
   '/contrato',
 ] as const;

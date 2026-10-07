@@ -30,6 +30,7 @@ import {
   MapPin,
   MessageCircle,
   Camera,
+  Mail,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -97,6 +98,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/configuracion/espacios', label: 'Espacios', icon: MapPin },
       { href: '/configuracion/regulatorio', label: 'Regulatorio', icon: FileText },
       { href: '/configuracion/facturacion', label: 'Impuestos', icon: FileText },
+      { href: '/configuracion/correo', label: 'Correo', icon: Mail },
       { href: '/configuracion/instagram', label: 'Instagram', icon: Camera },
       { href: '/configuracion/sistema', label: 'Sistema', icon: ServerCog },
     ],

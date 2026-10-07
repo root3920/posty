@@ -21,6 +21,7 @@ import {
   DollarSign,
   AlertTriangle,
   MessageCircle,
+  Send,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -33,6 +34,8 @@ import { KpiCard } from '@/components/shared/kpi-card';
 import { AuditLogTimeline } from '@/components/hotel/audit-log-timeline';
 import { MergeGuestsDialog } from '@/components/hotel/merge-guests-dialog';
 import { ContractStatusBadge } from '@/components/contracts/contract-status-badge';
+import { SendEmailDialog } from '@/components/email/send-email-dialog';
+import { EmailHistory } from '@/components/email/email-history';
 import {
   useGuestDetail,
   useGuestStays,
@@ -74,13 +77,14 @@ function useGuestContracts(guestId: string | null) {
 // Page
 // -------------------------------------------------------
 
-type Tab = 'info' | 'estancias' | 'contratos' | 'chat' | 'historial';
+type Tab = 'info' | 'estancias' | 'contratos' | 'chat' | 'correo' | 'historial';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'info', label: 'Info' },
   { key: 'estancias', label: 'Estancias' },
   { key: 'contratos', label: 'Contratos' },
   { key: 'chat', label: 'Chat' },
+  { key: 'correo', label: 'Correo' },
   { key: 'historial', label: 'Historial' },
 ];
 
@@ -103,6 +107,7 @@ export default function GuestDetailPage() {
 
   const [activeTab, setActiveTab] = useState<Tab>('info');
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   // Find duplicate matches for this specific guest
   const myDuplicates = duplicates.filter(
@@ -191,6 +196,12 @@ export default function GuestDetailPage() {
             <Badge variant="secondary" className="text-xs hidden sm:inline-flex">
               Huésped recurrente · {totalStays} estancias
             </Badge>
+          )}
+          {guest.email && (
+            <Button variant="outline" size="sm" onClick={() => setEmailOpen(true)}>
+              <Send className="mr-1.5 h-4 w-4" />
+              <span className="hidden sm:inline">Enviar correo</span>
+            </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => setMergeOpen(true)}>
             <GitMerge className="mr-1.5 h-4 w-4" />
@@ -384,9 +395,46 @@ export default function GuestDetailPage() {
         <GuestChatTab guestId={guestId} guestPhone={guest?.phone} />
       )}
 
+      {/* Tab: Correo */}
+      {activeTab === 'correo' && (
+        <div className="space-y-4">
+          {guest.email ? (
+            <>
+              <div className="flex items-center justify-between rounded-lg border p-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-blue-600" />
+                  <span>{guest.email}</span>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setEmailOpen(true)}>
+                  <Send className="mr-1.5 h-3.5 w-3.5" />
+                  Enviar correo
+                </Button>
+              </div>
+              <EmailHistory guestId={guestId} />
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+              <Mail className="h-8 w-8 opacity-40" />
+              <p>Este huésped no tiene correo electrónico registrado</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tab: Historial */}
       {activeTab === 'historial' && (
         <AuditLogTimeline entityType="guest" entityId={guestId} />
+      )}
+
+      {/* Email dialog */}
+      {guest.email && (
+        <SendEmailDialog
+          open={emailOpen}
+          onOpenChange={setEmailOpen}
+          guestId={guestId}
+          guestName={guestFullName}
+          guestEmail={guest.email}
+        />
       )}
 
       {/* Merge dialog */}
