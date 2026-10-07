@@ -1,10 +1,7 @@
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getServerProfile } from '@/lib/auth/get-profile';
 import { getEmailProvider, buildFromAddress, isEmailConfigured } from '@/lib/email/provider';
 import { TestEmail, testEmailText } from '@/lib/email/templates/test-email';
 import { z } from 'zod';
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 const testSchema = z.object({
   to: z.string().email('Correo inválido'),
@@ -16,30 +13,14 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Email no está configurado en el servidor' }, { status: 503 });
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.organization_id) {
-      return Response.json({ error: 'Perfil no encontrado' }, { status: 403 });
+    const profile = await getServerProfile();
+    if (!profile) {
+      return Response.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    // Use admin client for new column contact_email
-    const adminDb = createAdminClient() as any;
-    const { data: org } = await adminDb
-      .from('organizations')
-      .select('id, name, logo_url, brand_color, contact_email')
-      .eq('id', profile.organization_id)
-      .single();
-
+    const org = profile.organization;
     if (!org) {
-      return Response.json({ error: 'Organización no encontrada' }, { status: 403 });
+      return Response.json({ error: 'Organización no encontrada en el perfil' }, { status: 403 });
     }
 
     const input = testSchema.safeParse(await request.json());

@@ -37,6 +37,7 @@ export interface UserProfile {
     contract_default_payment_day: number;
     contract_default_deposit_months: number;
     contract_provisional_hours: number;
+    contact_email: string | null;
   } | null;
 }
 

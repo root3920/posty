@@ -134,8 +134,8 @@ export function useUpdateContactEmail() {
       queryClient.invalidateQueries({ queryKey: ['organization'] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
-    onError: () => {
-      toast.error('Error al guardar el correo de contacto');
+    onError: (error: Error) => {
+      toast.error(`Error al guardar el correo de contacto: ${error.message}`);
     },
   });
 }

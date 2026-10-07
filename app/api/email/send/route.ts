@@ -1,14 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getEmailProvider, buildFromAddress } from '@/lib/email/provider';
-import { isEmailConfigured } from '@/lib/email/provider';
+import { getServerProfile } from '@/lib/auth/get-profile';
+import { getEmailProvider, buildFromAddress, isEmailConfigured } from '@/lib/email/provider';
 import { ManualEmail, manualEmailText } from '@/lib/email/templates/manual-email';
 import { z } from 'zod';
 
 // NOTE: email_messages and email_suppressions tables added in migration
 // 20261007100000_email_module.sql. Types will be regenerated after db push.
-// Using `any` cast until then.
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const sendSchema = z.object({
@@ -28,32 +25,14 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Email no está configurado en el servidor' }, { status: 503 });
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return Response.json({ error: 'No autenticado' }, { status: 401 });
-
-    // Get profile + org
-    const { data: profile, error: profileErr } = await supabase
-      .from('profiles')
-      .select('id, organization_id')
-      .eq('id', user.id)
-      .single();
-
-    if (profileErr || !profile?.organization_id) {
-      return Response.json({ error: 'Perfil no encontrado' }, { status: 403 });
+    const profile = await getServerProfile();
+    if (!profile) {
+      return Response.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const adminDb = createAdminClient() as any;
-
-    // Fetch org data (using admin to read contact_email which is a new column)
-    const { data: org } = await adminDb
-      .from('organizations')
-      .select('id, name, logo_url, brand_color, contact_email')
-      .eq('id', profile.organization_id)
-      .single();
-
+    const org = profile.organization;
     if (!org) {
-      return Response.json({ error: 'Organización no encontrada' }, { status: 403 });
+      return Response.json({ error: 'Organización no encontrada en el perfil' }, { status: 403 });
     }
 
     const input = sendSchema.safeParse(await request.json());
@@ -62,6 +41,7 @@ export async function POST(request: Request) {
     }
 
     const { guestId, to, subject, body, guestName, idempotencyKey } = input.data;
+    const adminDb = createAdminClient() as any;
 
     // Check idempotency
     if (idempotencyKey) {
@@ -77,12 +57,17 @@ export async function POST(request: Request) {
     }
 
     // Check suppression list
-    const { data: suppressed } = await adminDb
+    const { data: suppressed, error: suppressErr } = await adminDb
       .from('email_suppressions')
       .select('id, reason')
       .eq('organization_id', profile.organization_id)
       .eq('email', to.toLowerCase())
       .maybeSingle();
+
+    if (suppressErr) {
+      console.error('Error al consultar lista de supresión:', suppressErr.message);
+      return Response.json({ error: `Error al verificar destinatario: ${suppressErr.message}` }, { status: 500 });
+    }
 
     if (suppressed) {
       const reasonMap: Record<string, string> = {
@@ -97,11 +82,16 @@ export async function POST(request: Request) {
 
     // Rate limit per organization per hour
     const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
-    const { count: hourCount } = await adminDb
+    const { count: hourCount, error: rateErr } = await adminDb
       .from('email_messages')
       .select('*', { count: 'exact', head: true })
       .eq('organization_id', profile.organization_id)
       .gte('created_at', oneHourAgo);
+
+    if (rateErr) {
+      console.error('Error al consultar rate limit:', rateErr.message);
+      return Response.json({ error: `Error al verificar límite de envío: ${rateErr.message}` }, { status: 500 });
+    }
 
     if ((hourCount ?? 0) >= RATE_LIMIT_PER_HOUR) {
       return Response.json({
@@ -126,7 +116,10 @@ export async function POST(request: Request) {
       .select('id')
       .single();
 
-    if (insertErr) throw insertErr;
+    if (insertErr) {
+      console.error('Error al registrar correo:', insertErr.message);
+      return Response.json({ error: `Error al registrar correo: ${insertErr.message}` }, { status: 500 });
+    }
 
     // Build and send email
     const provider = getEmailProvider();
@@ -165,8 +158,8 @@ export async function POST(request: Request) {
 
       return Response.json({ id: emailRow.id, providerId: result.id, status: 'sent' });
     } catch (sendErr) {
-      // Update to failed
       const errorMsg = sendErr instanceof Error ? sendErr.message : 'Error desconocido';
+      console.error('Error al enviar correo via Resend:', errorMsg);
       await adminDb
         .from('email_messages')
         .update({ status: 'failed', error: errorMsg, updated_at: new Date().toISOString() })
@@ -176,6 +169,7 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('Email send error:', error);
-    return Response.json({ error: 'Error interno del servidor' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Error interno del servidor';
+    return Response.json({ error: msg }, { status: 500 });
   }
 }

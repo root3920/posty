@@ -38,42 +38,18 @@ type ContactEmailForm = z.infer<typeof contactEmailSchema>;
 type TestEmailForm = z.infer<typeof testEmailSchema>;
 
 // -------------------------------------------------------
-// Fetch organization
-// -------------------------------------------------------
-
-function useOrganizationData(orgId: string | undefined) {
-  return useQuery({
-    queryKey: ['organization', orgId],
-    queryFn: async () => {
-      const supabase = createClient() as any;
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('id, name, contact_email, brand_color, logo_url')
-        .eq('id', orgId!)
-        .single();
-      if (error) throw error;
-      return data as {
-        id: string; name: string; contact_email: string | null;
-        brand_color: string | null; logo_url: string | null;
-      };
-    },
-    enabled: !!orgId,
-  });
-}
-
-// -------------------------------------------------------
 // Page
 // -------------------------------------------------------
 
 export default function EmailConfigPage() {
-  const { data: profile } = useProfile();
+  const { data: profile, isLoading: profileLoading } = useProfile();
+  const org = profile?.organization;
   const orgId = profile?.organization_id;
-  const { data: org, isLoading } = useOrganizationData(orgId);
 
   const sendTestEmail = useSendTestEmail();
   const updateContactEmail = useUpdateContactEmail();
 
-  // Contact email form
+  // Contact email form — values prop syncs when org data arrives
   const contactForm = useForm<ContactEmailForm>({
     resolver: zodResolver(contactEmailSchema),
     values: { contact_email: org?.contact_email ?? '' },
@@ -98,10 +74,11 @@ export default function EmailConfigPage() {
     queryKey: ['email_stats', orgId],
     queryFn: async () => {
       const supabase = createClient() as any;
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from('email_messages')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', orgId!);
+      if (error) throw error;
       return { total: (count as number) ?? 0 };
     },
     enabled: !!orgId,
@@ -123,7 +100,7 @@ export default function EmailConfigPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {profileLoading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
             <Skeleton key={i} className="h-24 w-full rounded-xl" />
@@ -155,7 +132,7 @@ export default function EmailConfigPage() {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Remitente</span>
                 <span className="font-medium text-xs">
-                  {org?.name ?? 'Hotel'} vía POSTY &lt;noreply@postyassistant.com&gt;
+                  {org?.name} vía POSTY &lt;noreply@postyassistant.com&gt;
                 </span>
               </div>
               <div className="flex items-center justify-between">
