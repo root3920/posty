@@ -68,6 +68,7 @@ export default function EmailConfigPage() {
 
   const [aliasInput, setAliasInput] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showAliasChange, setShowAliasChange] = useState(false);
 
   // Sync alias input with current value
   useEffect(() => {
@@ -229,7 +230,8 @@ export default function EmailConfigPage() {
                   <button
                     type="button"
                     onClick={handleCopyAddress}
-                    className="rounded-md p-1 text-muted-foreground hover:text-foreground"
+                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                    title="Copiar dirección"
                   >
                     {copied ? (
                       <Check className="h-4 w-4 text-green-600" />
@@ -239,26 +241,53 @@ export default function EmailConfigPage() {
                   </button>
                 </div>
 
-                <div className="flex gap-2">
-                  <Input
-                    value={aliasInput}
-                    onChange={(e) => setAliasInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                    placeholder="mi-hotel"
-                    className="flex-1 font-mono text-sm"
-                    maxLength={40}
-                  />
+                {showAliasChange ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        value={aliasInput}
+                        onChange={(e) => setAliasInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                        placeholder="mi-hotel"
+                        className="flex-1 font-mono text-sm"
+                        maxLength={40}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          handleSaveAlias();
+                          setShowAliasChange(false);
+                        }}
+                        disabled={updateAlias.isPending || aliasInput === aliasData.alias || !aliasInput.trim()}
+                      >
+                        {updateAlias.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                        Guardar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setShowAliasChange(false);
+                          setAliasInput(aliasData.alias ?? '');
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Al cambiar el alias, el anterior seguirá recibiendo correos durante 90 días.
+                      Solo se permiten letras minúsculas, números y guiones (3–40 caracteres).
+                    </p>
+                  </div>
+                ) : (
                   <Button
                     size="sm"
-                    onClick={handleSaveAlias}
-                    disabled={updateAlias.isPending || aliasInput === aliasData.alias}
+                    variant="outline"
+                    onClick={() => setShowAliasChange(true)}
+                    className="text-xs"
                   >
-                    {updateAlias.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                    Cambiar
+                    Cambiar alias
                   </Button>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Al cambiar el alias, el anterior seguirá recibiendo correos durante 90 días.
-                </p>
+                )}
               </div>
             ) : (
               <div className="space-y-3">

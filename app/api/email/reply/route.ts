@@ -9,6 +9,7 @@ import {
 } from '@/lib/email/provider';
 import { ManualEmail, manualEmailText } from '@/lib/email/templates/manual-email';
 import { checkEmailPaused } from '@/lib/email/pause-check';
+import { ensureEmailAlias } from '@/lib/email/ensure-alias';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
 
@@ -85,17 +86,8 @@ export async function POST(request: Request) {
       .limit(1)
       .maybeSingle();
 
-    // Load alias
-    const { data: aliasRow } = await adminDb
-      .from('email_aliases')
-      .select('alias')
-      .eq('organization_id', profile.organization_id)
-      .eq('active', true)
-      .maybeSingle();
-
-    if (!aliasRow) {
-      return Response.json({ error: 'No hay alias de correo configurado para este hotel' }, { status: 400 });
-    }
+    // Get or create alias (never fails)
+    const alias = await ensureEmailAlias(adminDb, profile.organization_id, org.name);
 
     // Build threading headers
     const msgUuid = randomUUID();
@@ -107,8 +99,8 @@ export async function POST(request: Request) {
     );
 
     // Build From and Reply-To
-    const fromAddress = buildHotelFromAddress(org.name, aliasRow.alias);
-    const replyToAddress = buildReplyToAddress(aliasRow.alias, thread.token);
+    const fromAddress = buildHotelFromAddress(org.name, alias);
+    const replyToAddress = buildReplyToAddress(alias, thread.token);
 
     // Determine guest name for the template
     let guestName = 'estimado/a';

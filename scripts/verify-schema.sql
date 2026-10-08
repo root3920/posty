@@ -83,7 +83,9 @@ FROM (VALUES
   ('handle_updated_at'),
   ('get_email_unread_count'), ('mark_email_thread_read'),
   ('assign_email_thread'), ('set_email_thread_status'),
-  ('get_email_platform_stats')
+  ('get_email_platform_stats'),
+  ('generate_email_alias'),
+  ('on_organization_created_email_alias')
 ) AS f(name)
 LEFT JOIN pg_proc p ON p.proname = f.name AND p.pronamespace = 'public'::regnamespace
 WHERE p.proname IS NULL
@@ -119,7 +121,8 @@ FROM (VALUES
   ('profiles', 'on_profile_role_changed'),
   ('tasks', 'set_task_phase_from_template'),
   ('email_threads', 'handle_email_threads_updated_at'),
-  ('email_aliases', 'handle_email_aliases_updated_at')
+  ('email_aliases', 'handle_email_aliases_updated_at'),
+  ('organizations', 'on_org_created_email_alias')
 ) AS t(trigger_table, trigger_name)
 LEFT JOIN information_schema.triggers tr
   ON tr.trigger_schema = 'public'
