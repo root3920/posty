@@ -12,7 +12,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/format';
 import { toast } from 'sonner';
-import type { OrgEmailStats } from '@/app/api/email/admin/route';
+import type { OrgEmailStats, FailedWebhookEvent } from '@/app/api/email/admin/route';
 
 // -------------------------------------------------------
 // Types
@@ -227,7 +227,10 @@ function EmailPlatformStats() {
       const res = await fetch('/api/email/admin');
       if (!res.ok) return null;
       const json = await res.json();
-      return json.stats as OrgEmailStats[];
+      return {
+        stats: json.stats as OrgEmailStats[],
+        failedEvents: (json.failedEvents ?? []) as FailedWebhookEvent[],
+      };
     },
     staleTime: 30_000,
     refetchInterval: 60_000,
@@ -261,7 +264,7 @@ function EmailPlatformStats() {
           <Skeleton className="h-12 rounded-lg" />
           <Skeleton className="h-12 rounded-lg" />
         </div>
-      ) : !data || data.length === 0 ? (
+      ) : !data?.stats || data.stats.length === 0 ? (
         <p className="text-xs text-muted-foreground py-4 text-center">Sin datos de correo</p>
       ) : (
         <div className="overflow-x-auto">
@@ -280,7 +283,7 @@ function EmailPlatformStats() {
               </tr>
             </thead>
             <tbody>
-              {data.map((org) => {
+              {data.stats.map((org) => {
                 const hasWarning = org.bounce_rate >= 3 || org.complaint_rate >= 0.05;
                 const hasDanger = org.bounce_rate >= 5 || org.complaint_rate >= 0.1;
                 return (
@@ -343,6 +346,36 @@ function EmailPlatformStats() {
       <p className="text-[10px] text-muted-foreground">
         Pausa automática: rebotes &gt; 5% o quejas &gt; 0,1% en 30 días.
       </p>
+
+      {/* Failed webhook events */}
+      {data?.failedEvents && data.failedEvents.length > 0 && (
+        <div className="space-y-2 pt-2 border-t">
+          <div className="flex items-center gap-2">
+            <XCircle className="h-3.5 w-3.5 text-destructive" />
+            <h4 className="text-xs font-semibold">Correos que fallaron al procesar ({data.failedEvents.length})</h4>
+          </div>
+          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+            {data.failedEvents.map((evt) => (
+              <div key={evt.id} className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs dark:border-red-900 dark:bg-red-950/20">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-mono text-[10px] text-muted-foreground">{evt.id.slice(0, 12)}…</span>
+                    {evt.failed_step && (
+                      <Badge variant="outline" className="ml-2 text-[9px]">{evt.failed_step}</Badge>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    {formatDate(evt.processed_at, 'dd/MM HH:mm')}
+                  </span>
+                </div>
+                {evt.error && (
+                  <p className="mt-1 text-red-700 dark:text-red-400">{evt.error}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

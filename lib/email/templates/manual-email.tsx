@@ -48,6 +48,7 @@ export function manualEmailText(params: ManualEmailProps): string {
     '',
     `---`,
     `Enviado por ${params.hotelName} vía POSTY`,
+    'Puedes responder directamente a este correo.',
   ].join('\n');
 }
 

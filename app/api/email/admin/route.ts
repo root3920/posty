@@ -19,6 +19,14 @@ export interface OrgEmailStats {
   complaint_rate: number;
 }
 
+export interface FailedWebhookEvent {
+  id: string;
+  event_type: string;
+  error: string | null;
+  failed_step: string | null;
+  processed_at: string;
+}
+
 // GET — platform-level email stats (admin only)
 export async function GET() {
   try {
@@ -38,7 +46,7 @@ export async function GET() {
       return Response.json({ error: 'Error al obtener estadísticas' }, { status: 500 });
     }
 
-    // Calculate rates and filter to current org (Gestor sees their own org)
+    // Calculate rates
     const allStats: OrgEmailStats[] = (stats ?? []).map((s: any) => ({
       ...s,
       bounce_rate: s.total_sent_30d > 0
@@ -49,7 +57,18 @@ export async function GET() {
         : 0,
     }));
 
-    return Response.json({ stats: allStats });
+    // Fetch failed webhook events (last 50)
+    const { data: failedEvents } = await adminDb
+      .from('email_webhook_events')
+      .select('id, event_type, error, failed_step, processed_at, raw_payload')
+      .eq('status', 'failed')
+      .order('processed_at', { ascending: false })
+      .limit(50);
+
+    return Response.json({
+      stats: allStats,
+      failedEvents: failedEvents ?? [],
+    });
   } catch (error) {
     console.error('[Email Admin] Error:', error);
     return Response.json({ error: 'Error interno' }, { status: 500 });

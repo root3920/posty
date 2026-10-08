@@ -30,10 +30,9 @@ function createMockDb(overrides: {
       if (table === 'email_threads') {
         return {
           select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({ data: threadByToken }),
-              }),
+            eq: vi.fn().mockResolvedValue({
+              // Case-insensitive token lookup returns all threads for the org
+              data: threadByToken ? [{ ...threadByToken, token: 'abc123' }] : [],
             }),
           }),
           insert: vi.fn().mockReturnValue({

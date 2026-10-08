@@ -37,17 +37,22 @@ export async function resolveThread(
 ): Promise<ResolveThreadResult> {
   const { orgId, token, inReplyTo, references, senderEmail, subject } = params;
 
-  // --- Strategy 1: Match by +token ---
+  // --- Strategy 1: Match by +token (case-insensitive) ---
+  // Email systems may lowercase the +token in the address,
+  // so we compare with lower() on both sides.
   if (token) {
-    const { data: thread } = await db
+    const tokenLower = token.toLowerCase();
+    const { data: threads } = await db
       .from('email_threads')
-      .select('id, guest_id')
-      .eq('token', token)
-      .eq('organization_id', orgId)
-      .maybeSingle();
+      .select('id, guest_id, token')
+      .eq('organization_id', orgId);
 
-    if (thread) {
-      return { threadId: thread.id, guestId: thread.guest_id, isNew: false };
+    const matched = (threads ?? []).find(
+      (t: { token: string }) => t.token.toLowerCase() === tokenLower,
+    );
+
+    if (matched) {
+      return { threadId: matched.id, guestId: matched.guest_id, isNew: false };
     }
     // Token not found — fall through to other strategies
   }

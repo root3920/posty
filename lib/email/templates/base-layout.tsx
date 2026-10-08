@@ -63,8 +63,7 @@ export function BaseLayout({
               Enviado por {hotelName} vía POSTY
             </Text>
             <Text style={footerDisclaimer}>
-              Este correo fue enviado desde una dirección que no recibe respuestas.
-              Si deseas comunicarte con el hotel, responde directamente a este correo.
+              Puedes responder directamente a este correo.
             </Text>
           </Section>
         </Container>

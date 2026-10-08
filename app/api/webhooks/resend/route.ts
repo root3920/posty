@@ -211,20 +211,43 @@ async function handleInboundEmail(
   // Mark as processing immediately
   await db
     .from('email_webhook_events')
-    .insert({ id: eventId, event_type: 'email.received' })
-    .single();
-
-  // Return 200 quickly — process inline (Vercel allows up to 300s)
-  // In practice this takes 1-3 seconds.
+    .insert({
+      id: eventId,
+      event_type: 'email.received',
+      status: 'processed',
+      raw_payload: fullPayload,
+    });
 
   try {
     await processInboundEmail(db, data, fullPayload);
   } catch (err) {
-    console.error('[Email Inbound] Processing error:', err);
-    // Don't fail the webhook — we already recorded the event
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    const step = (err as any)?._step ?? 'unknown';
+    console.error(`[Email Inbound] FAILED at step "${step}": ${errorMsg}`, {
+      eventId,
+      from: data.from,
+      to: data.to,
+    });
+
+    // Record failure for admin panel / retry
+    await db
+      .from('email_webhook_events')
+      .update({
+        status: 'failed',
+        error: errorMsg,
+        failed_step: step,
+      })
+      .eq('id', eventId);
   }
 
   return Response.json({ ok: true });
+}
+
+/** Throw with step metadata so the caller can record which step failed. */
+function stepError(step: string, message: string): Error {
+  const err = new Error(message);
+  (err as any)._step = step;
+  return err;
 }
 
 async function processInboundEmail(
@@ -236,18 +259,23 @@ async function processInboundEmail(
   const domain = env?.EMAIL_HOTEL_DOMAIN || 'hoteles.postyassistant.com';
   const emailId = data.email_id;
 
-  // 2. Fetch full email content from Resend API
-  const provider = getEmailProvider();
-  const fullEmail = await provider.fetchReceivedEmail(emailId);
+  // Step 1: Fetch full email content from Resend API
+  let fullEmail;
+  try {
+    const provider = getEmailProvider();
+    fullEmail = await provider.fetchReceivedEmail(emailId);
+  } catch (err) {
+    throw stepError('fetch_email', `No se pudo obtener el contenido del correo ${emailId}: ${err instanceof Error ? err.message : err}`);
+  }
 
-  // 3. Anti-loop check
+  // Step 2: Anti-loop check
   const loopCheck = shouldSkipEmail(fullEmail.headers);
   if (loopCheck.skip) {
     console.log(`[Email Inbound] Skipped (${loopCheck.reason}): ${emailId}`);
     return;
   }
 
-  // 4. Resolve which org this email belongs to
+  // Step 3: Resolve alias → organization
   const recipients = [...(data.to ?? []), ...(data.cc ?? [])];
   let matchedOrg: { orgId: string; alias: string; token: string | null } | null = null;
 
@@ -255,7 +283,6 @@ async function processInboundEmail(
     const parsed = parseRecipientAddress(addr, domain);
     if (!parsed) continue;
 
-    // Look up alias
     const { data: aliasRow } = await db
       .from('email_aliases')
       .select('organization_id, alias')
@@ -264,15 +291,11 @@ async function processInboundEmail(
       .maybeSingle();
 
     if (aliasRow) {
-      matchedOrg = {
-        orgId: aliasRow.organization_id,
-        alias: aliasRow.alias,
-        token: parsed.token,
-      };
+      matchedOrg = { orgId: aliasRow.organization_id, alias: aliasRow.alias, token: parsed.token };
       break;
     }
 
-    // Check expired aliases (grace period)
+    // Grace period for old aliases
     const { data: expiredAlias } = await db
       .from('email_aliases')
       .select('organization_id, alias')
@@ -282,23 +305,18 @@ async function processInboundEmail(
       .maybeSingle();
 
     if (expiredAlias) {
-      matchedOrg = {
-        orgId: expiredAlias.organization_id,
-        alias: expiredAlias.alias,
-        token: parsed.token,
-      };
+      matchedOrg = { orgId: expiredAlias.organization_id, alias: expiredAlias.alias, token: parsed.token };
       break;
     }
   }
 
   if (!matchedOrg) {
-    console.log(`[Email Inbound] No matching alias for recipients: ${recipients.join(', ')}`);
-    return;
+    throw stepError('resolve_alias', `Ningún alias coincide con los destinatarios: ${recipients.join(', ')}`);
   }
 
   const { orgId, alias, token } = matchedOrg;
 
-  // 5. Rate limit per org
+  // Step 4: Rate limits
   const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
   const { count: orgCount } = await db
     .from('email_messages')
@@ -312,7 +330,6 @@ async function processInboundEmail(
     return;
   }
 
-  // Rate limit per sender
   const senderEmail = fullEmail.from;
   const { count: senderCount } = await db
     .from('email_messages')
@@ -327,35 +344,36 @@ async function processInboundEmail(
     return;
   }
 
-  // 6. Sanitize HTML
+  // Step 5: Sanitize HTML
   const htmlSanitized = fullEmail.html ? sanitizeEmailHtml(fullEmail.html) : null;
 
-  // 7. Resolve thread
+  // Step 6: Resolve thread
+  let threadResult;
   const inReplyTo = fullEmail.headers['in-reply-to']
     || fullEmail.headers['In-Reply-To'] || null;
   const references = fullEmail.headers['references']
     || fullEmail.headers['References'] || null;
 
-  const threadResult = await resolveThread(db, {
-    orgId,
-    token,
-    inReplyTo,
-    references,
-    senderEmail,
-    subject: fullEmail.subject,
-  });
+  try {
+    threadResult = await resolveThread(db, {
+      orgId,
+      token,
+      inReplyTo,
+      references,
+      senderEmail,
+      subject: fullEmail.subject,
+    });
+  } catch (err) {
+    throw stepError('resolve_thread', `Error al resolver hilo: ${err instanceof Error ? err.message : err}`);
+  }
 
-  // 8. Process attachments
+  // Step 7: Process attachments (non-fatal — errors logged but don't stop processing)
+  const provider = getEmailProvider();
   const storedAttachments = await processAttachments(
-    db,
-    provider,
-    emailId,
-    orgId,
-    threadResult.threadId,
-    fullEmail.attachments,
+    db, provider, emailId, orgId, threadResult.threadId, fullEmail.attachments,
   );
 
-  // 9. Insert email message
+  // Step 8: Insert email message
   const { error: msgErr } = await db
     .from('email_messages')
     .insert({
@@ -380,44 +398,36 @@ async function processInboundEmail(
     });
 
   if (msgErr) {
-    console.error('[Email Inbound] Insert message error:', msgErr.message);
-    return;
+    throw stepError('insert_message', `Error al guardar mensaje: ${msgErr.message}`);
   }
 
-  // 10. Update thread counters
-  await db
-    .from('email_threads')
-    .update({
-      last_message_at: new Date().toISOString(),
-      unread_count: (threadResult.isNew ? 0 : undefined) as any,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', threadResult.threadId);
-
-  // Increment unread_count atomically
-  await db.rpc('increment_counter', undefined as any).catch(() => {
-    // Fallback: manual increment
-  });
-  // Use direct SQL via RPC for atomic increment
+  // Step 9: Update thread counters
   const { data: currentThread } = await db
     .from('email_threads')
     .select('unread_count')
     .eq('id', threadResult.threadId)
     .single();
 
-  if (currentThread) {
-    await db
-      .from('email_threads')
-      .update({ unread_count: (currentThread.unread_count ?? 0) + 1 })
-      .eq('id', threadResult.threadId);
+  await db
+    .from('email_threads')
+    .update({
+      last_message_at: new Date().toISOString(),
+      unread_count: (currentThread?.unread_count ?? 0) + 1,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', threadResult.threadId);
+
+  // Step 10: Forward copy (non-fatal)
+  try {
+    await forwardCopyToHotel(db, orgId, alias, threadResult.threadId, fullEmail, senderEmail);
+  } catch (err) {
+    console.error('[Email Inbound] Forward copy failed (non-fatal):', err);
   }
 
-  // 11. Forward copy to hotel's contact email if enabled
-  await forwardCopyToHotel(db, orgId, alias, threadResult.threadId, fullEmail, senderEmail);
-
   console.log(
-    `[Email Inbound] Processed: ${emailId} → thread ${threadResult.threadId}` +
-    (threadResult.isNew ? ' (new)' : ''),
+    `[Email Inbound] OK: ${emailId} → thread ${threadResult.threadId}` +
+    (threadResult.isNew ? ' (new)' : '') +
+    ` from ${senderEmail} to ${alias}`,
   );
 }
 
