@@ -47,11 +47,7 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, id: result.id });
   } catch (error) {
     console.error('Error al enviar correo de prueba:', error);
-    // Show Spanish user-facing message; log the real error above
-    const raw = error instanceof Error ? error.message : String(error);
-    const userMsg = raw.startsWith('No se pudo') || raw.startsWith('Resend')
-      ? raw
-      : 'No se pudo enviar el correo de prueba. Intenta de nuevo.';
-    return Response.json({ error: userMsg }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'No se pudo enviar el correo de prueba. Intenta de nuevo.';
+    return Response.json({ error: msg }, { status: 500 });
   }
 }

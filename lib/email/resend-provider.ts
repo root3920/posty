@@ -40,11 +40,13 @@ export class ResendProvider implements EmailProvider {
     });
 
     if (error) {
-      throw new Error(`Resend error: ${error.message}`);
+      console.error('[Resend] Error al enviar correo:', error.message);
+      throw new Error(translateResendError(error.message));
     }
 
     if (!data?.id) {
-      throw new Error('Resend: no se recibió ID del correo');
+      console.error('[Resend] No se recibió ID del correo enviado');
+      throw new Error('No se pudo enviar el correo. Intenta de nuevo.');
     }
 
     return { id: data.id };
@@ -132,4 +134,39 @@ export class ResendProvider implements EmailProvider {
       expires_at: a.expires_at ?? '',
     }));
   }
+}
+
+/**
+ * Translate Resend API errors into user-friendly Spanish messages.
+ * The raw English error is already logged before calling this.
+ */
+function translateResendError(message: string): string {
+  const lower = message.toLowerCase();
+
+  if (lower.includes('api key') || lower.includes('unauthorized') || lower.includes('authentication')) {
+    return 'No se pudo enviar el correo. Error de configuración del servidor.';
+  }
+  if (lower.includes('rate limit') || lower.includes('too many')) {
+    return 'Se alcanzó el límite de envío. Espera unos minutos e intenta de nuevo.';
+  }
+  if (lower.includes('domain') && lower.includes('not verified')) {
+    return 'El dominio de correo no está verificado. Contacta al administrador.';
+  }
+  if (lower.includes('not found') || lower.includes('does not exist')) {
+    return 'La dirección de correo no es válida o no existe.';
+  }
+  if (lower.includes('blocked') || lower.includes('suppressed')) {
+    return 'El correo fue bloqueado. El destinatario puede estar en la lista de supresión.';
+  }
+  if (lower.includes('payload') || lower.includes('too large')) {
+    return 'El correo es demasiado grande. Reduce el tamaño de los adjuntos.';
+  }
+  if (lower.includes('invalid') && lower.includes('email')) {
+    return 'La dirección de correo del destinatario no es válida.';
+  }
+  if (lower.includes('timeout') || lower.includes('timed out')) {
+    return 'El envío tardó demasiado. Intenta de nuevo.';
+  }
+
+  return 'No se pudo enviar el correo. Intenta de nuevo.';
 }

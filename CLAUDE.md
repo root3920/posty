@@ -205,15 +205,15 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 
 - **Arquitectura**: Resend (envío + recepción) → webhook `/api/webhooks/resend` → Supabase. Dos remitentes separados para proteger reputación
 - **Remitente sistema**: `POSTY <noreply@postyassistant.com>` — para registro, invitaciones, contraseña
-- **Remitente hotel**: `"Hotel Sol" <hotel-sol@mail.postyassistant.com>` — para correos a huéspedes
-- **Reply-To con token**: `alias+threadToken@mail.postyassistant.com` — para que las respuestas caigan en el hilo correcto
+- **Remitente hotel**: `"Hotel Sol" <hotel-sol@hoteles.postyassistant.com>` — para correos a huéspedes
+- **Reply-To con token**: `alias+threadToken@hoteles.postyassistant.com` — para que las respuestas caigan en el hilo correcto
 - **Tablas**: `email_aliases` (alias por org), `email_threads` (hilos), `email_messages` (extendida con threading + inbound), `email_webhook_events` (idempotencia), `email_suppressions` (rebotes/quejas)
 - **Columnas nuevas en email_messages**: `thread_id`, `direction` (in/out), `message_id`, `in_reply_to`, `references_header`, `from_address`, `cc`, `html_sanitized`, `attachments` (jsonb), `raw_payload`
 - **Columnas nuevas en organizations**: `email_forward_inbound`, `email_paused`
 - **API routes**: `/api/webhooks/resend` (extendida con `email.received`), `/api/email/{reply,compose,alias,attachments,admin}`
 - **Funciones RPC**: `get_email_unread_count`, `mark_email_thread_read`, `assign_email_thread`, `set_email_thread_status`, `get_email_platform_stats`
 - **Permisos**: `email.view`, `email.send`, `email.manage`
-- **Variables de entorno**: `RESEND_API_KEY`, `EMAIL_FROM`, `RESEND_WEBHOOK_SECRET`, `EMAIL_HOTEL_DOMAIN` (default `mail.postyassistant.com`)
+- **Variables de entorno**: `RESEND_API_KEY`, `EMAIL_FROM`, `RESEND_WEBHOOK_SECRET`, `EMAIL_HOTEL_DOMAIN` (default `hoteles.postyassistant.com`)
 - **Storage**: bucket privado `email-attachments` (10MB/archivo, 25MB/correo, bloquea ejecutables)
 - **Lib**: `lib/email/sanitize.ts` (HTML seguro), `lib/email/anti-loop.ts` (prevención de bucles), `lib/email/alias.ts` (generación/validación), `lib/email/thread-resolver.ts` (resolución de hilos con 4 estrategias), `lib/email/pause-check.ts`
 - **Hooks**: `hooks/use-email-inbox.ts` (14 hooks: threads, messages, unread, realtime, reply, compose, assign, status, link guest, alias)

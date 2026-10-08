@@ -172,11 +172,7 @@ export async function POST(request: Request) {
         .update({ status: 'failed', error: raw, updated_at: new Date().toISOString() })
         .eq('id', emailRow.id);
 
-      // User-facing: Spanish message. The raw detail is saved in email_messages.error
-      const userMsg = raw.startsWith('No se pudo') || raw.startsWith('Resend')
-        ? raw
-        : 'No se pudo enviar el correo. Intenta de nuevo.';
-      return Response.json({ error: userMsg }, { status: 502 });
+      return Response.json({ error: raw }, { status: 502 });
     }
   } catch (error) {
     console.error('Error inesperado en envío de correo:', error);

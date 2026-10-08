@@ -10,7 +10,7 @@ describe('hotel email address builders', () => {
   beforeEach(() => {
     vi.stubEnv('RESEND_API_KEY', 'test_key');
     vi.stubEnv('EMAIL_FROM', 'POSTY <noreply@postyassistant.com>');
-    vi.stubEnv('EMAIL_HOTEL_DOMAIN', 'mail.postyassistant.com');
+    vi.stubEnv('EMAIL_HOTEL_DOMAIN', 'hoteles.postyassistant.com');
 
     // Reset the cached env so changes take effect
     vi.resetModules();
@@ -22,7 +22,7 @@ describe('hotel email address builders', () => {
     resetEmailEnvCache();
 
     const result = buildHotelFromAddress('Hotel Sol', 'hotel-sol');
-    expect(result).toBe('Hotel Sol <hotel-sol@mail.postyassistant.com>');
+    expect(result).toBe('Hotel Sol <hotel-sol@hoteles.postyassistant.com>');
   });
 
   it('buildHotelFromAddress strips special chars', async () => {
@@ -31,7 +31,7 @@ describe('hotel email address builders', () => {
     resetEmailEnvCache();
 
     const result = buildHotelFromAddress('Hotel "La <Gran>" Playa', 'hotel-playa');
-    expect(result).toBe('Hotel La Gran Playa <hotel-playa@mail.postyassistant.com>');
+    expect(result).toBe('Hotel La Gran Playa <hotel-playa@hoteles.postyassistant.com>');
   });
 
   it('buildReplyToAddress includes thread token', async () => {
@@ -40,7 +40,7 @@ describe('hotel email address builders', () => {
     resetEmailEnvCache();
 
     const result = buildReplyToAddress('hotel-sol', 'abc123xyz');
-    expect(result).toBe('hotel-sol+abc123xyz@mail.postyassistant.com');
+    expect(result).toBe('hotel-sol+abc123xyz@hoteles.postyassistant.com');
   });
 
   it('generateMessageId creates RFC-format ID', async () => {
@@ -49,7 +49,7 @@ describe('hotel email address builders', () => {
     resetEmailEnvCache();
 
     const result = generateMessageId('550e8400-e29b-41d4-a716-446655440000');
-    expect(result).toBe('<550e8400-e29b-41d4-a716-446655440000@mail.postyassistant.com>');
+    expect(result).toBe('<550e8400-e29b-41d4-a716-446655440000@hoteles.postyassistant.com>');
   });
 
   it('buildFromAddress still works for system emails', async () => {

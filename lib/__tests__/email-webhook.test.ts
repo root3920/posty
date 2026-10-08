@@ -128,9 +128,9 @@ describe('anti-loop with real-world headers', () => {
   it('allows a normal reply from a guest', () => {
     const result = shouldSkipEmail({
       'From': 'guest@gmail.com',
-      'To': 'hotel-sol+abc123@mail.postyassistant.com',
+      'To': 'hotel-sol+abc123@hoteles.postyassistant.com',
       'Subject': 'Re: Confirmación de reserva',
-      'In-Reply-To': '<msg-123@mail.postyassistant.com>',
+      'In-Reply-To': '<msg-123@hoteles.postyassistant.com>',
     });
     expect(result.skip).toBe(false);
   });

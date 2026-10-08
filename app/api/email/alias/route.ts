@@ -16,7 +16,7 @@ export async function GET() {
 
     const adminDb = createAdminClient() as any;
     const { env } = getEmailEnv();
-    const domain = env?.EMAIL_HOTEL_DOMAIN || 'mail.postyassistant.com';
+    const domain = env?.EMAIL_HOTEL_DOMAIN || 'hoteles.postyassistant.com';
 
     const { data: aliasRow } = await adminDb
       .from('email_aliases')
@@ -69,7 +69,7 @@ export async function PUT(request: Request) {
 
     const adminDb = createAdminClient() as any;
     const { env } = getEmailEnv();
-    const domain = env?.EMAIL_HOTEL_DOMAIN || 'mail.postyassistant.com';
+    const domain = env?.EMAIL_HOTEL_DOMAIN || 'hoteles.postyassistant.com';
 
     // Check uniqueness (across all orgs)
     const { data: existing } = await adminDb

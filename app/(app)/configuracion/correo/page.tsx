@@ -363,7 +363,7 @@ export default function EmailConfigPage() {
                 <p className="font-medium">¿Ya usas otro correo para reservas?</p>
                 <p className="text-xs text-blue-700 dark:text-blue-400">
                   Configura un reenvío automático en tu proveedor de correo (Gmail, Outlook, etc.)
-                  hacia <span className="font-mono font-medium">{aliasData?.fullAddress ?? 'tu-alias@mail.postyassistant.com'}</span> y
+                  hacia <span className="font-mono font-medium">{aliasData?.fullAddress ?? 'tu-alias@hoteles.postyassistant.com'}</span> y
                   todos los correos llegarán también al buzón de POSTY.
                 </p>
               </div>

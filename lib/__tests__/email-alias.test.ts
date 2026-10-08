@@ -84,16 +84,16 @@ describe('generateAlias', () => {
 });
 
 describe('parseRecipientAddress', () => {
-  const domain = 'mail.postyassistant.com';
+  const domain = 'hoteles.postyassistant.com';
 
   it('parses alias without token', () => {
-    const result = parseRecipientAddress('hotel-sol@mail.postyassistant.com', domain);
+    const result = parseRecipientAddress('hotel-sol@hoteles.postyassistant.com', domain);
     expect(result).toEqual({ alias: 'hotel-sol', token: null });
   });
 
   it('parses alias with token', () => {
     const result = parseRecipientAddress(
-      'hotel-sol+abc123xyz@mail.postyassistant.com',
+      'hotel-sol+abc123xyz@hoteles.postyassistant.com',
       domain,
     );
     expect(result).toEqual({ alias: 'hotel-sol', token: 'abc123xyz' });
@@ -111,14 +111,14 @@ describe('parseRecipientAddress', () => {
 
   it('handles case-insensitive domain', () => {
     const result = parseRecipientAddress(
-      'hotel@MAIL.POSTYASSISTANT.COM',
+      'hotel@HOTELES.POSTYASSISTANT.COM',
       domain,
     );
     expect(result).toEqual({ alias: 'hotel', token: null });
   });
 
   it('handles empty token after +', () => {
-    const result = parseRecipientAddress('hotel+@mail.postyassistant.com', domain);
+    const result = parseRecipientAddress('hotel+@hoteles.postyassistant.com', domain);
     expect(result).toEqual({ alias: 'hotel', token: null });
   });
 });

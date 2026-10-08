@@ -104,8 +104,8 @@ export function generateAlias(orgName: string): string {
  * Parse an incoming email address to extract the alias and optional token.
  *
  * Examples:
- *   "hotel-sol@mail.postyassistant.com"       → { alias: "hotel-sol", token: null }
- *   "hotel-sol+abc123@mail.postyassistant.com" → { alias: "hotel-sol", token: "abc123" }
+ *   "hotel-sol@hoteles.postyassistant.com"       → { alias: "hotel-sol", token: null }
+ *   "hotel-sol+abc123@hoteles.postyassistant.com" → { alias: "hotel-sol", token: "abc123" }
  *   "other@gmail.com"                          → null
  */
 export function parseRecipientAddress(

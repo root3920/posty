@@ -117,7 +117,7 @@ describe('resolveThread', () => {
     const result = await resolveThread(db as any, {
       orgId: 'org-1',
       token: null,
-      inReplyTo: '<msg-id-1@mail.postyassistant.com>',
+      inReplyTo: '<msg-id-1@hoteles.postyassistant.com>',
       references: null,
       senderEmail: 'user@example.com',
       subject: 'Re: Test',

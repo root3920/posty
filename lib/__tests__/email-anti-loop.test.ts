@@ -56,7 +56,7 @@ describe('shouldSkipEmail', () => {
   it('allows normal human emails', () => {
     const result = shouldSkipEmail({
       From: 'user@example.com',
-      To: 'hotel@mail.postyassistant.com',
+      To: 'hotel@hoteles.postyassistant.com',
       Subject: 'Reserva',
     });
     expect(result.skip).toBe(false);

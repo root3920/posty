@@ -184,10 +184,7 @@ export async function POST(request: Request) {
         .update({ status: 'failed', error: raw, updated_at: new Date().toISOString() })
         .eq('id', emailRow.id);
 
-      const userMsg = raw.startsWith('No se pudo') || raw.startsWith('Resend')
-        ? raw
-        : 'No se pudo enviar el correo. Intenta de nuevo.';
-      return Response.json({ error: userMsg }, { status: 502 });
+      return Response.json({ error: raw }, { status: 502 });
     }
   } catch (error) {
     console.error('[Email Compose] Error:', error);

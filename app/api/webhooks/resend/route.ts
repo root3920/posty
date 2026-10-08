@@ -236,7 +236,7 @@ async function processInboundEmail(
   fullPayload: ResendWebhookPayload,
 ) {
   const { env } = getEmailEnv();
-  const domain = env?.EMAIL_HOTEL_DOMAIN || 'mail.postyassistant.com';
+  const domain = env?.EMAIL_HOTEL_DOMAIN || 'hoteles.postyassistant.com';
   const emailId = data.email_id;
 
   // 2. Fetch full email content from Resend API
@@ -539,7 +539,7 @@ async function forwardCopyToHotel(
   if (!org?.email_forward_inbound || !org.contact_email) return;
 
   const { env } = getEmailEnv();
-  const domain = env?.EMAIL_HOTEL_DOMAIN || 'mail.postyassistant.com';
+  const domain = env?.EMAIL_HOTEL_DOMAIN || 'hoteles.postyassistant.com';
 
   try {
     const provider = getEmailProvider();
