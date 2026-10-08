@@ -1,24 +1,26 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getServerProfile } from '@/lib/auth/get-profile';
-import { getEmailProvider, buildFromAddress, isEmailConfigured } from '@/lib/email/provider';
-import { checkEmailPaused } from '@/lib/email/pause-check';
+import {
+  getEmailProvider,
+  buildHotelFromAddress,
+  buildReplyToAddress,
+  generateMessageId,
+  isEmailConfigured,
+} from '@/lib/email/provider';
 import { ManualEmail, manualEmailText } from '@/lib/email/templates/manual-email';
+import { checkEmailPaused } from '@/lib/email/pause-check';
 import { z } from 'zod';
+import { randomUUID } from 'crypto';
+import { nanoid } from 'nanoid';
 
-// NOTE: email_messages and email_suppressions tables added in migration
-// 20261007100000_email_module.sql. Types will be regenerated after db push.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const sendSchema = z.object({
-  guestId: z.string().uuid(),
+const composeSchema = z.object({
   to: z.string().email(),
   subject: z.string().min(1).max(200),
   body: z.string().min(1).max(10000),
-  guestName: z.string().min(1),
-  idempotencyKey: z.string().min(1).optional(),
+  guestId: z.string().uuid().optional(),
 });
-
-const RATE_LIMIT_PER_HOUR = 100;
 
 export async function POST(request: Request) {
   try {
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
 
     const org = profile.organization;
     if (!org) {
-      return Response.json({ error: 'Organización no encontrada en el perfil' }, { status: 403 });
+      return Response.json({ error: 'Organización no encontrada' }, { status: 403 });
     }
 
     // Check if email is paused for this org
@@ -42,39 +44,21 @@ export async function POST(request: Request) {
       return Response.json({ error: pauseMsg }, { status: 403 });
     }
 
-    const input = sendSchema.safeParse(await request.json());
+    const input = composeSchema.safeParse(await request.json());
     if (!input.success) {
       return Response.json({ error: input.error.issues[0].message }, { status: 400 });
     }
 
-    const { guestId, to, subject, body, guestName, idempotencyKey } = input.data;
+    const { to, subject, body, guestId } = input.data;
     const adminDb = createAdminClient() as any;
 
-    // Check idempotency
-    if (idempotencyKey) {
-      const { data: existing } = await adminDb
-        .from('email_messages')
-        .select('id, status')
-        .eq('idempotency_key', idempotencyKey)
-        .maybeSingle();
-
-      if (existing) {
-        return Response.json({ id: existing.id, status: existing.status, deduplicated: true });
-      }
-    }
-
     // Check suppression list
-    const { data: suppressed, error: suppressErr } = await adminDb
+    const { data: suppressed } = await adminDb
       .from('email_suppressions')
       .select('id, reason')
       .eq('organization_id', profile.organization_id)
       .eq('email', to.toLowerCase())
       .maybeSingle();
-
-    if (suppressErr) {
-      console.error('Error al consultar lista de supresión:', suppressErr.message);
-      return Response.json({ error: `Error al verificar destinatario: ${suppressErr.message}` }, { status: 500 });
-    }
 
     if (suppressed) {
       const reasonMap: Record<string, string> = {
@@ -87,57 +71,87 @@ export async function POST(request: Request) {
       }, { status: 422 });
     }
 
-    // Rate limit per organization per hour
-    const oneHourAgo = new Date(Date.now() - 3600_000).toISOString();
-    const { count: hourCount, error: rateErr } = await adminDb
-      .from('email_messages')
-      .select('*', { count: 'exact', head: true })
+    // Load alias
+    const { data: aliasRow } = await adminDb
+      .from('email_aliases')
+      .select('alias')
       .eq('organization_id', profile.organization_id)
-      .gte('created_at', oneHourAgo);
+      .eq('active', true)
+      .maybeSingle();
 
-    if (rateErr) {
-      console.error('Error al consultar rate limit:', rateErr.message);
-      return Response.json({ error: `Error al verificar límite de envío: ${rateErr.message}` }, { status: 500 });
+    if (!aliasRow) {
+      return Response.json({ error: 'No hay alias de correo configurado para este hotel' }, { status: 400 });
     }
 
-    if ((hourCount ?? 0) >= RATE_LIMIT_PER_HOUR) {
-      return Response.json({
-        error: `Límite de envío alcanzado (${RATE_LIMIT_PER_HOUR}/hora). Intenta más tarde.`,
-      }, { status: 429 });
+    // Create new thread
+    const threadToken = nanoid(12);
+    const { data: thread, error: threadErr } = await adminDb
+      .from('email_threads')
+      .insert({
+        organization_id: profile.organization_id,
+        guest_id: guestId || null,
+        subject,
+        token: threadToken,
+        sender_address: to.toLowerCase(),
+        last_message_at: new Date().toISOString(),
+        unread_count: 0,
+      })
+      .select('id')
+      .single();
+
+    if (threadErr) {
+      return Response.json({ error: `Error al crear hilo: ${threadErr.message}` }, { status: 500 });
     }
 
-    // Insert message record first (status: queued)
+    // Build headers
+    const msgUuid = randomUUID();
+    const messageId = generateMessageId(msgUuid);
+    const fromAddress = buildHotelFromAddress(org.name, aliasRow.alias);
+    const replyToAddress = buildReplyToAddress(aliasRow.alias, threadToken);
+
+    // Determine guest name
+    let guestName = 'estimado/a';
+    if (guestId) {
+      const { data: guest } = await adminDb
+        .from('guests')
+        .select('first_name')
+        .eq('id', guestId)
+        .maybeSingle();
+      if (guest?.first_name) guestName = guest.first_name;
+    }
+
+    // Insert message
     const { data: emailRow, error: insertErr } = await adminDb
       .from('email_messages')
       .insert({
         organization_id: profile.organization_id,
-        guest_id: guestId,
+        thread_id: thread.id,
+        guest_id: guestId || null,
+        direction: 'out',
         to: to.toLowerCase(),
+        from_address: fromAddress,
         subject,
         template: 'manual',
         body_text: body,
+        message_id: messageId,
         status: 'queued',
         sent_by: profile.id,
-        idempotency_key: idempotencyKey || null,
       })
       .select('id')
       .single();
 
     if (insertErr) {
-      console.error('Error al registrar correo:', insertErr.message);
       return Response.json({ error: `Error al registrar correo: ${insertErr.message}` }, { status: 500 });
     }
 
-    // Build and send email
+    // Send via Resend
     const provider = getEmailProvider();
-    const fromAddress = buildFromAddress(org.name);
-
     try {
       const result = await provider.send({
         to,
-        subject,
         from: fromAddress,
-        replyTo: org.contact_email || undefined,
+        subject,
+        replyTo: replyToAddress,
         react: ManualEmail({
           hotelName: org.name,
           logoUrl: org.logo_url,
@@ -153,33 +167,38 @@ export async function POST(request: Request) {
           body,
         }),
         headers: {
+          'Message-ID': messageId,
+          'X-Posty-Processed': 'true',
           'X-Entity-Ref-ID': emailRow.id,
         },
       });
 
-      // Update to sent
       await adminDb
         .from('email_messages')
         .update({ status: 'sent', provider_id: result.id, updated_at: new Date().toISOString() })
         .eq('id', emailRow.id);
 
-      return Response.json({ id: emailRow.id, providerId: result.id, status: 'sent' });
+      return Response.json({
+        id: emailRow.id,
+        threadId: thread.id,
+        providerId: result.id,
+        status: 'sent',
+      });
     } catch (sendErr) {
       const raw = sendErr instanceof Error ? sendErr.message : 'Error desconocido';
-      console.error('Error al enviar correo via Resend:', raw);
+      console.error('[Email Compose] Send error:', raw);
       await adminDb
         .from('email_messages')
         .update({ status: 'failed', error: raw, updated_at: new Date().toISOString() })
         .eq('id', emailRow.id);
 
-      // User-facing: Spanish message. The raw detail is saved in email_messages.error
       const userMsg = raw.startsWith('No se pudo') || raw.startsWith('Resend')
         ? raw
         : 'No se pudo enviar el correo. Intenta de nuevo.';
       return Response.json({ error: userMsg }, { status: 502 });
     }
   } catch (error) {
-    console.error('Error inesperado en envío de correo:', error);
-    return Response.json({ error: 'No se pudo enviar el correo. Intenta de nuevo.' }, { status: 500 });
+    console.error('[Email Compose] Error:', error);
+    return Response.json({ error: 'No se pudo enviar el correo.' }, { status: 500 });
   }
 }

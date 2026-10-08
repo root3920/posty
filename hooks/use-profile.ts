@@ -38,6 +38,9 @@ export interface UserProfile {
     contract_default_deposit_months: number;
     contract_provisional_hours: number;
     contact_email: string | null;
+    email_forward_inbound: boolean;
+    email_alias: string | null;
+    email_paused: boolean;
   } | null;
 }
 

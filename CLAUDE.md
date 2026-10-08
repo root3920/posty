@@ -54,6 +54,7 @@ app/
   (app)/equipo                   ← Módulo Equipo
   (app)/tareas                   ← Módulo Tareas
   (app)/chat                     ← Módulo Chat (WhatsApp)
+  (app)/correo                   ← Módulo Correo (Email Inbox)
   (app)/hotel                    ← Módulo Hotel
   (app)/limpieza                 ← Módulo Limpieza (Housekeeping)
   (app)/eventos                  ← Módulo Eventos (alquiler de espacios)
@@ -153,6 +154,7 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - [x] Chat: Session lifecycle — sesión aislada por conexión, sin importar historial, desconexión limpia con archivado de huéspedes
 - [x] ContactActions en PhoneDisplay + eventos. Ficha huésped: pestaña Chat con archivados. wa.me sin country code hardcoded
 - [x] Contratos E2: Otrosí, renovación, terminación con liquidación, envío para firma, documentos
+- [x] Email Fase A: Buzón de entrada, separación de remitentes, alias por hotel, recepción inbound, hilos, UI 3 columnas, admin panel
 
 ## Módulo Contratos de Larga Estadía
 
@@ -198,6 +200,32 @@ Se implementa en Fase 1. Ver `POSTY_SPEC.md` secciones 4-9.
 - **Permisos**: `chat.view`, `chat.view_all`, `chat.send`, `chat.assign`, `chat.manage_connection`
 - **Variables de entorno**: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `WHATSAPP_WEBHOOK_SECRET`
 - **Conexión**: QR escaneado desde /configuracion/whatsapp. Estado visible en /chat
+
+## Módulo Correo (Email Inbox — Fase A)
+
+- **Arquitectura**: Resend (envío + recepción) → webhook `/api/webhooks/resend` → Supabase. Dos remitentes separados para proteger reputación
+- **Remitente sistema**: `POSTY <noreply@postyassistant.com>` — para registro, invitaciones, contraseña
+- **Remitente hotel**: `"Hotel Sol" <hotel-sol@mail.postyassistant.com>` — para correos a huéspedes
+- **Reply-To con token**: `alias+threadToken@mail.postyassistant.com` — para que las respuestas caigan en el hilo correcto
+- **Tablas**: `email_aliases` (alias por org), `email_threads` (hilos), `email_messages` (extendida con threading + inbound), `email_webhook_events` (idempotencia), `email_suppressions` (rebotes/quejas)
+- **Columnas nuevas en email_messages**: `thread_id`, `direction` (in/out), `message_id`, `in_reply_to`, `references_header`, `from_address`, `cc`, `html_sanitized`, `attachments` (jsonb), `raw_payload`
+- **Columnas nuevas en organizations**: `email_forward_inbound`, `email_paused`
+- **API routes**: `/api/webhooks/resend` (extendida con `email.received`), `/api/email/{reply,compose,alias,attachments,admin}`
+- **Funciones RPC**: `get_email_unread_count`, `mark_email_thread_read`, `assign_email_thread`, `set_email_thread_status`, `get_email_platform_stats`
+- **Permisos**: `email.view`, `email.send`, `email.manage`
+- **Variables de entorno**: `RESEND_API_KEY`, `EMAIL_FROM`, `RESEND_WEBHOOK_SECRET`, `EMAIL_HOTEL_DOMAIN` (default `mail.postyassistant.com`)
+- **Storage**: bucket privado `email-attachments` (10MB/archivo, 25MB/correo, bloquea ejecutables)
+- **Lib**: `lib/email/sanitize.ts` (HTML seguro), `lib/email/anti-loop.ts` (prevención de bucles), `lib/email/alias.ts` (generación/validación), `lib/email/thread-resolver.ts` (resolución de hilos con 4 estrategias), `lib/email/pause-check.ts`
+- **Hooks**: `hooks/use-email-inbox.ts` (14 hooks: threads, messages, unread, realtime, reply, compose, assign, status, link guest, alias)
+- **UI**: `/correo` (3 columnas como Chat), Configuración → Correo (alias + reenvío), ficha huésped tab "Correos" con hilos
+- **Resolución de hilos**: 1) +token en dirección, 2) In-Reply-To/References, 3) email del remitente = huésped, 4) hilo nuevo
+- **Seguridad**: HTML sanitizado (sin scripts/forms/iframes/eventos), imágenes externas bloqueadas por defecto, sandbox iframe
+- **Anti-loop**: Auto-Submitted, Precedence bulk, X-Posty-*, X-Auto-Response-Suppress
+- **Auto-pausa**: rebotes >5% o quejas >0.1% en 30 días → `email_paused=true`, visible en Configuración → Sistema
+- **Rate limits inbound**: 200/org/hora, 30/sender/hora
+- **Alias**: 3-40 chars, minúsculas+números+guiones, palabras reservadas bloqueadas, cambio con gracia de 90 días
+- **Reenvío**: copia al `contact_email` del hotel con aviso "Responde desde POSTY", header `X-Posty-Forwarded`
+- **Realtime**: habilitado en `email_threads` y `email_messages`
 
 ## Publicador automático de Instagram (Fase 3)
 

@@ -1,14 +1,18 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Server, CheckCircle2, XCircle, Clock, RefreshCw } from 'lucide-react';
+import { Server, CheckCircle2, XCircle, Clock, RefreshCw, Mail, AlertTriangle, Pause, Play } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/shared/page-header';
 import { createClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/format';
+import { toast } from 'sonner';
+import type { OrgEmailStats } from '@/app/api/email/admin/route';
 
 // -------------------------------------------------------
 // Types
@@ -205,6 +209,140 @@ export default function SistemaPage() {
           </table>
         </div>
       </div>
+      {/* Email platform stats */}
+      <EmailPlatformStats />
+    </div>
+  );
+}
+
+// -------------------------------------------------------
+// Email Platform Stats (admin panel — A8)
+// -------------------------------------------------------
+
+function EmailPlatformStats() {
+  const queryClient = useQueryClient();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['email_platform_stats'],
+    queryFn: async () => {
+      const res = await fetch('/api/email/admin');
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.stats as OrgEmailStats[];
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
+  const handleTogglePause = async (orgId: string, pause: boolean) => {
+    const res = await fetch('/api/email/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orgId, paused: pause }),
+    });
+    if (res.ok) {
+      toast.success(pause ? 'Correo pausado' : 'Correo reactivado');
+      queryClient.invalidateQueries({ queryKey: ['email_platform_stats'] });
+    } else {
+      toast.error('Error al actualizar');
+    }
+  };
+
+  if (error) return null;
+
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Mail className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold">Correo electrónico — Estado por hotel</h3>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-12 rounded-lg" />
+          <Skeleton className="h-12 rounded-lg" />
+        </div>
+      ) : !data || data.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-4 text-center">Sin datos de correo</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b text-left text-muted-foreground">
+                <th className="px-2 py-1.5">Hotel</th>
+                <th className="px-2 py-1.5">Alias</th>
+                <th className="px-2 py-1.5 text-right">Hoy</th>
+                <th className="px-2 py-1.5 text-right">Mes</th>
+                <th className="px-2 py-1.5 text-right">Rebotes</th>
+                <th className="px-2 py-1.5 text-right">Quejas</th>
+                <th className="px-2 py-1.5 text-right">Hilos</th>
+                <th className="px-2 py-1.5">Estado</th>
+                <th className="px-2 py-1.5"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((org) => {
+                const hasWarning = org.bounce_rate >= 3 || org.complaint_rate >= 0.05;
+                const hasDanger = org.bounce_rate >= 5 || org.complaint_rate >= 0.1;
+                return (
+                  <tr key={org.org_id} className="border-b last:border-0">
+                    <td className="px-2 py-2 font-medium">{org.org_name}</td>
+                    <td className="px-2 py-2 font-mono text-muted-foreground">
+                      {org.alias || '—'}
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums">{org.sent_today}</td>
+                    <td className="px-2 py-2 text-right tabular-nums">{org.sent_month}</td>
+                    <td className={`px-2 py-2 text-right tabular-nums ${hasDanger ? 'text-red-600 font-semibold' : hasWarning ? 'text-amber-600' : ''}`}>
+                      {org.bounces_30d}
+                      {org.total_sent_30d > 0 && (
+                        <span className="text-muted-foreground ml-1">({org.bounce_rate.toFixed(1)}%)</span>
+                      )}
+                    </td>
+                    <td className={`px-2 py-2 text-right tabular-nums ${org.complaint_rate >= 0.1 ? 'text-red-600 font-semibold' : org.complaint_rate >= 0.05 ? 'text-amber-600' : ''}`}>
+                      {org.complaints_30d}
+                      {org.total_sent_30d > 0 && (
+                        <span className="text-muted-foreground ml-1">({org.complaint_rate.toFixed(2)}%)</span>
+                      )}
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums">{org.thread_count}</td>
+                    <td className="px-2 py-2">
+                      {org.email_paused ? (
+                        <Badge variant="destructive" className="gap-1 text-[9px]">
+                          <AlertTriangle className="h-2.5 w-2.5" />
+                          Pausado
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="gap-1 text-[9px] border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-400">
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                          Activo
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="px-2 py-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0"
+                        onClick={() => handleTogglePause(org.org_id, !org.email_paused)}
+                        title={org.email_paused ? 'Reactivar correo' : 'Pausar correo'}
+                      >
+                        {org.email_paused ? (
+                          <Play className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <Pause className="h-3 w-3 text-amber-600" />
+                        )}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="text-[10px] text-muted-foreground">
+        Pausa automática: rebotes &gt; 5% o quejas &gt; 0,1% en 30 días.
+      </p>
     </div>
   );
 }

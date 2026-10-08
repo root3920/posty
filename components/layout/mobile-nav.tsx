@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ChevronDown,
   Camera,
+  Mail,
   Building,
   Shield,
   UserPlus,
@@ -62,6 +63,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/equipo', label: 'Equipo', icon: Users, module: 'team' },
   { href: '/tareas', label: 'Tareas', icon: CheckSquare, module: 'tasks' },
   { href: '/chat', label: 'Chat', icon: MessageCircle, module: 'chat' },
+  { href: '/correo', label: 'Correo', icon: Mail, module: 'email' },
   { href: '/instagram', label: 'Instagram', icon: Camera, module: 'instagram' },
   {
     href: '/hotel',
@@ -97,6 +99,7 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/configuracion/espacios', label: 'Espacios', icon: MapPin },
       { href: '/configuracion/regulatorio', label: 'Regulatorio', icon: FileText },
       { href: '/configuracion/facturacion', label: 'Impuestos', icon: FileText },
+      { href: '/configuracion/correo', label: 'Correo', icon: Mail },
       { href: '/configuracion/instagram', label: 'Instagram', icon: Camera },
       { href: '/configuracion/sistema', label: 'Sistema', icon: ServerCog },
     ],

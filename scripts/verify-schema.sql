@@ -53,7 +53,14 @@ WITH expected_columns(table_name, column_name) AS (VALUES
   ('stay_status_history', 'id'), ('stay_status_history', 'stay_id'),
   ('stay_status_history', 'old_status'), ('stay_status_history', 'new_status'),
   -- Finance
-  ('expenses', 'id'), ('other_revenue', 'id'), ('budgets', 'id')
+  ('expenses', 'id'), ('other_revenue', 'id'), ('budgets', 'id'),
+  -- Email Inbox
+  ('email_aliases', 'id'), ('email_aliases', 'organization_id'), ('email_aliases', 'alias'),
+  ('email_threads', 'id'), ('email_threads', 'organization_id'), ('email_threads', 'token'),
+  ('email_threads', 'status'), ('email_threads', 'unread_count'),
+  ('email_messages', 'thread_id'), ('email_messages', 'direction'), ('email_messages', 'message_id'),
+  ('email_webhook_events', 'id'), ('email_webhook_events', 'event_type'),
+  ('organizations', 'email_paused')
 )
 SELECT 'MISSING COLUMN' as issue, e.table_name, e.column_name, null as detail
 FROM expected_columns e
@@ -73,7 +80,10 @@ FROM (VALUES
   ('ensure_workflow_roles'), ('generate_stay_tasks'), ('generate_arrived_tasks'),
   ('assign_task_to_best_person'), ('confirm_guest_arrival'),
   ('create_stay_with_auto_room'), ('available_rooms_by_type'),
-  ('handle_updated_at')
+  ('handle_updated_at'),
+  ('get_email_unread_count'), ('mark_email_thread_read'),
+  ('assign_email_thread'), ('set_email_thread_status'),
+  ('get_email_platform_stats')
 ) AS f(name)
 LEFT JOIN pg_proc p ON p.proname = f.name AND p.pronamespace = 'public'::regnamespace
 WHERE p.proname IS NULL
@@ -107,7 +117,9 @@ FROM (VALUES
   ('stays', 'on_stay_status_changed'),
   ('stays', 'on_stay_created_history'),
   ('profiles', 'on_profile_role_changed'),
-  ('tasks', 'set_task_phase_from_template')
+  ('tasks', 'set_task_phase_from_template'),
+  ('email_threads', 'handle_email_threads_updated_at'),
+  ('email_aliases', 'handle_email_aliases_updated_at')
 ) AS t(trigger_table, trigger_name)
 LEFT JOIN information_schema.triggers tr
   ON tr.trigger_schema = 'public'
@@ -129,7 +141,8 @@ FROM (VALUES
   ('task_statuses'), ('room_statuses'), ('room_types'),
   ('document_types'), ('booking_channels'), ('travel_reasons'),
   ('payment_methods'), ('revenue_centers'), ('expense_categories'),
-  ('task_labels'), ('expenses'), ('other_revenue'), ('budgets')
+  ('task_labels'), ('expenses'), ('other_revenue'), ('budgets'),
+  ('email_aliases'), ('email_threads'), ('email_messages'), ('email_suppressions')
 ) AS t(table_name)
 LEFT JOIN pg_tables pt ON pt.schemaname = 'public' AND pt.tablename = t.table_name
 WHERE pt.tablename IS NULL OR pt.rowsecurity = false

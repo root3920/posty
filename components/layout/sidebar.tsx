@@ -39,6 +39,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useContractKpis } from '@/hooks/use-contracts';
 import { useChatUnreadCount } from '@/hooks/use-chat';
+import { useEmailUnreadCount } from '@/hooks/use-email-inbox';
 import { useSidebarStore } from './sidebar-store';
 import { HotelLogo } from './hotel-logo';
 
@@ -63,6 +64,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/equipo', label: 'Equipo', icon: Users, module: 'team' },
   { href: '/tareas', label: 'Tareas', icon: CheckSquare, module: 'tasks' },
   { href: '/chat', label: 'Chat', icon: MessageCircle, module: 'chat', badgeKey: 'chat_unread' },
+  { href: '/correo', label: 'Correo', icon: Mail, module: 'email', badgeKey: 'email_unread' },
   { href: '/instagram', label: 'Instagram', icon: Camera, module: 'instagram' },
   {
     href: '/hotel',
@@ -275,10 +277,12 @@ export function Sidebar() {
   const { canViewModule, isLoading } = usePermissions();
   const { data: contractKpis } = useContractKpis();
   const { data: chatUnread } = useChatUnreadCount();
+  const { data: emailUnread } = useEmailUnreadCount();
 
   const badgeCounts: Record<string, number> = {
     contracts_alert: (contractKpis?.overdue_installments_count ?? 0) + (contractKpis?.expiring_soon ?? 0),
     chat_unread: chatUnread ?? 0,
+    email_unread: emailUnread ?? 0,
   };
 
   const visibleItems = isLoading

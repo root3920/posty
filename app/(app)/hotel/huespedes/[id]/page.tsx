@@ -36,6 +36,7 @@ import { MergeGuestsDialog } from '@/components/hotel/merge-guests-dialog';
 import { ContractStatusBadge } from '@/components/contracts/contract-status-badge';
 import { SendEmailDialog } from '@/components/email/send-email-dialog';
 import { EmailHistory } from '@/components/email/email-history';
+import { useGuestEmailThreads } from '@/hooks/use-email-inbox';
 import {
   useGuestDetail,
   useGuestStays,
@@ -410,6 +411,7 @@ export default function GuestDetailPage() {
                   Enviar correo
                 </Button>
               </div>
+              <GuestEmailThreadsList guestId={guestId} />
               <EmailHistory guestId={guestId} />
             </>
           ) : (
@@ -535,6 +537,72 @@ function GuestChatTab({ guestId, guestPhone }: { guestId: string; guestPhone?: s
             ))}
           </div>
         </div>
+      ))}
+    </div>
+  );
+}
+
+// -------------------------------------------------------
+// Guest Email Threads (shows threaded conversations)
+// -------------------------------------------------------
+
+function GuestEmailThreadsList({ guestId }: { guestId: string }) {
+  const { data: threads = [], isLoading } = useGuestEmailThreads(guestId);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-12 rounded-lg" />
+        <Skeleton className="h-12 rounded-lg" />
+      </div>
+    );
+  }
+
+  if (threads.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        Hilos de correo
+      </h3>
+      {threads.map((thread) => (
+        <Link
+          key={thread.id}
+          href={`/correo?thread=${thread.id}`}
+          className="flex items-center justify-between rounded-lg border p-3 text-sm transition-colors hover:bg-muted/50"
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className={cn(
+                'truncate text-sm',
+                thread.unread_count > 0 ? 'font-semibold' : 'font-medium',
+              )}>
+                {thread.subject}
+              </span>
+              {thread.unread_count > 0 && (
+                <Badge variant="default" className="h-4 min-w-4 shrink-0 px-1 text-[10px]">
+                  {thread.unread_count}
+                </Badge>
+              )}
+            </div>
+            {thread.sender_address && (
+              <p className="mt-0.5 truncate text-xs text-muted-foreground pl-5">
+                {thread.sender_address}
+              </p>
+            )}
+          </div>
+          <div className="shrink-0 text-right">
+            <Badge variant="outline" className="text-[10px]">
+              {thread.status === 'open' ? 'Abierto' : 'Cerrado'}
+            </Badge>
+            {thread.last_message_at && (
+              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                {format(new Date(thread.last_message_at), 'dd/MM/yy HH:mm')}
+              </p>
+            )}
+          </div>
+        </Link>
       ))}
     </div>
   );

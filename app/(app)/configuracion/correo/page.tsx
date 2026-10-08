@@ -1,24 +1,37 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Mail,
   CheckCircle2,
   Loader2,
   Send,
   AlertCircle,
+  Copy,
+  Check,
+  ArrowDownToLine,
+  Info,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useProfile } from '@/hooks/use-profile';
 import { useSendTestEmail, useUpdateContactEmail } from '@/hooks/use-email';
+import {
+  useEmailAlias,
+  useUpdateEmailAlias,
+  useGenerateEmailAlias,
+} from '@/hooks/use-email-inbox';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -45,9 +58,61 @@ export default function EmailConfigPage() {
   const { data: profile, isLoading: profileLoading } = useProfile();
   const org = profile?.organization;
   const orgId = profile?.organization_id;
+  const queryClient = useQueryClient();
 
   const sendTestEmail = useSendTestEmail();
   const updateContactEmail = useUpdateContactEmail();
+  const { data: aliasData, isLoading: aliasLoading } = useEmailAlias();
+  const updateAlias = useUpdateEmailAlias();
+  const generateAlias = useGenerateEmailAlias();
+
+  const [aliasInput, setAliasInput] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // Sync alias input with current value
+  useEffect(() => {
+    if (aliasData?.alias) setAliasInput(aliasData.alias);
+  }, [aliasData?.alias]);
+
+  const handleSaveAlias = () => {
+    const value = aliasInput.trim().toLowerCase();
+    if (!value) return;
+    updateAlias.mutate(value);
+  };
+
+  const handleGenerateAlias = () => {
+    generateAlias.mutate(undefined, {
+      onSuccess: (data) => {
+        setAliasInput(data.alias);
+        if (!data.alreadyExists) {
+          updateAlias.mutate(data.alias);
+        }
+      },
+    });
+  };
+
+  const handleCopyAddress = () => {
+    if (aliasData?.fullAddress) {
+      navigator.clipboard.writeText(aliasData.fullAddress);
+      setCopied(true);
+      toast.success('Dirección copiada');
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleToggleForwarding = async (checked: boolean) => {
+    const supabase = createClient() as any;
+    const { error } = await supabase
+      .from('organizations')
+      .update({ email_forward_inbound: checked })
+      .eq('id', orgId);
+    if (error) {
+      toast.error('Error al actualizar la configuración');
+    } else {
+      toast.success(checked ? 'Reenvío activado' : 'Reenvío desactivado');
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    }
+  };
 
   // Contact email form — values prop syncs when org data arrives
   const contactForm = useForm<ContactEmailForm>({
@@ -138,6 +203,140 @@ export default function EmailConfigPage() {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Correos enviados</span>
                 <span className="font-medium tabular-nums">{emailStats?.total ?? 0}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Hotel email address (alias) */}
+          <div className="rounded-xl border bg-card p-5 space-y-4">
+            <div>
+              <h2 className="text-sm font-semibold">Dirección de correo del hotel</h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Tu hotel tiene su propia dirección de correo para enviar y recibir
+                mensajes a través de POSTY. Los huéspedes verán esta dirección como remitente.
+              </p>
+            </div>
+
+            {aliasLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : aliasData?.alias ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2.5">
+                  <Mail className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="flex-1 font-mono text-sm font-medium">
+                    {aliasData.fullAddress}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyAddress}
+                    className="rounded-md p-1 text-muted-foreground hover:text-foreground"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <Input
+                    value={aliasInput}
+                    onChange={(e) => setAliasInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    placeholder="mi-hotel"
+                    className="flex-1 font-mono text-sm"
+                    maxLength={40}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSaveAlias}
+                    disabled={updateAlias.isPending || aliasInput === aliasData.alias}
+                  >
+                    {updateAlias.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                    Cambiar
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Al cambiar el alias, el anterior seguirá recibiendo correos durante 90 días.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Aún no tienes una dirección de correo. Genera una automáticamente o elige un alias personalizado.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={aliasInput}
+                    onChange={(e) => setAliasInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    placeholder="mi-hotel"
+                    className="flex-1 font-mono text-sm"
+                    maxLength={40}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSaveAlias}
+                    disabled={updateAlias.isPending || !aliasInput.trim()}
+                  >
+                    {updateAlias.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                    Crear
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateAlias}
+                  disabled={generateAlias.isPending}
+                  className="w-full"
+                >
+                  {generateAlias.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                  Generar automáticamente desde el nombre del hotel
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Forwarding toggle */}
+          <div className="rounded-xl border bg-card p-5 space-y-4">
+            <div>
+              <h2 className="text-sm font-semibold">Reenviar correos recibidos</h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Cuando llegue un correo al buzón de POSTY, se enviará una copia a tu correo de contacto.
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="forward-toggle" className="text-sm">
+                Enviarme una copia de los correos recibidos
+              </Label>
+              <Switch
+                id="forward-toggle"
+                checked={org?.email_forward_inbound ?? true}
+                onCheckedChange={handleToggleForwarding}
+              />
+            </div>
+            {org?.email_forward_inbound && org?.contact_email && (
+              <p className="text-xs text-muted-foreground">
+                Las copias se enviarán a: <span className="font-medium">{org.contact_email}</span>
+              </p>
+            )}
+            {org?.email_forward_inbound && !org?.contact_email && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Configura un correo de contacto arriba para recibir las copias.
+              </p>
+            )}
+          </div>
+
+          {/* Help: external forwarding */}
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm dark:border-blue-900 dark:bg-blue-950/30">
+            <div className="flex gap-2">
+              <Info className="h-4 w-4 shrink-0 text-blue-600 mt-0.5 dark:text-blue-400" />
+              <div className="space-y-1 text-blue-800 dark:text-blue-300">
+                <p className="font-medium">¿Ya usas otro correo para reservas?</p>
+                <p className="text-xs text-blue-700 dark:text-blue-400">
+                  Configura un reenvío automático en tu proveedor de correo (Gmail, Outlook, etc.)
+                  hacia <span className="font-mono font-medium">{aliasData?.fullAddress ?? 'tu-alias@mail.postyassistant.com'}</span> y
+                  todos los correos llegarán también al buzón de POSTY.
+                </p>
               </div>
             </div>
           </div>
