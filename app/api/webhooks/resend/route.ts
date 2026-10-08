@@ -6,7 +6,7 @@ import { shouldSkipEmail } from '@/lib/email/anti-loop';
 import { parseRecipientAddress } from '@/lib/email/alias';
 import { resolveThread } from '@/lib/email/thread-resolver';
 import { ManualEmail, manualEmailText } from '@/lib/email/templates/manual-email';
-import crypto from 'crypto';
+import { Webhook } from 'svix';
 import type { StoredAttachment, InboundEmailAttachment } from '@/lib/email/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -42,33 +42,6 @@ interface ResendWebhookPayload {
   };
 }
 
-// ─── Signature verification ─────────────────────────────────────────────
-
-function verifySignature(body: string, signature: string | null, secret: string): boolean {
-  if (!signature) return false;
-
-  const parts = signature.split(',');
-  if (parts.length < 2) return false;
-
-  const timestampAndSig = parts[1];
-  if (!timestampAndSig) return false;
-
-  const [timestamp, sig] = timestampAndSig.split('.');
-  if (!timestamp || !sig) return false;
-
-  const signedPayload = `${timestamp}.${body}`;
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(signedPayload)
-    .digest('base64');
-
-  try {
-    return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
-  } catch {
-    return false;
-  }
-}
-
 // ─── Outbound status map ────────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, string> = {
@@ -101,14 +74,38 @@ export async function POST(request: Request) {
   try {
     const rawBody = await request.text();
 
-    // Verify webhook signature
+    // Verify webhook signature using svix (Resend's signing library)
     const { env } = getEmailEnv();
-    const secret = env?.RESEND_WEBHOOK_SECRET;
+    const secret = env?.RESEND_WEBHOOK_SECRET?.trim();
 
     if (secret) {
-      const signature = request.headers.get('svix-signature');
-      if (!verifySignature(rawBody, signature, secret)) {
-        console.error('[Email Webhook] Invalid signature');
+      const svixId = request.headers.get('svix-id');
+      const svixTimestamp = request.headers.get('svix-timestamp');
+      const svixSignature = request.headers.get('svix-signature');
+
+      if (!svixId || !svixTimestamp || !svixSignature) {
+        console.error('[Email Webhook] Missing svix headers:', {
+          headers: Array.from(request.headers.keys()),
+          bodyLength: rawBody.length,
+        });
+        return Response.json({ error: 'Missing signature headers' }, { status: 401 });
+      }
+
+      try {
+        const wh = new Webhook(secret);
+        wh.verify(rawBody, {
+          'svix-id': svixId,
+          'svix-timestamp': svixTimestamp,
+          'svix-signature': svixSignature,
+        });
+      } catch (verifyErr) {
+        console.error('[Email Webhook] Signature verification failed:', {
+          error: verifyErr instanceof Error ? verifyErr.message : 'unknown',
+          headers: Array.from(request.headers.keys()),
+          bodyLength: rawBody.length,
+          secretLength: secret.length,
+          secretPrefix: secret.startsWith('whsec_') ? 'whsec_...' : 'no-whsec-prefix',
+        });
         return Response.json({ error: 'Invalid signature' }, { status: 401 });
       }
     }

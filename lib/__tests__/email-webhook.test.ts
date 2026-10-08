@@ -1,100 +1,86 @@
 import { describe, it, expect } from 'vitest';
-import crypto from 'crypto';
+import { Webhook } from 'svix';
 
 /**
- * Webhook signature verification tests.
- *
- * We test the verifySignature logic directly since the webhook handler
- * depends on the full Resend + Supabase infrastructure.
+ * Webhook signature verification tests using the svix library
+ * (same library Resend uses to sign webhooks).
  */
 
-// Replicate the verify function from the route
-function verifySignature(body: string, signature: string | null, secret: string): boolean {
-  if (!signature) return false;
+describe('webhook signature verification (svix)', () => {
+  // whsec_ prefix is required by svix — this is a test-only secret
+  const secret = 'whsec_dGVzdF9zZWNyZXRfa2V5XzEyMw==';
+  const body = JSON.stringify({ type: 'email.delivered', data: { email_id: 'evt_123' } });
 
-  const parts = signature.split(',');
-  if (parts.length < 2) return false;
+  function signPayload(payload: string, signingSecret: string) {
+    const wh = new Webhook(signingSecret);
+    const msgId = 'msg_test_123';
+    const timestamp = Math.floor(Date.now() / 1000).toString();
 
-  const timestampAndSig = parts[1];
-  if (!timestampAndSig) return false;
+    // svix signs: base64(HMAC-SHA256(secret, "${msgId}.${timestamp}.${body}"))
+    // We use the Webhook.sign method if available, otherwise build headers manually.
+    // The Webhook class verifies — to create valid signatures we use the same internal algorithm.
+    const crypto = require('crypto');
+    const secretBytes = Buffer.from(signingSecret.split('_').slice(1).join('_'), 'base64');
+    const toSign = `${msgId}.${timestamp}.${payload}`;
+    const sig = crypto.createHmac('sha256', secretBytes).update(toSign).digest('base64');
 
-  const [timestamp, sig] = timestampAndSig.split('.');
-  if (!timestamp || !sig) return false;
-
-  const signedPayload = `${timestamp}.${body}`;
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(signedPayload)
-    .digest('base64');
-
-  try {
-    return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
-  } catch {
-    return false;
+    return {
+      headers: {
+        'svix-id': msgId,
+        'svix-timestamp': timestamp,
+        'svix-signature': `v1,${sig}`,
+      },
+    };
   }
-}
 
-// Helper to create a valid signature
-function createValidSignature(body: string, secret: string): string {
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const signedPayload = `${timestamp}.${body}`;
-  const sig = crypto
-    .createHmac('sha256', secret)
-    .update(signedPayload)
-    .digest('base64');
-  return `v1,${timestamp}.${sig}`;
-}
-
-describe('webhook signature verification', () => {
-  const secret = 'whsec_test_secret_key_123';
-  const body = JSON.stringify({ type: 'email.received', data: { email_id: 'test-123' } });
-
-  it('accepts valid signature', () => {
-    const signature = createValidSignature(body, secret);
-    expect(verifySignature(body, signature, secret)).toBe(true);
-  });
-
-  it('rejects null signature', () => {
-    expect(verifySignature(body, null, secret)).toBe(false);
-  });
-
-  it('rejects empty signature', () => {
-    expect(verifySignature(body, '', secret)).toBe(false);
-  });
-
-  it('rejects malformed signature (no comma)', () => {
-    expect(verifySignature(body, 'v1.wrong', secret)).toBe(false);
-  });
-
-  it('rejects malformed signature (no dot)', () => {
-    expect(verifySignature(body, 'v1,nodot', secret)).toBe(false);
-  });
-
-  it('rejects wrong secret', () => {
-    const signature = createValidSignature(body, secret);
-    expect(verifySignature(body, signature, 'wrong_secret')).toBe(false);
+  it('accepts valid svix signature', () => {
+    const { headers } = signPayload(body, secret);
+    const wh = new Webhook(secret);
+    // Should not throw — that's the assertion
+    expect(() => wh.verify(body, headers)).not.toThrow();
   });
 
   it('rejects tampered body', () => {
-    const signature = createValidSignature(body, secret);
-    const tamperedBody = JSON.stringify({ type: 'email.received', data: { email_id: 'hacked' } });
-    expect(verifySignature(tamperedBody, signature, secret)).toBe(false);
+    const { headers } = signPayload(body, secret);
+    const wh = new Webhook(secret);
+    const tampered = JSON.stringify({ type: 'email.delivered', data: { email_id: 'hacked' } });
+    expect(() => wh.verify(tampered, headers)).toThrow();
   });
 
-  it('rejects signature with different timestamp', () => {
-    // Create signature with one timestamp, then replace it
-    const signature = createValidSignature(body, secret);
-    const parts = signature.split(',');
-    const [, sig] = parts[1].split('.');
-    const fakeSignature = `v1,9999999999.${sig}`;
-    expect(verifySignature(body, fakeSignature, secret)).toBe(false);
+  it('rejects wrong secret', () => {
+    const { headers } = signPayload(body, secret);
+    const wrongSecret = 'whsec_d3Jvbmdfc2VjcmV0X2tleQ==';
+    const wh = new Webhook(wrongSecret);
+    expect(() => wh.verify(body, headers)).toThrow();
+  });
+
+  it('rejects missing svix-id header', () => {
+    const { headers } = signPayload(body, secret);
+    const wh = new Webhook(secret);
+    expect(() => wh.verify(body, { ...headers, 'svix-id': '' })).toThrow();
+  });
+
+  it('rejects missing svix-timestamp header', () => {
+    const { headers } = signPayload(body, secret);
+    const wh = new Webhook(secret);
+    expect(() => wh.verify(body, { ...headers, 'svix-timestamp': '' })).toThrow();
+  });
+
+  it('rejects missing svix-signature header', () => {
+    const { headers } = signPayload(body, secret);
+    const wh = new Webhook(secret);
+    expect(() => wh.verify(body, { ...headers, 'svix-signature': '' })).toThrow();
+  });
+
+  it('rejects tampered signature', () => {
+    const { headers } = signPayload(body, secret);
+    const wh = new Webhook(secret);
+    expect(() => wh.verify(body, { ...headers, 'svix-signature': 'v1,invalid_sig==' })).toThrow();
   });
 });
 
 // -------------------------------------------------------
-// Anti-loop integration (tested in email-anti-loop.test.ts)
-// Here we verify the exact header values that the webhook
-// handler would encounter from real email providers.
+// Anti-loop integration
 // -------------------------------------------------------
 
 import { shouldSkipEmail } from '../email/anti-loop';
@@ -136,7 +122,6 @@ describe('anti-loop with real-world headers', () => {
   });
 
   it('allows newsletters (hotel may want to see them)', () => {
-    // We allow List-Unsubscribe emails through — they go to "Otros" tab
     const result = shouldSkipEmail({
       'From': 'newsletter@booking.com',
       'List-Unsubscribe': '<mailto:unsub@booking.com>',
