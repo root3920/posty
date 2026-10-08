@@ -176,12 +176,13 @@ export async function POST(request: Request) {
         .update({ status: 'sent', provider_id: result.id, updated_at: new Date().toISOString() })
         .eq('id', emailRow.id);
 
-      // Update thread: reset unread, update last_message_at, reopen if closed
+      // Update thread: reset unread, update last_message_at, preview, reopen if closed
       await adminDb
         .from('email_threads')
         .update({
           unread_count: 0,
           last_message_at: new Date().toISOString(),
+          last_message_preview: body.slice(0, 200),
           status: 'open',
           updated_at: new Date().toISOString(),
         })

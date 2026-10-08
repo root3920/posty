@@ -1,14 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { User, BedDouble, Calendar, Mail, Link2, UserPlus, ExternalLink } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { User, BedDouble, Calendar, Link2, UserPlus, ExternalLink, Search, Plus, Loader2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateOnly } from '@/lib/dates';
 import { useLinkGuestToThread } from '@/hooks/use-email-inbox';
+import { useProfile } from '@/hooks/use-profile';
+import { toast } from 'sonner';
 
 interface EmailGuestPanelProps {
   guestId: string | null;
@@ -49,29 +54,79 @@ function useGuestContext(guestId: string | null) {
   });
 }
 
-function useGuestSearch(email: string | null) {
+function useGuestSearchByQuery(query: string) {
   return useQuery({
-    queryKey: ['guest_by_email', email],
+    queryKey: ['guest_search_email_panel', query],
     queryFn: async () => {
-      if (!email) return [];
+      if (!query || query.length < 2) return [];
       const supabase = createClient();
+      const q = `%${query}%`;
       const { data } = await supabase
         .from('guests')
         .select('id, first_name, last_name, email')
-        .ilike('email', email.toLowerCase())
         .is('archived_at', null)
+        .or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q}`)
         .limit(5);
       return data ?? [];
     },
-    enabled: !!email && email.includes('@'),
-    staleTime: 60_000,
+    enabled: query.length >= 2,
+    staleTime: 10_000,
   });
 }
 
 export function EmailGuestPanel({ guestId, threadId, senderAddress }: EmailGuestPanelProps) {
   const { data, isLoading } = useGuestContext(guestId);
-  const { data: suggestedGuests = [] } = useGuestSearch(!guestId ? senderAddress : null);
   const linkGuest = useLinkGuestToThread();
+  const [searchQuery, setSearchQuery] = useState('');
+  const { data: searchResults = [] } = useGuestSearchByQuery(searchQuery);
+  const [creating, setCreating] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: profile } = useProfile();
+
+  const handleCreateGuest = async () => {
+    if (!senderAddress) return;
+    setCreating(true);
+    try {
+      const supabase = createClient();
+      // Extract name guess from email local part
+      const localPart = senderAddress.split('@')[0] || '';
+      const nameParts = localPart.replace(/[._-]/g, ' ').split(' ').filter(Boolean);
+      const firstName = nameParts[0]
+        ? nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1)
+        : senderAddress.split('@')[0];
+      const lastName = nameParts.length > 1
+        ? nameParts.slice(1).map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(' ')
+        : '';
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: guest, error } = await (supabase as any)
+        .from('guests')
+        .insert({
+          organization_id: profile?.organization_id,
+          first_name: firstName,
+          last_name: lastName || '',
+          email: senderAddress.toLowerCase(),
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        toast.error(error.message.includes('duplicate')
+          ? 'Ya existe un huésped con ese correo'
+          : 'Error al crear huésped');
+        return;
+      }
+
+      if (guest) {
+        linkGuest.mutate({ threadId, guestId: guest.id });
+        queryClient.invalidateQueries({ queryKey: ['guest_search_email_panel'] });
+      }
+    } catch {
+      toast.error('Error al crear huésped');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -82,43 +137,81 @@ export function EmailGuestPanel({ guestId, threadId, senderAddress }: EmailGuest
     );
   }
 
-  // No guest linked — show link suggestions
+  // No guest linked
   if (!guestId || !data?.guest) {
     return (
       <div className="flex h-full flex-col">
         <div className="border-b px-4 py-3">
           <h3 className="text-sm font-semibold">Huésped</h3>
         </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex flex-col items-center gap-2 py-4 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
               <User className="h-5 w-5 text-muted-foreground" />
             </div>
             <p className="text-xs text-muted-foreground">
-              Este hilo no está vinculado a ningún huésped
+              Sin huésped vinculado
             </p>
+          </div>
 
-            {/* Suggest guests matching the sender email */}
-            {suggestedGuests.length > 0 && (
-              <div className="w-full space-y-2 pt-2">
-                <p className="text-xs font-medium text-muted-foreground">Sugerencias:</p>
-                {suggestedGuests.map((g) => (
+          {/* Search for existing guest */}
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar huésped..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 pl-7 text-xs"
+              />
+            </div>
+
+            {searchResults.length > 0 && (
+              <div className="space-y-1">
+                {searchResults.map((g) => (
                   <button
                     key={g.id}
                     type="button"
-                    onClick={() => linkGuest.mutate({ threadId, guestId: g.id })}
-                    className="flex w-full items-center gap-2 rounded-lg border p-2.5 text-left text-xs transition-colors hover:bg-muted/50"
+                    onClick={() => {
+                      linkGuest.mutate({ threadId, guestId: g.id });
+                      setSearchQuery('');
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg border p-2 text-left text-xs transition-colors hover:bg-muted/50"
                   >
                     <UserPlus className="h-3.5 w-3.5 shrink-0 text-primary" />
                     <div className="min-w-0">
                       <p className="font-medium">{g.first_name} {g.last_name}</p>
-                      <p className="truncate text-muted-foreground">{g.email}</p>
+                      {g.email && <p className="truncate text-muted-foreground">{g.email}</p>}
                     </div>
                   </button>
                 ))}
               </div>
             )}
+
+            {searchQuery.length >= 2 && searchResults.length === 0 && (
+              <p className="text-center text-[11px] text-muted-foreground py-2">
+                No se encontraron huéspedes
+              </p>
+            )}
           </div>
+
+          {/* Create new guest from sender email */}
+          {senderAddress && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5 text-xs"
+              onClick={handleCreateGuest}
+              disabled={creating}
+            >
+              {creating ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Plus className="h-3 w-3" />
+              )}
+              Crear huésped con {senderAddress}
+            </Button>
+          )}
         </div>
       </div>
     );

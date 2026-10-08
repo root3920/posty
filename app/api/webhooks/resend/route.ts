@@ -6,6 +6,7 @@ import { shouldSkipEmail } from '@/lib/email/anti-loop';
 import { parseRecipientAddress } from '@/lib/email/alias';
 import { resolveThread } from '@/lib/email/thread-resolver';
 import { ManualEmail, manualEmailText } from '@/lib/email/templates/manual-email';
+import { extractPreviewText } from '@/lib/email/quote-utils';
 import { Webhook } from 'svix';
 import type { StoredAttachment, InboundEmailAttachment } from '@/lib/email/types';
 
@@ -401,7 +402,8 @@ async function processInboundEmail(
     throw stepError('insert_message', `Error al guardar mensaje: ${msgErr.message}`);
   }
 
-  // Step 9: Update thread counters
+  // Step 9: Update thread counters + preview
+  const preview = extractPreviewText(fullEmail.text, htmlSanitized);
   const { data: currentThread } = await db
     .from('email_threads')
     .select('unread_count')
@@ -412,6 +414,7 @@ async function processInboundEmail(
     .from('email_threads')
     .update({
       last_message_at: new Date().toISOString(),
+      last_message_preview: preview.slice(0, 200) || null,
       unread_count: (currentThread?.unread_count ?? 0) + 1,
       updated_at: new Date().toISOString(),
     })

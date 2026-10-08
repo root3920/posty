@@ -21,6 +21,7 @@ export interface EmailThread {
   unread_count: number;
   token: string;
   sender_address: string | null;
+  last_message_preview: string | null;
   created_at: string;
   updated_at: string;
 }

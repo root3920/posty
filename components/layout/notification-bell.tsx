@@ -2,21 +2,23 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Bell, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Bell, ArrowRight, CheckCircle2, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { useOnboarding } from '@/hooks/use-onboarding';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useEmailUnreadCount } from '@/hooks/use-email-inbox';
 import { STAGE_LABELS } from '@/lib/onboarding/types';
 
 /**
  * Notification bell in the header.
- * Shows pending essential onboarding steps as reminders.
+ * Shows pending essential onboarding steps + email unread count.
  */
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const { steps, essentialDone, isLoading } = useOnboarding();
   const { canViewModule } = usePermissions();
+  const { data: emailUnread = 0 } = useEmailUnreadCount();
 
   // Only show for Gestor
   const isGestor = canViewModule('settings');
@@ -26,7 +28,10 @@ export function NotificationBell() {
     (s) => s.stage === 'essential' && !s.done,
   );
 
-  const hasNotifications = isGestor && !essentialDone && pendingEssential.length > 0;
+  const hasOnboarding = isGestor && !essentialDone && pendingEssential.length > 0;
+  const hasEmailNotif = emailUnread > 0;
+  const hasNotifications = hasOnboarding || hasEmailNotif;
+  const totalCount = (hasOnboarding ? pendingEssential.length : 0) + (hasEmailNotif ? 1 : 0);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -43,7 +48,7 @@ export function NotificationBell() {
         <Bell className="h-4 w-4" />
         {hasNotifications && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
-            {pendingEssential.length}
+            {totalCount}
           </span>
         )}
       </PopoverTrigger>
@@ -63,7 +68,32 @@ export function NotificationBell() {
           </div>
         ) : (
           <div className="max-h-72 overflow-y-auto">
-            {pendingEssential.length > 0 && (
+            {/* Email unread notification */}
+            {hasEmailNotif && (
+              <div className="px-4 py-2">
+                <Link
+                  href="/correo"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-md px-2 py-2 text-xs hover:bg-muted"
+                >
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950">
+                    <Mail className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">
+                      {emailUnread === 1
+                        ? '1 correo sin leer'
+                        : `${emailUnread} correos sin leer`}
+                    </p>
+                    <p className="text-muted-foreground">Ir al buzón de correo</p>
+                  </div>
+                  <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                </Link>
+              </div>
+            )}
+
+            {/* Onboarding steps */}
+            {hasOnboarding && (
               <div className="px-4 py-2">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Pasos pendientes · {STAGE_LABELS.essential}

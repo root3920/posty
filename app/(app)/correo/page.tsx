@@ -18,6 +18,7 @@ import {
   Inbox,
   Archive,
   Download,
+  MoreHorizontal,
 } from 'lucide-react';
 import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -44,6 +45,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ComposeEmailDialog } from '@/components/email/compose-email-dialog';
 import { EmailGuestPanel } from '@/components/email/email-guest-panel';
+import { extractPreviewText, splitPlainTextQuote, htmlHasQuotedContent, QUOTE_HIDE_CSS } from '@/lib/email/quote-utils';
 import type { StoredAttachment } from '@/lib/email/types';
 
 // -------------------------------------------------------
@@ -428,6 +430,11 @@ function ThreadListItem({
             </span>
           )}
         </div>
+        {thread.last_message_preview && (
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+            {thread.last_message_preview}
+          </p>
+        )}
       </div>
     </button>
   );
@@ -583,9 +590,17 @@ function ThreadDetail({ thread, onBack, isMobile }: ThreadDetailProps) {
 
 function EmailMessageCard({ message }: { message: EmailMessage }) {
   const [showImages, setShowImages] = useState(false);
+  const [showQuoted, setShowQuoted] = useState(false);
   const isInbound = message.direction === 'in';
   const hasBlockedImages = message.html_sanitized?.includes('data-original-src=') ?? false;
   const attachments: StoredAttachment[] = Array.isArray(message.attachments) ? message.attachments : [];
+
+  // Detect quoted content
+  const hasQuoted = useMemo(() => {
+    if (message.html_sanitized) return htmlHasQuotedContent(message.html_sanitized);
+    if (message.body_text) return splitPlainTextQuote(message.body_text).quotedText !== null;
+    return false;
+  }, [message.html_sanitized, message.body_text]);
 
   // Build HTML for iframe, optionally restoring blocked images
   const displayHtml = useMemo(() => {
@@ -644,14 +659,13 @@ function EmailMessageCard({ message }: { message: EmailMessage }) {
       )}
 
       {/* Body */}
-      {displayHtml ? (
+      {displayHtml ? (<>
         <iframe
-          srcDoc={wrapHtmlForIframe(displayHtml)}
+          srcDoc={wrapHtmlForIframe(displayHtml, !showQuoted)}
           sandbox="allow-popups allow-popups-to-escape-sandbox"
           className="w-full rounded border-0 bg-white"
-          style={{ minHeight: 120, maxHeight: 500 }}
+          style={{ minHeight: 80, maxHeight: 500 }}
           onLoad={(e) => {
-            // Auto-resize iframe to content
             const iframe = e.currentTarget;
             try {
               const body = iframe.contentDocument?.body;
@@ -663,10 +677,37 @@ function EmailMessageCard({ message }: { message: EmailMessage }) {
             }
           }}
         />
+        {hasQuoted && !showQuoted && (
+          <button
+            type="button"
+            onClick={() => setShowQuoted(true)}
+            className="mt-2 flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted"
+          >
+            <MoreHorizontal className="h-3 w-3" />
+            Mostrar texto citado
+          </button>
+        )}
+      </>
       ) : message.body_text ? (
-        <div className="whitespace-pre-wrap text-sm text-foreground">
-          {message.body_text}
-        </div>
+        (() => {
+          const { newText, quotedText } = splitPlainTextQuote(message.body_text);
+          return (
+            <div className="text-sm text-foreground">
+              <div className="whitespace-pre-wrap">{showQuoted ? message.body_text : newText}</div>
+              {quotedText && !showQuoted && (
+                <button
+                  type="button"
+                  onClick={() => setShowQuoted(true)}
+                  className="mt-2 flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted"
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                  Mostrar texto citado
+                </button>
+              )}
+            </div>
+          );
+        })()
+
       ) : (
         <p className="text-sm text-muted-foreground italic">(sin contenido)</p>
       )}
@@ -703,7 +744,7 @@ function EmailMessageCard({ message }: { message: EmailMessage }) {
   );
 }
 
-function wrapHtmlForIframe(html: string): string {
+function wrapHtmlForIframe(html: string, hideQuotes: boolean = false): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -714,9 +755,10 @@ function wrapHtmlForIframe(html: string): string {
     img { max-width: 100%; height: auto; }
     a { color: #2563eb; }
     table { max-width: 100%; }
+    ${hideQuotes ? QUOTE_HIDE_CSS : ''}
   </style>
 </head>
-<body>${html}</body>
+<body${hideQuotes ? '' : ' class="posty-show-quoted"'}>${html}</body>
 </html>`;
 }
 
