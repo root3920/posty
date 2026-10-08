@@ -588,11 +588,44 @@ function ThreadDetail({ thread, onBack, isMobile }: ThreadDetailProps) {
 // Email Message Card
 // -------------------------------------------------------
 
+/** Check if HTML needs an iframe (has tables, images, or complex styling) */
+function isComplexHtml(html: string): boolean {
+  return /<table[\s>]|<img[\s>]|style\s*=\s*"[^"]*(?:background|float|position|display\s*:\s*(?:flex|grid))/i.test(html);
+}
+
+/** Strip HTML tags to get plain text */
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(?:p|div|h[1-6]|li|tr)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/** Check if the VISIBLE part (not the quoted part) has blocked external images */
+function visiblePartHasBlockedImages(html: string): boolean {
+  // Remove quoted sections first, then check for blocked images
+  const withoutQuotes = html
+    .replace(/<div[^>]*class="[^"]*gmail_quote[^"]*"[^>]*>[\s\S]*$/i, '')
+    .replace(/<blockquote[^>]*type\s*=\s*["']cite["'][^>]*>[\s\S]*?<\/blockquote>/gi, '')
+    .replace(/<div[^>]*id\s*=\s*["']divRplyFwdMsg["'][^>]*>[\s\S]*$/i, '');
+  return withoutQuotes.includes('data-original-src=');
+}
+
+const MAX_COLLAPSED_HEIGHT = 600;
+
 function EmailMessageCard({ message }: { message: EmailMessage }) {
   const [showImages, setShowImages] = useState(false);
   const [showQuoted, setShowQuoted] = useState(false);
+  const [showFull, setShowFull] = useState(false);
+  const [iframeHeight, setIframeHeight] = useState<number | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const isInbound = message.direction === 'in';
-  const hasBlockedImages = message.html_sanitized?.includes('data-original-src=') ?? false;
   const attachments: StoredAttachment[] = Array.isArray(message.attachments) ? message.attachments : [];
 
   // Detect quoted content
@@ -602,9 +635,44 @@ function EmailMessageCard({ message }: { message: EmailMessage }) {
     return false;
   }, [message.html_sanitized, message.body_text]);
 
-  // Build HTML for iframe, optionally restoring blocked images
+  // Decide rendering mode: simple text vs iframe
+  const renderMode = useMemo((): 'text' | 'iframe' => {
+    if (!message.html_sanitized) return 'text';
+    if (isComplexHtml(message.html_sanitized)) return 'iframe';
+    return 'text';
+  }, [message.html_sanitized]);
+
+  // For text mode: extract plain text from HTML (stripping quotes)
+  const textContent = useMemo(() => {
+    if (renderMode === 'iframe') return null;
+    if (message.html_sanitized) {
+      // Strip quoted sections from HTML, then convert to text
+      let html = message.html_sanitized;
+      if (!showQuoted) {
+        html = html
+          .replace(/<div[^>]*class="[^"]*gmail_quote[^"]*"[^>]*>[\s\S]*$/i, '')
+          .replace(/<blockquote[^>]*type\s*=\s*["']cite["'][^>]*>[\s\S]*?<\/blockquote>/gi, '')
+          .replace(/<div[^>]*id\s*=\s*["']divRplyFwdMsg["'][^>]*>[\s\S]*$/i, '');
+      }
+      return htmlToPlainText(html);
+    }
+    if (message.body_text) {
+      if (showQuoted) return message.body_text;
+      return splitPlainTextQuote(message.body_text).newText;
+    }
+    return null;
+  }, [message.html_sanitized, message.body_text, renderMode, showQuoted]);
+
+  // Blocked images — only check visible part
+  const hasBlockedImages = useMemo(() => {
+    if (!message.html_sanitized) return false;
+    if (showQuoted) return message.html_sanitized.includes('data-original-src=');
+    return visiblePartHasBlockedImages(message.html_sanitized);
+  }, [message.html_sanitized, showQuoted]);
+
+  // Build HTML for iframe
   const displayHtml = useMemo(() => {
-    if (!message.html_sanitized) return null;
+    if (renderMode !== 'iframe' || !message.html_sanitized) return null;
     let html = message.html_sanitized;
     if (showImages) {
       html = html.replace(
@@ -613,15 +681,32 @@ function EmailMessageCard({ message }: { message: EmailMessage }) {
       );
     }
     return html;
-  }, [message.html_sanitized, showImages]);
+  }, [message.html_sanitized, showImages, renderMode]);
+
+  // Listen for height messages from iframe
+  useEffect(() => {
+    if (renderMode !== 'iframe') return;
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'posty-iframe-height' && iframeRef.current) {
+        const h = Math.max(24, e.data.height);
+        setIframeHeight(h);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [renderMode]);
+
+  // Is the content taller than the max collapsed height?
+  const isTruncated = !showFull && iframeHeight !== null && iframeHeight > MAX_COLLAPSED_HEIGHT;
+  const isTextLong = !showFull && textContent !== null && textContent.length > 1500;
 
   return (
     <div className={cn(
-      'rounded-lg border bg-card p-4',
+      'rounded-lg border bg-card px-4 py-3',
       isInbound ? 'border-l-4 border-l-blue-400' : 'border-l-4 border-l-green-400',
     )}>
       {/* Header */}
-      <div className="mb-3 flex items-start justify-between gap-2">
+      <div className="mb-2 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className={cn(
@@ -646,12 +731,12 @@ function EmailMessageCard({ message }: { message: EmailMessage }) {
         </span>
       </div>
 
-      {/* Blocked images notice */}
+      {/* Blocked images — only if visible part has them */}
       {hasBlockedImages && !showImages && (
         <button
           type="button"
           onClick={() => setShowImages(true)}
-          className="mb-3 flex items-center gap-1.5 rounded-md bg-amber-50 px-3 py-1.5 text-xs text-amber-700 transition-colors hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:bg-amber-950/50"
+          className="mb-2 flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1 text-xs text-amber-700 transition-colors hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:bg-amber-950/50"
         >
           <Eye className="h-3.5 w-3.5" />
           Mostrar imágenes externas
@@ -659,62 +744,68 @@ function EmailMessageCard({ message }: { message: EmailMessage }) {
       )}
 
       {/* Body */}
-      {displayHtml ? (<>
-        <iframe
-          srcDoc={wrapHtmlForIframe(displayHtml, !showQuoted)}
-          sandbox="allow-popups allow-popups-to-escape-sandbox"
-          className="w-full rounded border-0 bg-white"
-          style={{ minHeight: 80, maxHeight: 500 }}
-          onLoad={(e) => {
-            const iframe = e.currentTarget;
-            try {
-              const body = iframe.contentDocument?.body;
-              if (body) {
-                iframe.style.height = `${Math.min(body.scrollHeight + 16, 500)}px`;
-              }
-            } catch {
-              // Cross-origin — ignore
-            }
-          }}
-        />
-        {hasQuoted && !showQuoted && (
-          <button
-            type="button"
-            onClick={() => setShowQuoted(true)}
-            className="mt-2 flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted"
+      {renderMode === 'iframe' && displayHtml ? (
+        <div className="relative">
+          <div
+            className={cn('overflow-hidden', isTruncated && 'relative')}
+            style={isTruncated ? { maxHeight: MAX_COLLAPSED_HEIGHT } : undefined}
           >
-            <MoreHorizontal className="h-3 w-3" />
-            Mostrar texto citado
-          </button>
-        )}
-      </>
-      ) : message.body_text ? (
-        (() => {
-          const { newText, quotedText } = splitPlainTextQuote(message.body_text);
-          return (
-            <div className="text-sm text-foreground">
-              <div className="whitespace-pre-wrap">{showQuoted ? message.body_text : newText}</div>
-              {quotedText && !showQuoted && (
-                <button
-                  type="button"
-                  onClick={() => setShowQuoted(true)}
-                  className="mt-2 flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted"
-                >
-                  <MoreHorizontal className="h-3 w-3" />
-                  Mostrar texto citado
-                </button>
-              )}
-            </div>
-          );
-        })()
-
+            <iframe
+              ref={iframeRef}
+              srcDoc={wrapHtmlForIframe(displayHtml, !showQuoted)}
+              sandbox="allow-popups allow-popups-to-escape-sandbox"
+              className="w-full border-0"
+              style={{
+                height: iframeHeight ? `${showFull ? iframeHeight : Math.min(iframeHeight, MAX_COLLAPSED_HEIGHT)}px` : '40px',
+                minHeight: 24,
+                display: 'block',
+              }}
+            />
+            {isTruncated && (
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card to-transparent" />
+            )}
+          </div>
+          {isTruncated && (
+            <button
+              type="button"
+              onClick={() => setShowFull(true)}
+              className="mt-1 text-xs font-medium text-primary hover:underline"
+            >
+              Ver mensaje completo
+            </button>
+          )}
+        </div>
+      ) : textContent ? (
+        <div className="text-sm text-foreground leading-relaxed">
+          <div className="whitespace-pre-wrap">{isTextLong ? textContent.slice(0, 1500) : textContent}</div>
+          {isTextLong && (
+            <button
+              type="button"
+              onClick={() => setShowFull(true)}
+              className="mt-1 text-xs font-medium text-primary hover:underline"
+            >
+              Ver mensaje completo
+            </button>
+          )}
+        </div>
       ) : (
         <p className="text-sm text-muted-foreground italic">(sin contenido)</p>
       )}
 
+      {/* Show quoted toggle — right after the body text */}
+      {hasQuoted && !showQuoted && (
+        <button
+          type="button"
+          onClick={() => setShowQuoted(true)}
+          className="mt-1.5 flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted"
+        >
+          <MoreHorizontal className="h-3 w-3" />
+        </button>
+      )}
+
       {/* Attachments */}
       {attachments.length > 0 && (
-        <div className="mt-3 space-y-1.5">
+        <div className="mt-2.5 space-y-1.5">
           <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
             <Paperclip className="h-3 w-3" />
             {attachments.length} adjunto{attachments.length > 1 ? 's' : ''}
@@ -751,14 +842,23 @@ function wrapHtmlForIframe(html: string, hideQuotes: boolean = false): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; color: #333; margin: 8px; word-wrap: break-word; overflow-wrap: break-word; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; color: #333; margin: 0; padding: 0; word-wrap: break-word; overflow-wrap: break-word; }
     img { max-width: 100%; height: auto; }
     a { color: #2563eb; }
     table { max-width: 100%; }
     ${hideQuotes ? QUOTE_HIDE_CSS : ''}
   </style>
 </head>
-<body${hideQuotes ? '' : ' class="posty-show-quoted"'}>${html}</body>
+<body${hideQuotes ? '' : ' class="posty-show-quoted"'}>${html}
+<script>
+  function reportHeight() {
+    var h = document.documentElement.scrollHeight || document.body.scrollHeight;
+    parent.postMessage({ type: 'posty-iframe-height', height: h }, '*');
+  }
+  reportHeight();
+  new ResizeObserver(reportHeight).observe(document.body);
+</script>
+</body>
 </html>`;
 }
 
