@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Mail,
@@ -19,6 +19,12 @@ import {
   Archive,
   Download,
   MoreHorizontal,
+  ChevronDown,
+  ChevronUp,
+  Maximize2,
+  Reply,
+  CalendarDays,
+  Clock,
 } from 'lucide-react';
 import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -27,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog';
 import { useIsMobile } from '@/hooks/use-media-query';
 import { useProfile } from '@/hooks/use-profile';
 import {
@@ -34,18 +41,21 @@ import {
   useEmailMessages,
   useEmailRealtime,
   useReplyToThread,
-  useComposeEmail,
   useMarkEmailThreadRead,
-  useAssignEmailThread,
   useSetEmailThreadStatus,
-  useLinkGuestToThread,
   type EmailThread,
   type EmailMessage,
 } from '@/hooks/use-email-inbox';
 import { cn } from '@/lib/utils';
 import { ComposeEmailDialog } from '@/components/email/compose-email-dialog';
 import { EmailGuestPanel } from '@/components/email/email-guest-panel';
-import { extractPreviewText, splitPlainTextQuote, htmlHasQuotedContent, QUOTE_HIDE_CSS } from '@/lib/email/quote-utils';
+import {
+  extractPreviewText,
+  extractNewContent,
+  htmlHasQuotedContent,
+  visiblePartHasBlockedImages,
+  QUOTE_HIDE_CSS,
+} from '@/lib/email/quote-utils';
 import type { StoredAttachment } from '@/lib/email/types';
 
 // -------------------------------------------------------
@@ -65,11 +75,15 @@ function formatMessageDate(dateStr: string): string {
   const date = new Date(dateStr);
   if (isToday(date)) return 'Hoy';
   if (isYesterday(date)) return 'Ayer';
-  return format(date, "EEEE d 'de' MMMM", { locale: es });
+  return format(date, "d 'de' MMMM", { locale: es });
 }
 
 function formatMessageTime(dateStr: string): string {
   return format(new Date(dateStr), 'HH:mm');
+}
+
+function formatFullDate(dateStr: string): string {
+  return format(new Date(dateStr), "EEEE d 'de' MMMM 'de' yyyy, HH:mm", { locale: es });
 }
 
 function isSameDay(a: string, b: string): boolean {
@@ -78,18 +92,31 @@ function isSameDay(a: string, b: string): boolean {
   return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
 }
 
+function getInitials(name: string): string {
+  return name
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
+function senderDisplayName(msg: EmailMessage): string {
+  if (msg.direction === 'out') return 'Tú';
+  if (!msg.from_address) return 'Desconocido';
+  // Try to extract name before <email>
+  const match = msg.from_address.match(/^"?([^"<]+)"?\s*</);
+  if (match) return match[1].trim();
+  return msg.from_address.split('@')[0] ?? msg.from_address;
+}
+
 // -------------------------------------------------------
 // Filter types
 // -------------------------------------------------------
 
 type FilterKey = 'inbox' | 'unread' | 'mine' | 'others' | 'closed';
 
-interface FilterChip {
-  key: FilterKey;
-  label: string;
-}
-
-const FILTER_CHIPS: FilterChip[] = [
+const FILTER_CHIPS: { key: FilterKey; label: string }[] = [
   { key: 'inbox', label: 'Recibidos' },
   { key: 'unread', label: 'Sin responder' },
   { key: 'mine', label: 'Míos' },
@@ -98,7 +125,7 @@ const FILTER_CHIPS: FilterChip[] = [
 ];
 
 // -------------------------------------------------------
-// Main Page
+// Main Page (unchanged from before — abbreviated here)
 // -------------------------------------------------------
 
 export default function CorreoPage() {
@@ -117,52 +144,31 @@ export default function CorreoPage() {
   const markRead = useMarkEmailThreadRead();
   const { data: allThreads = [], isLoading: threadsLoading } = useEmailThreads();
 
-  // Filter threads
   const filteredThreads = useMemo(() => {
     let filtered: EmailThread[];
     switch (activeFilter) {
-      case 'unread':
-        filtered = allThreads.filter((t) => t.status === 'open' && t.unread_count > 0);
-        break;
-      case 'mine':
-        filtered = allThreads.filter((t) => t.assigned_to === currentUserId && t.status === 'open');
-        break;
-      case 'others':
-        filtered = allThreads.filter((t) => !t.guest_id && t.status === 'open');
-        break;
-      case 'closed':
-        filtered = allThreads.filter((t) => t.status === 'closed');
-        break;
-      default: // inbox
-        filtered = allThreads.filter((t) => t.status === 'open');
+      case 'unread': filtered = allThreads.filter((t) => t.status === 'open' && t.unread_count > 0); break;
+      case 'mine': filtered = allThreads.filter((t) => t.assigned_to === currentUserId && t.status === 'open'); break;
+      case 'others': filtered = allThreads.filter((t) => !t.guest_id && t.status === 'open'); break;
+      case 'closed': filtered = allThreads.filter((t) => t.status === 'closed'); break;
+      default: filtered = allThreads.filter((t) => t.status === 'open');
     }
-
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (t) =>
-          t.subject.toLowerCase().includes(q) ||
-          (t.sender_address ?? '').toLowerCase().includes(q),
-      );
+      filtered = filtered.filter((t) => t.subject.toLowerCase().includes(q) || (t.sender_address ?? '').toLowerCase().includes(q));
     }
-
     return filtered;
   }, [allThreads, activeFilter, currentUserId, searchQuery]);
 
   const selectedThread = allThreads.find((t) => t.id === selectedId) ?? null;
 
-  const handleSelectThread = useCallback(
-    (id: string) => {
-      setSelectedId(id);
-      if (isMobile) setIsMobileMessageView(true);
-      markRead.mutate(id);
-    },
-    [isMobile, markRead],
-  );
+  const handleSelectThread = useCallback((id: string) => {
+    setSelectedId(id);
+    if (isMobile) setIsMobileMessageView(true);
+    markRead.mutate(id);
+  }, [isMobile, markRead]);
 
-  const handleBack = useCallback(() => {
-    setIsMobileMessageView(false);
-  }, []);
+  const handleBack = useCallback(() => { setIsMobileMessageView(false); }, []);
 
   function countFilter(key: FilterKey): number {
     switch (key) {
@@ -180,261 +186,110 @@ export default function CorreoPage() {
         {isMobile ? (
           isMobileMessageView ? (
             <div className="flex h-full w-full flex-col">
-              <ThreadDetail
-                thread={selectedThread}
-                onBack={handleBack}
-                isMobile
-              />
+              <ThreadDetail thread={selectedThread} onBack={handleBack} isMobile />
             </div>
           ) : (
             <div className="flex h-full w-full flex-col">
-              <ThreadsColumn
-                threads={filteredThreads}
-                selectedId={selectedId}
-                searchQuery={searchQuery}
-                activeFilter={activeFilter}
-                isLoading={threadsLoading}
-                onSelect={handleSelectThread}
-                onSearchChange={setSearchQuery}
-                onFilterChange={setActiveFilter}
-                onCompose={() => setComposeOpen(true)}
-                countFilter={countFilter}
-              />
+              <ThreadsColumn threads={filteredThreads} selectedId={selectedId} searchQuery={searchQuery}
+                activeFilter={activeFilter} isLoading={threadsLoading} onSelect={handleSelectThread}
+                onSearchChange={setSearchQuery} onFilterChange={setActiveFilter}
+                onCompose={() => setComposeOpen(true)} countFilter={countFilter} />
             </div>
           )
         ) : (
           <>
-            {/* Left: thread list */}
             <div className="flex w-80 shrink-0 flex-col border-r">
-              <ThreadsColumn
-                threads={filteredThreads}
-                selectedId={selectedId}
-                searchQuery={searchQuery}
-                activeFilter={activeFilter}
-                isLoading={threadsLoading}
-                onSelect={handleSelectThread}
-                onSearchChange={setSearchQuery}
-                onFilterChange={setActiveFilter}
-                onCompose={() => setComposeOpen(true)}
-                countFilter={countFilter}
-              />
+              <ThreadsColumn threads={filteredThreads} selectedId={selectedId} searchQuery={searchQuery}
+                activeFilter={activeFilter} isLoading={threadsLoading} onSelect={handleSelectThread}
+                onSearchChange={setSearchQuery} onFilterChange={setActiveFilter}
+                onCompose={() => setComposeOpen(true)} countFilter={countFilter} />
             </div>
-
-            {/* Center: thread detail */}
             <div className="flex min-w-0 flex-1 flex-col">
-              {selectedThread ? (
-                <ThreadDetail thread={selectedThread} />
-              ) : (
-                <EmptyState />
-              )}
+              {selectedThread ? <ThreadDetail thread={selectedThread} /> : <EmptyState />}
             </div>
-
-            {/* Right: guest panel (xl only) */}
             {selectedThread && (
               <div className="hidden w-72 shrink-0 border-l xl:block">
-                <EmailGuestPanel
-                  guestId={selectedThread.guest_id}
-                  threadId={selectedThread.id}
-                  senderAddress={selectedThread.sender_address}
-                />
+                <EmailGuestPanel guestId={selectedThread.guest_id} threadId={selectedThread.id} senderAddress={selectedThread.sender_address} />
               </div>
             )}
           </>
         )}
       </div>
-
-      <ComposeEmailDialog
-        open={composeOpen}
-        onOpenChange={setComposeOpen}
-      />
+      <ComposeEmailDialog open={composeOpen} onOpenChange={setComposeOpen} />
     </div>
   );
 }
 
 // -------------------------------------------------------
-// Threads Column (left sidebar)
+// Threads Column (left sidebar — unchanged)
 // -------------------------------------------------------
 
-interface ThreadsColumnProps {
-  threads: EmailThread[];
-  selectedId: string | null;
-  searchQuery: string;
-  activeFilter: FilterKey;
-  isLoading: boolean;
-  onSelect: (id: string) => void;
-  onSearchChange: (q: string) => void;
-  onFilterChange: (f: FilterKey) => void;
-  onCompose: () => void;
-  countFilter: (key: FilterKey) => number;
-}
-
-function ThreadsColumn({
-  threads,
-  selectedId,
-  searchQuery,
-  activeFilter,
-  isLoading,
-  onSelect,
-  onSearchChange,
-  onFilterChange,
-  onCompose,
-  countFilter,
-}: ThreadsColumnProps) {
+function ThreadsColumn({ threads, selectedId, searchQuery, activeFilter, isLoading, onSelect, onSearchChange, onFilterChange, onCompose, countFilter }: {
+  threads: EmailThread[]; selectedId: string | null; searchQuery: string; activeFilter: FilterKey;
+  isLoading: boolean; onSelect: (id: string) => void; onSearchChange: (q: string) => void;
+  onFilterChange: (f: FilterKey) => void; onCompose: () => void; countFilter: (key: FilterKey) => number;
+}) {
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
       <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2">
           <Mail className="h-5 w-5 text-primary" />
           <h1 className="font-heading text-lg font-semibold">Correo</h1>
         </div>
         <Button size="sm" variant="outline" onClick={onCompose} className="h-8 gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Redactar</span>
+          <Plus className="h-3.5 w-3.5" /><span className="hidden sm:inline">Redactar</span>
         </Button>
       </div>
-
-      {/* Search */}
       <div className="shrink-0 border-b px-3 py-2">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar correo..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="h-8 pl-8 text-sm"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => onSearchChange('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
+          <Input placeholder="Buscar correo..." value={searchQuery} onChange={(e) => onSearchChange(e.target.value)} className="h-8 pl-8 text-sm" />
+          {searchQuery && <button type="button" onClick={() => onSearchChange('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>}
         </div>
       </div>
-
-      {/* Filter chips */}
       <div className="flex shrink-0 gap-1.5 overflow-x-auto border-b px-3 py-2">
         {FILTER_CHIPS.map((chip) => {
           const count = countFilter(chip.key);
           return (
-            <button
-              key={chip.key}
-              onClick={() => onFilterChange(chip.key)}
-              className={cn(
-                'flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
-                activeFilter === chip.key
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80',
-              )}
-            >
+            <button key={chip.key} onClick={() => onFilterChange(chip.key)} className={cn(
+              'flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
+              activeFilter === chip.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80',
+            )}>
               {chip.label}
               {count > 0 && <span className="rounded-full px-1 text-[10px]">{count}</span>}
             </button>
           );
         })}
       </div>
-
-      {/* Thread list */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="space-y-1 p-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 rounded-lg" />
-            ))}
-          </div>
+          <div className="space-y-1 p-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
         ) : threads.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-16 text-center text-sm text-muted-foreground">
-            <Inbox className="h-8 w-8 opacity-40" />
-            <p>No hay correos</p>
-          </div>
+          <div className="flex flex-col items-center justify-center gap-2 py-16 text-center text-sm text-muted-foreground"><Inbox className="h-8 w-8 opacity-40" /><p>No hay correos</p></div>
         ) : (
-          <div className="space-y-0.5 p-1.5">
-            {threads.map((thread) => (
-              <ThreadListItem
-                key={thread.id}
-                thread={thread}
-                isSelected={thread.id === selectedId}
-                onSelect={() => onSelect(thread.id)}
-              />
-            ))}
-          </div>
+          <div className="space-y-0.5 p-1.5">{threads.map((t) => <ThreadListItem key={t.id} thread={t} isSelected={t.id === selectedId} onSelect={() => onSelect(t.id)} />)}</div>
         )}
       </div>
     </div>
   );
 }
 
-// -------------------------------------------------------
-// Thread List Item
-// -------------------------------------------------------
-
-function ThreadListItem({
-  thread,
-  isSelected,
-  onSelect,
-}: {
-  thread: EmailThread;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
+function ThreadListItem({ thread, isSelected, onSelect }: { thread: EmailThread; isSelected: boolean; onSelect: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        'flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
-        isSelected
-          ? 'bg-accent'
-          : 'hover:bg-muted/50',
-      )}
-    >
-      {/* Avatar / icon */}
-      <div className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white',
-        thread.guest_id ? 'bg-blue-500' : 'bg-gray-400',
-      )}>
-        {thread.guest_id ? (
-          <User className="h-4 w-4" />
-        ) : (
-          <Mail className="h-4 w-4" />
-        )}
+    <button type="button" onClick={onSelect} className={cn('flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors', isSelected ? 'bg-accent' : 'hover:bg-muted/50')}>
+      <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white', thread.guest_id ? 'bg-blue-500' : 'bg-gray-400')}>
+        {getInitials(thread.sender_address || '?')}
       </div>
-
-      {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className={cn(
-            'truncate text-sm',
-            thread.unread_count > 0 ? 'font-semibold' : 'font-medium',
-          )}>
-            {thread.sender_address || '(sin remitente)'}
-          </span>
-          <span className="shrink-0 text-[11px] text-muted-foreground">
-            {formatThreadTime(thread.last_message_at)}
-          </span>
+          <span className={cn('truncate text-sm', thread.unread_count > 0 ? 'font-semibold' : 'font-medium')}>{thread.sender_address || '(sin remitente)'}</span>
+          <span className="shrink-0 text-[11px] text-muted-foreground">{formatThreadTime(thread.last_message_at)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className={cn(
-            'truncate text-xs',
-            thread.unread_count > 0 ? 'font-medium text-foreground' : 'text-muted-foreground',
-          )}>
-            {thread.subject}
-          </span>
-          {thread.unread_count > 0 && (
-            <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-              {thread.unread_count}
-            </span>
-          )}
+          <span className={cn('truncate text-xs', thread.unread_count > 0 ? 'font-medium text-foreground' : 'text-muted-foreground')}>{thread.subject}</span>
+          {thread.unread_count > 0 && <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">{thread.unread_count}</span>}
         </div>
-        {thread.last_message_preview && (
-          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-            {thread.last_message_preview}
-          </p>
-        )}
+        {thread.last_message_preview && <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{thread.last_message_preview}</p>}
       </div>
     </button>
   );
@@ -444,28 +299,30 @@ function ThreadListItem({
 // Thread Detail (center column)
 // -------------------------------------------------------
 
-interface ThreadDetailProps {
-  thread: EmailThread | null;
-  onBack?: () => void;
-  isMobile?: boolean;
-}
-
-function ThreadDetail({ thread, onBack, isMobile }: ThreadDetailProps) {
+function ThreadDetail({ thread, onBack, isMobile }: { thread: EmailThread | null; onBack?: () => void; isMobile?: boolean }) {
   const { data: messages = [], isLoading } = useEmailMessages(thread?.id ?? null);
   const reply = useReplyToThread();
   const setStatus = useSetEmailThreadStatus();
   const [replyText, setReplyText] = useState('');
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const replyRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages.length]);
 
-  if (!thread) {
-    return <EmptyState />;
-  }
+  // Reset expanded state when thread changes
+  useEffect(() => { setExpandedIds(new Set()); }, [thread?.id]);
+
+  if (!thread) return <EmptyState />;
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const handleSendReply = () => {
     const text = replyText.trim();
@@ -474,80 +331,54 @@ function ThreadDetail({ thread, onBack, isMobile }: ThreadDetailProps) {
     setReplyText('');
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendReply();
-    }
+  const handleKeyDown = (e: ReactKeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); }
   };
+
+  const focusReply = () => { replyRef.current?.focus(); replyRef.current?.scrollIntoView({ behavior: 'smooth' }); };
 
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex shrink-0 items-center gap-3 border-b px-4 py-3">
-        {(isMobile || onBack) && (
-          <button type="button" onClick={onBack} className="rounded-md p-1 hover:bg-muted">
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-        )}
+        {(isMobile || onBack) && <button type="button" onClick={onBack} className="rounded-md p-1 hover:bg-muted"><ArrowLeft className="h-4 w-4" /></button>}
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-sm font-semibold">{thread.subject}</h2>
-          <p className="truncate text-xs text-muted-foreground">{thread.sender_address}</p>
+          <p className="truncate text-xs text-muted-foreground">{messages.length} mensaje{messages.length !== 1 ? 's' : ''}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {thread.status === 'open' ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setStatus.mutate({ threadId: thread.id, status: 'closed' })}
-              className="h-7 gap-1 text-xs"
-            >
-              <Archive className="h-3.5 w-3.5" />
-              Cerrar
-            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setStatus.mutate({ threadId: thread.id, status: 'closed' })} className="h-7 gap-1 text-xs"><Archive className="h-3.5 w-3.5" />Cerrar</Button>
           ) : (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setStatus.mutate({ threadId: thread.id, status: 'open' })}
-              className="h-7 gap-1 text-xs"
-            >
-              <MailOpen className="h-3.5 w-3.5" />
-              Reabrir
-            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setStatus.mutate({ threadId: thread.id, status: 'open' })} className="h-7 gap-1 text-xs"><MailOpen className="h-3.5 w-3.5" />Reabrir</Button>
           )}
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      {/* Messages timeline */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4">
         {isLoading ? (
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-lg" />
-            ))}
-          </div>
+          <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-            <Mail className="h-8 w-8 opacity-40" />
-            <p>No hay mensajes en este hilo</p>
-          </div>
+          <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-muted-foreground"><Mail className="h-8 w-8 opacity-40" /><p>No hay mensajes</p></div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {messages.map((msg, idx) => {
               const showDate = idx === 0 || !isSameDay(messages[idx - 1].created_at, msg.created_at);
+              const isExpanded = expandedIds.has(msg.id);
               return (
                 <div key={msg.id}>
                   {showDate && (
-                    <div className="flex items-center gap-3 py-3">
+                    <div className="flex items-center gap-2 py-2">
                       <div className="h-px flex-1 bg-border" />
-                      <span className="text-[11px] font-medium text-muted-foreground">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        <CalendarDays className="h-3 w-3" />
                         {formatMessageDate(msg.created_at)}
                       </span>
                       <div className="h-px flex-1 bg-border" />
                     </div>
                   )}
-                  <EmailMessageCard message={msg} />
+                  <MessageCard message={msg} isExpanded={isExpanded} onToggle={() => toggleExpand(msg.id)} onReply={focusReply} />
                 </div>
               );
             })}
@@ -560,23 +391,9 @@ function ThreadDetail({ thread, onBack, isMobile }: ThreadDetailProps) {
       {thread.status === 'open' && (
         <div className="shrink-0 border-t bg-background p-3">
           <div className="flex gap-2">
-            <Textarea
-              ref={textareaRef}
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Escribe tu respuesta..."
-              className="min-h-[60px] max-h-[160px] resize-none text-sm"
-              rows={2}
-            />
-            <Button
-              size="sm"
-              onClick={handleSendReply}
-              disabled={!replyText.trim() || reply.isPending}
-              className="h-auto self-end px-3"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+            <Textarea ref={replyRef} value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={handleKeyDown}
+              placeholder="Escribe tu respuesta..." className="min-h-[56px] max-h-[160px] resize-none text-sm" rows={2} />
+            <Button size="sm" onClick={handleSendReply} disabled={!replyText.trim() || reply.isPending} className="h-auto self-end px-3"><Send className="h-4 w-4" /></Button>
           </div>
         </div>
       )}
@@ -585,281 +402,290 @@ function ThreadDetail({ thread, onBack, isMobile }: ThreadDetailProps) {
 }
 
 // -------------------------------------------------------
-// Email Message Card
+// Message Card (collapsed / expanded)
 // -------------------------------------------------------
 
-/** Check if HTML needs an iframe (has tables, images, or complex styling) */
-function isComplexHtml(html: string): boolean {
-  return /<table[\s>]|<img[\s>]|style\s*=\s*"[^"]*(?:background|float|position|display\s*:\s*(?:flex|grid))/i.test(html);
-}
+const MAX_IFRAME_HEIGHT = 700;
 
-/** Strip HTML tags to get plain text */
-function htmlToPlainText(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(?:p|div|h[1-6]|li|tr)>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-/** Check if the VISIBLE part (not the quoted part) has blocked external images */
-function visiblePartHasBlockedImages(html: string): boolean {
-  // Remove quoted sections first, then check for blocked images
-  const withoutQuotes = html
-    .replace(/<div[^>]*class="[^"]*gmail_quote[^"]*"[^>]*>[\s\S]*$/i, '')
-    .replace(/<blockquote[^>]*type\s*=\s*["']cite["'][^>]*>[\s\S]*?<\/blockquote>/gi, '')
-    .replace(/<div[^>]*id\s*=\s*["']divRplyFwdMsg["'][^>]*>[\s\S]*$/i, '');
-  return withoutQuotes.includes('data-original-src=');
-}
-
-const MAX_COLLAPSED_HEIGHT = 600;
-
-function EmailMessageCard({ message }: { message: EmailMessage }) {
-  const [showImages, setShowImages] = useState(false);
-  const [showQuoted, setShowQuoted] = useState(false);
-  const [showFull, setShowFull] = useState(false);
-  const [iframeHeight, setIframeHeight] = useState<number | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+function MessageCard({ message, isExpanded, onToggle, onReply }: {
+  message: EmailMessage; isExpanded: boolean; onToggle: () => void; onReply: () => void;
+}) {
   const isInbound = message.direction === 'in';
+  const name = senderDisplayName(message);
+  const initials = getInitials(message.from_address || name);
   const attachments: StoredAttachment[] = Array.isArray(message.attachments) ? message.attachments : [];
 
-  // Detect quoted content
+  // Preview text (for collapsed state)
+  const preview = useMemo(() => extractPreviewText(message.body_text, message.html_sanitized), [message.body_text, message.html_sanitized]);
+
+  // Status indicator for sent messages
+  const statusLabel = message.direction === 'out' ? (
+    message.status === 'delivered' ? <span className="flex items-center gap-0.5 text-green-600 dark:text-green-400"><CheckCircle2 className="h-3 w-3" />Entregado</span> :
+    message.status === 'failed' ? <span className="flex items-center gap-0.5 text-red-600 dark:text-red-400"><XCircle className="h-3 w-3" />Error</span> :
+    message.status === 'bounced' ? <span className="flex items-center gap-0.5 text-amber-600"><XCircle className="h-3 w-3" />Rebotado</span> :
+    null
+  ) : null;
+
+  // ── COLLAPSED ──
+  if (!isExpanded) {
+    return (
+      <button
+        type="button"
+        onClick={onToggle}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        aria-expanded={false}
+        className={cn(
+          'flex w-full items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:bg-muted/50',
+          isInbound ? 'border-l-[3px] border-l-blue-400' : 'border-l-[3px] border-l-green-400',
+        )}
+      >
+        {/* Avatar */}
+        <div className={cn(
+          'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white',
+          isInbound ? 'bg-blue-500' : 'bg-green-600',
+        )}>
+          {initials || <Mail className="h-3.5 w-3.5" />}
+        </div>
+
+        {/* Name + preview */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-medium">{name}</span>
+            {statusLabel && <span className="shrink-0 text-[10px]">{statusLabel}</span>}
+          </div>
+          <p className="truncate text-xs text-muted-foreground">{preview}</p>
+        </div>
+
+        {/* Time + arrow */}
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="text-[11px] text-muted-foreground">{formatMessageTime(message.created_at)}</span>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        </div>
+      </button>
+    );
+  }
+
+  // ── EXPANDED ──
+  return <ExpandedMessageCard message={message} name={name} initials={initials} isInbound={isInbound}
+    attachments={attachments} statusLabel={statusLabel} onToggle={onToggle} onReply={onReply} />;
+}
+
+function ExpandedMessageCard({ message, name, initials, isInbound, attachments, statusLabel, onToggle, onReply }: {
+  message: EmailMessage; name: string; initials: string; isInbound: boolean;
+  attachments: StoredAttachment[]; statusLabel: React.ReactNode;
+  onToggle: () => void; onReply: () => void;
+}) {
+  const [showQuoted, setShowQuoted] = useState(false);
+  const [showImages, setShowImages] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  const [iframeHeight, setIframeHeight] = useState<number>(60);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
   const hasQuoted = useMemo(() => {
     if (message.html_sanitized) return htmlHasQuotedContent(message.html_sanitized);
-    if (message.body_text) return splitPlainTextQuote(message.body_text).quotedText !== null;
+    if (message.body_text) return extractNewContent(message.body_text, null).hasQuoted;
     return false;
   }, [message.html_sanitized, message.body_text]);
 
-  // Decide rendering mode: simple text vs iframe
-  const renderMode = useMemo((): 'text' | 'iframe' => {
-    if (!message.html_sanitized) return 'text';
-    if (isComplexHtml(message.html_sanitized)) return 'iframe';
-    return 'text';
-  }, [message.html_sanitized]);
-
-  // For text mode: extract plain text from HTML (stripping quotes)
-  const textContent = useMemo(() => {
-    if (renderMode === 'iframe') return null;
-    if (message.html_sanitized) {
-      // Strip quoted sections from HTML, then convert to text
-      let html = message.html_sanitized;
-      if (!showQuoted) {
-        html = html
-          .replace(/<div[^>]*class="[^"]*gmail_quote[^"]*"[^>]*>[\s\S]*$/i, '')
-          .replace(/<blockquote[^>]*type\s*=\s*["']cite["'][^>]*>[\s\S]*?<\/blockquote>/gi, '')
-          .replace(/<div[^>]*id\s*=\s*["']divRplyFwdMsg["'][^>]*>[\s\S]*$/i, '');
-      }
-      return htmlToPlainText(html);
-    }
-    if (message.body_text) {
-      if (showQuoted) return message.body_text;
-      return splitPlainTextQuote(message.body_text).newText;
-    }
-    return null;
-  }, [message.html_sanitized, message.body_text, renderMode, showQuoted]);
-
-  // Blocked images — only check visible part
   const hasBlockedImages = useMemo(() => {
     if (!message.html_sanitized) return false;
-    if (showQuoted) return message.html_sanitized.includes('data-original-src=');
-    return visiblePartHasBlockedImages(message.html_sanitized);
+    return showQuoted
+      ? message.html_sanitized.includes('data-original-src=')
+      : visiblePartHasBlockedImages(message.html_sanitized);
   }, [message.html_sanitized, showQuoted]);
 
-  // Build HTML for iframe
-  const displayHtml = useMemo(() => {
-    if (renderMode !== 'iframe' || !message.html_sanitized) return null;
+  // Decide: use iframe or text
+  const useIframe = useMemo(() => {
+    if (!message.html_sanitized) return false;
+    return /<table[\s>]|<img[\s>]|style\s*=\s*"[^"]*(?:background|float|position)/i.test(message.html_sanitized);
+  }, [message.html_sanitized]);
+
+  // Build iframe HTML
+  const iframeHtml = useMemo(() => {
+    if (!useIframe || !message.html_sanitized) return null;
     let html = message.html_sanitized;
     if (showImages) {
-      html = html.replace(
-        /src="data:image\/png;base64,[^"]*"\s*alt="([^"]*)"\s*data-original-src="([^"]*)"/g,
-        'src="$2" alt="$1"',
-      );
+      html = html.replace(/src="data:image\/png;base64,[^"]*"\s*alt="([^"]*)"\s*data-original-src="([^"]*)"/g, 'src="$2" alt="$1"');
     }
     return html;
-  }, [message.html_sanitized, showImages, renderMode]);
+  }, [message.html_sanitized, showImages, useIframe]);
 
-  // Listen for height messages from iframe
+  // Text content for non-iframe mode
+  const textContent = useMemo(() => {
+    if (useIframe) return null;
+    const { text } = extractNewContent(message.body_text, message.html_sanitized);
+    return text;
+  }, [message.body_text, message.html_sanitized, useIframe]);
+
+  // Full text (with quotes) for text mode
+  const fullText = useMemo(() => {
+    if (useIframe) return null;
+    if (message.body_text) return message.body_text;
+    if (message.html_sanitized) {
+      return message.html_sanitized
+        .replace(/<br\s*\/?>/gi, '\n').replace(/<\/(?:p|div|h[1-6]|li|tr)>/gi, '\n')
+        .replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\n{3,}/g, '\n\n').trim();
+    }
+    return null;
+  }, [message.body_text, message.html_sanitized, useIframe]);
+
+  // Iframe height listener
   useEffect(() => {
-    if (renderMode !== 'iframe') return;
+    if (!useIframe) return;
     const handler = (e: MessageEvent) => {
-      if (e.data?.type === 'posty-iframe-height' && iframeRef.current) {
-        const h = Math.max(24, e.data.height);
-        setIframeHeight(h);
+      if (e.data?.type === 'posty-iframe-height' && e.data?.msgId === message.id) {
+        setIframeHeight(Math.max(32, e.data.height));
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [renderMode]);
+  }, [useIframe, message.id]);
 
-  // Is the content taller than the max collapsed height?
-  const isTruncated = !showFull && iframeHeight !== null && iframeHeight > MAX_COLLAPSED_HEIGHT;
-  const isTextLong = !showFull && textContent !== null && textContent.length > 1500;
+  const needsScroll = iframeHeight > MAX_IFRAME_HEIGHT;
 
   return (
     <div className={cn(
-      'rounded-lg border bg-card px-4 py-3',
-      isInbound ? 'border-l-4 border-l-blue-400' : 'border-l-4 border-l-green-400',
+      'rounded-lg border bg-card transition-shadow',
+      isInbound ? 'border-l-[3px] border-l-blue-400' : 'border-l-[3px] border-l-green-400',
     )}>
-      {/* Header */}
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className={cn(
-              'text-sm font-medium',
-              isInbound ? 'text-blue-700 dark:text-blue-400' : 'text-green-700 dark:text-green-400',
-            )}>
-              {isInbound ? (message.from_address || 'Remitente desconocido') : 'Tú'}
-            </span>
-            <Badge variant="outline" className="text-[10px]">
-              {isInbound ? 'Recibido' : 'Enviado'}
-            </Badge>
-          </div>
-          {!isInbound && (
-            <p className="text-xs text-muted-foreground">Para: {message.to}</p>
-          )}
-          {message.cc && message.cc.length > 0 && (
-            <p className="text-xs text-muted-foreground">CC: {message.cc.join(', ')}</p>
-          )}
+      {/* Header — click to collapse */}
+      <button
+        type="button"
+        onClick={onToggle}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        aria-expanded={true}
+        className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/30 transition-colors rounded-t-lg"
+      >
+        <div className={cn(
+          'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white',
+          isInbound ? 'bg-blue-500' : 'bg-green-600',
+        )}>
+          {initials || <Mail className="h-3.5 w-3.5" />}
         </div>
-        <span className="shrink-0 text-[11px] text-muted-foreground">
-          {formatMessageTime(message.created_at)}
-        </span>
-      </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">{name}</span>
+            {statusLabel && <span className="shrink-0 text-[10px]">{statusLabel}</span>}
+          </div>
+          <button type="button" onClick={(e) => { e.stopPropagation(); setShowDetails(!showDetails); }}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+            {isInbound ? `Para: ${message.to}` : `Para: ${message.to}`}
+            {showDetails ? '' : ' ▾'}
+          </button>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="text-[11px] text-muted-foreground">{formatMessageTime(message.created_at)}</span>
+          {useIframe && (
+            <button type="button" onClick={(e) => { e.stopPropagation(); setFullscreenOpen(true); }}
+              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" title="Ver en grande">
+              <Maximize2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+        </div>
+      </button>
 
-      {/* Blocked images — only if visible part has them */}
-      {hasBlockedImages && !showImages && (
-        <button
-          type="button"
-          onClick={() => setShowImages(true)}
-          className="mb-2 flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1 text-xs text-amber-700 transition-colors hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:hover:bg-amber-950/50"
-        >
-          <Eye className="h-3.5 w-3.5" />
-          Mostrar imágenes externas
-        </button>
+      {/* Details dropdown */}
+      {showDetails && (
+        <div className="border-t bg-muted/30 px-4 py-2 text-xs text-muted-foreground space-y-0.5">
+          <p><span className="font-medium text-foreground">De:</span> {message.from_address || '—'}</p>
+          <p><span className="font-medium text-foreground">Para:</span> {message.to}</p>
+          {message.cc && message.cc.length > 0 && <p><span className="font-medium text-foreground">CC:</span> {message.cc.join(', ')}</p>}
+          <p><span className="font-medium text-foreground">Fecha:</span> {formatFullDate(message.created_at)}</p>
+          <p><span className="font-medium text-foreground">Asunto:</span> {message.subject}</p>
+        </div>
       )}
 
       {/* Body */}
-      {renderMode === 'iframe' && displayHtml ? (
-        <div className="relative">
-          <div
-            className={cn('overflow-hidden', isTruncated && 'relative')}
-            style={isTruncated ? { maxHeight: MAX_COLLAPSED_HEIGHT } : undefined}
-          >
+      <div className="px-3 pb-3 pt-1">
+        {/* Blocked images */}
+        {hasBlockedImages && !showImages && (
+          <button type="button" onClick={() => setShowImages(true)}
+            className="mb-2 flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1 text-xs text-amber-700 transition-colors hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400">
+            <Eye className="h-3.5 w-3.5" />Mostrar imágenes externas
+          </button>
+        )}
+
+        {/* Content */}
+        {useIframe && iframeHtml ? (
+          <div className={cn('rounded', needsScroll && 'overflow-y-auto')} style={needsScroll ? { maxHeight: MAX_IFRAME_HEIGHT } : undefined}>
             <iframe
               ref={iframeRef}
-              srcDoc={wrapHtmlForIframe(displayHtml, !showQuoted)}
+              srcDoc={buildIframeDoc(iframeHtml, !showQuoted, message.id)}
               sandbox="allow-popups allow-popups-to-escape-sandbox"
               className="w-full border-0"
-              style={{
-                height: iframeHeight ? `${showFull ? iframeHeight : Math.min(iframeHeight, MAX_COLLAPSED_HEIGHT)}px` : '40px',
-                minHeight: 24,
-                display: 'block',
-              }}
+              style={{ height: `${Math.min(iframeHeight, needsScroll ? iframeHeight : MAX_IFRAME_HEIGHT)}px`, display: 'block' }}
             />
-            {isTruncated && (
-              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card to-transparent" />
-            )}
           </div>
-          {isTruncated && (
-            <button
-              type="button"
-              onClick={() => setShowFull(true)}
-              className="mt-1 text-xs font-medium text-primary hover:underline"
-            >
-              Ver mensaje completo
-            </button>
-          )}
-        </div>
-      ) : textContent ? (
-        <div className="text-sm text-foreground leading-relaxed">
-          <div className="whitespace-pre-wrap">{isTextLong ? textContent.slice(0, 1500) : textContent}</div>
-          {isTextLong && (
-            <button
-              type="button"
-              onClick={() => setShowFull(true)}
-              className="mt-1 text-xs font-medium text-primary hover:underline"
-            >
-              Ver mensaje completo
-            </button>
-          )}
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground italic">(sin contenido)</p>
-      )}
-
-      {/* Show quoted toggle — right after the body text */}
-      {hasQuoted && !showQuoted && (
-        <button
-          type="button"
-          onClick={() => setShowQuoted(true)}
-          className="mt-1.5 flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted"
-        >
-          <MoreHorizontal className="h-3 w-3" />
-        </button>
-      )}
-
-      {/* Attachments */}
-      {attachments.length > 0 && (
-        <div className="mt-2.5 space-y-1.5">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <Paperclip className="h-3 w-3" />
-            {attachments.length} adjunto{attachments.length > 1 ? 's' : ''}
+        ) : (textContent || fullText) ? (
+          <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+            {showQuoted ? (fullText || textContent) : textContent}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {attachments.map((att) => (
-              <AttachmentChip key={att.id} attachment={att} />
-            ))}
-          </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-sm text-muted-foreground italic">(Sin contenido)</p>
+        )}
 
-      {/* Status */}
-      {message.status === 'failed' && (
-        <div className="mt-2 flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400">
-          <XCircle className="h-3.5 w-3.5" />
-          Error al enviar{message.error ? `: ${message.error}` : ''}
+        {/* Show quoted toggle */}
+        {hasQuoted && !showQuoted && (
+          <button type="button" onClick={() => setShowQuoted(true)}
+            className="mt-1 inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted transition-colors">
+            <MoreHorizontal className="h-3 w-3" />
+          </button>
+        )}
+
+        {/* Attachments */}
+        {attachments.length > 0 && (
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Paperclip className="h-3 w-3" />{attachments.length} adjunto{attachments.length !== 1 ? 's' : ''}
+            </div>
+            <div className="flex flex-wrap gap-1.5">{attachments.map((a) => <AttachmentChip key={a.id} attachment={a} />)}</div>
+          </div>
+        )}
+
+        {/* Reply button */}
+        <div className="mt-2 flex items-center gap-2">
+          <button type="button" onClick={onReply}
+            className="flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+            <Reply className="h-3 w-3" />Responder
+          </button>
         </div>
-      )}
-      {message.status === 'delivered' && message.direction === 'out' && (
-        <div className="mt-2 flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          Entregado
-        </div>
+      </div>
+
+      {/* Fullscreen modal */}
+      {fullscreenOpen && iframeHtml && (
+        <ResponsiveDialog open={fullscreenOpen} onOpenChange={setFullscreenOpen} title={message.subject} size="xl">
+          <iframe
+            srcDoc={buildIframeDoc(iframeHtml, false, `${message.id}-full`)}
+            sandbox="allow-popups allow-popups-to-escape-sandbox"
+            className="w-full border-0"
+            style={{ height: 'calc(80vh - 80px)', display: 'block' }}
+          />
+        </ResponsiveDialog>
       )}
     </div>
   );
 }
 
-function wrapHtmlForIframe(html: string, hideQuotes: boolean = false): string {
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; color: #333; margin: 0; padding: 0; word-wrap: break-word; overflow-wrap: break-word; }
-    img { max-width: 100%; height: auto; }
-    a { color: #2563eb; }
-    table { max-width: 100%; }
-    ${hideQuotes ? QUOTE_HIDE_CSS : ''}
-  </style>
-</head>
+// -------------------------------------------------------
+// Iframe document builder
+// -------------------------------------------------------
+
+function buildIframeDoc(html: string, hideQuotes: boolean, msgId: string): string {
+  return `<!DOCTYPE html><html><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;color:#333;margin:0;padding:4px;word-wrap:break-word;overflow-wrap:break-word}
+img{max-width:100%;height:auto}a{color:#2563eb}table{max-width:100%}
+${hideQuotes ? QUOTE_HIDE_CSS : ''}
+</style></head>
 <body${hideQuotes ? '' : ' class="posty-show-quoted"'}>${html}
 <script>
-  function reportHeight() {
-    var h = document.documentElement.scrollHeight || document.body.scrollHeight;
-    parent.postMessage({ type: 'posty-iframe-height', height: h }, '*');
-  }
-  reportHeight();
-  new ResizeObserver(reportHeight).observe(document.body);
-</script>
-</body>
-</html>`;
+function r(){var h=document.documentElement.scrollHeight||document.body.scrollHeight;parent.postMessage({type:'posty-iframe-height',height:h,msgId:'${msgId}'},'*')}
+r();new ResizeObserver(r).observe(document.body);
+</script></body></html>`;
 }
 
 // -------------------------------------------------------
@@ -868,37 +694,20 @@ function wrapHtmlForIframe(html: string, hideQuotes: boolean = false): string {
 
 function AttachmentChip({ attachment }: { attachment: StoredAttachment }) {
   const [loading, setLoading] = useState(false);
-
   const handleDownload = async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/email/attachments?path=${encodeURIComponent(attachment.storage_path)}`);
       const data = await res.json();
-      if (data.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
+      if (data.url) window.open(data.url, '_blank');
+    } catch { /* ignore */ } finally { setLoading(false); }
   };
-
-  const sizeLabel = attachment.size < 1024
-    ? `${attachment.size} B`
-    : attachment.size < 1024 * 1024
-      ? `${(attachment.size / 1024).toFixed(0)} KB`
-      : `${(attachment.size / (1024 * 1024)).toFixed(1)} MB`;
-
+  const sizeLabel = attachment.size < 1024 ? `${attachment.size} B` : attachment.size < 1048576 ? `${(attachment.size / 1024).toFixed(0)} KB` : `${(attachment.size / 1048576).toFixed(1)} MB`;
   return (
-    <button
-      type="button"
-      onClick={handleDownload}
-      disabled={loading}
-      className="flex items-center gap-1.5 rounded-md border bg-muted/50 px-2.5 py-1.5 text-xs transition-colors hover:bg-muted"
-    >
+    <button type="button" onClick={handleDownload} disabled={loading}
+      className="flex items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-1 text-[11px] transition-colors hover:bg-muted">
       <Download className="h-3 w-3 text-muted-foreground" />
-      <span className="max-w-[140px] truncate">{attachment.filename}</span>
+      <span className="max-w-[120px] truncate">{attachment.filename}</span>
       <span className="text-muted-foreground">({sizeLabel})</span>
     </button>
   );
@@ -911,9 +720,7 @@ function AttachmentChip({ attachment }: { attachment: StoredAttachment }) {
 function EmptyState() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-        <Mail className="h-7 w-7 text-muted-foreground" />
-      </div>
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted"><Mail className="h-7 w-7 text-muted-foreground" /></div>
       <div>
         <h3 className="font-heading text-sm font-semibold">Selecciona un correo</h3>
         <p className="text-xs text-muted-foreground">Elige un hilo de la lista para ver sus mensajes</p>
