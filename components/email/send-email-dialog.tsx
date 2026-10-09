@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, AlertTriangle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,6 +71,7 @@ export function SendEmailDialog({
   const orgId = profile?.organization_id ?? null;
   const { data: suppression } = useEmailSuppression(guestEmail, orgId);
   const sendEmail = useSendEmail();
+  const router = useRouter();
 
   const form = useForm<SendEmailForm>({
     resolver: zodResolver(sendEmailSchema),
@@ -82,12 +85,21 @@ export function SendEmailDialog({
         to: guestEmail,
         subject: values.subject,
         body: values.body,
-        guestName: guestName.split(' ')[0], // First name for greeting
+        guestName: guestName.split(' ')[0],
+        source: 'guest_profile',
       },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           form.reset();
           onOpenChange(false);
+          toast.success('Correo enviado', {
+            action: data.threadId
+              ? {
+                  label: 'Ver en Correo',
+                  onClick: () => router.push(`/correo?thread=${data.threadId}`),
+                }
+              : undefined,
+          });
         },
       },
     );

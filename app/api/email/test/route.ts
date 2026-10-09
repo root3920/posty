@@ -1,6 +1,6 @@
 import { getServerProfile } from '@/lib/auth/get-profile';
-import { getEmailProvider, buildFromAddress, isEmailConfigured } from '@/lib/email/provider';
-import { TestEmail, testEmailText } from '@/lib/email/templates/test-email';
+import { isEmailConfigured } from '@/lib/email/provider';
+import { sendHotelEmail } from '@/lib/email/send';
 import { z } from 'zod';
 
 const testSchema = z.object({
@@ -28,23 +28,19 @@ export async function POST(request: Request) {
       return Response.json({ error: input.error.issues[0].message }, { status: 400 });
     }
 
-    const provider = getEmailProvider();
-    const fromAddress = buildFromAddress(org.name);
-
-    const result = await provider.send({
+    const result = await sendHotelEmail({
+      orgId: profile.organization_id,
+      org,
+      sentBy: profile.id,
       to: input.data.to,
       subject: `Correo de prueba — ${org.name}`,
-      from: fromAddress,
-      replyTo: org.contact_email || undefined,
-      react: TestEmail({
-        hotelName: org.name,
-        logoUrl: org.logo_url,
-        brandColor: org.brand_color || undefined,
-      }),
-      text: testEmailText(org.name),
+      body: 'Este es un correo de prueba enviado desde POSTY para verificar la configuración.',
+      source: 'test',
+      template: 'test',
+      skipChecks: true,
     });
 
-    return Response.json({ ok: true, id: result.id });
+    return Response.json({ ok: true, id: result.id, threadId: result.threadId });
   } catch (error) {
     console.error('Error al enviar correo de prueba:', error);
     const msg = error instanceof Error ? error.message : 'No se pudo enviar el correo de prueba. Intenta de nuevo.';

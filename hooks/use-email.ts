@@ -5,9 +5,6 @@ import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/hooks/use-profile';
 import { toast } from 'sonner';
 
-// NOTE: email_messages and email_suppressions tables added in migration
-// 20261007100000_email_module.sql. Types will be regenerated after db push.
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ─── Guest email history ────────────────────────────────────────────────
@@ -19,7 +16,7 @@ export function useGuestEmails(guestId: string | null) {
       const supabase = createClient() as any;
       const { data, error } = await supabase
         .from('email_messages')
-        .select('id, to, subject, template, status, error, created_at, sent_by')
+        .select('id, to, subject, template, status, error, created_at, sent_by, source, thread_id')
         .eq('guest_id', guestId!)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -27,7 +24,7 @@ export function useGuestEmails(guestId: string | null) {
       return (data ?? []) as Array<{
         id: string; to: string; subject: string; template: string;
         status: string; error: string | null; created_at: string;
-        sent_by: string | null;
+        sent_by: string | null; source: string | null; thread_id: string | null;
       }>;
     },
     enabled: !!guestId,
@@ -64,26 +61,40 @@ interface SendEmailInput {
   subject: string;
   body: string;
   guestName: string;
+  source?: string;
+}
+
+interface SendEmailResult {
+  id: string;
+  threadId: string;
+  providerId: string;
+  status: string;
 }
 
 export function useSendEmail() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: SendEmailInput) => {
+    mutationFn: async (input: SendEmailInput): Promise<SendEmailResult> => {
       const idempotencyKey = `${input.guestId}-${Date.now()}`;
       const res = await fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...input, idempotencyKey }),
+        body: JSON.stringify({
+          ...input,
+          source: input.source || 'guest_profile',
+          idempotencyKey,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Error al enviar correo');
       return data;
     },
-    onSuccess: (_data: any, variables: SendEmailInput) => {
-      toast.success('Correo enviado');
+    onSuccess: (_data: SendEmailResult, variables: SendEmailInput) => {
       queryClient.invalidateQueries({ queryKey: ['guest_emails', variables.guestId] });
+      queryClient.invalidateQueries({ queryKey: ['email_threads'] });
+      queryClient.invalidateQueries({ queryKey: ['guest_email_threads', variables.guestId] });
+      queryClient.invalidateQueries({ queryKey: ['email_unread_count'] });
     },
     onError: (error: Error) => {
       toast.error(error.message);

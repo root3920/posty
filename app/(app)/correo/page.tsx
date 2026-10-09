@@ -110,6 +110,18 @@ function senderDisplayName(msg: EmailMessage): string {
   return msg.from_address.split('@')[0] ?? msg.from_address;
 }
 
+function sourceLabel(source: string | null): string | null {
+  switch (source) {
+    case 'guest_profile': return 'Desde ficha del huésped';
+    case 'automation': return 'Automático';
+    case 'contract': return 'Contrato';
+    case 'reservation': return 'Reserva';
+    case 'event': return 'Evento';
+    case 'test': return 'Prueba';
+    default: return null;
+  }
+}
+
 // -------------------------------------------------------
 // Filter types
 // -------------------------------------------------------
@@ -426,6 +438,12 @@ function MessageCard({ message, isExpanded, onToggle, onReply }: {
     null
   ) : null;
 
+  // Source label for non-manual emails
+  const srcLabel = sourceLabel(message.source);
+  const sourceBadge = srcLabel ? (
+    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{srcLabel}</span>
+  ) : null;
+
   // ── COLLAPSED ──
   if (!isExpanded) {
     return (
@@ -452,6 +470,7 @@ function MessageCard({ message, isExpanded, onToggle, onReply }: {
           <div className="flex items-center gap-2">
             <span className="truncate text-sm font-medium">{name}</span>
             {statusLabel && <span className="shrink-0 text-[10px]">{statusLabel}</span>}
+            {sourceBadge}
           </div>
           <p className="truncate text-xs text-muted-foreground">{preview}</p>
         </div>
@@ -467,12 +486,12 @@ function MessageCard({ message, isExpanded, onToggle, onReply }: {
 
   // ── EXPANDED ──
   return <ExpandedMessageCard message={message} name={name} initials={initials} isInbound={isInbound}
-    attachments={attachments} statusLabel={statusLabel} onToggle={onToggle} onReply={onReply} />;
+    attachments={attachments} statusLabel={statusLabel} sourceBadge={sourceBadge} onToggle={onToggle} onReply={onReply} />;
 }
 
-function ExpandedMessageCard({ message, name, initials, isInbound, attachments, statusLabel, onToggle, onReply }: {
+function ExpandedMessageCard({ message, name, initials, isInbound, attachments, statusLabel, sourceBadge, onToggle, onReply }: {
   message: EmailMessage; name: string; initials: string; isInbound: boolean;
-  attachments: StoredAttachment[]; statusLabel: React.ReactNode;
+  attachments: StoredAttachment[]; statusLabel: React.ReactNode; sourceBadge: React.ReactNode;
   onToggle: () => void; onReply: () => void;
 }) {
   const [showQuoted, setShowQuoted] = useState(false);
@@ -568,6 +587,7 @@ function ExpandedMessageCard({ message, name, initials, isInbound, attachments, 
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">{name}</span>
             {statusLabel && <span className="shrink-0 text-[10px]">{statusLabel}</span>}
+            {sourceBadge}
           </div>
           <button type="button" onClick={(e) => { e.stopPropagation(); setShowDetails(!showDetails); }}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors">

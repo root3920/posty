@@ -46,6 +46,7 @@ export interface EmailMessage {
   error: string | null;
   provider_id: string | null;
   sent_by: string | null;
+  source: string | null;
   created_at: string;
 }
 
